@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// ---------------- DATA_MODEL ----------------
 class Student {
   final String imageUrl;
   final String name;
@@ -15,7 +14,6 @@ class Student {
   });
 }
 
-// ---------------- MAIN APP ----------------
 void main() {
   runApp(const MyApp());
 }
@@ -37,7 +35,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ---------------- GIAO DIỆN TRANG CHỦ (GRID VIEW GỌN GÀNG) ----------------
 class StudentIntroductionPage extends StatelessWidget {
   const StudentIntroductionPage({super.key});
 
@@ -45,7 +42,6 @@ class StudentIntroductionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<Student> students = [
       Student(
-        // Đã thêm đường dẫn thư mục chuẩn xác
         imageUrl: 'assets/images/Mẹ.jpg',
         name: 'Dương Văn Thành',
         studentId: '20221018',
@@ -111,7 +107,6 @@ class StudentIntroductionPage extends StatelessWidget {
   }
 }
 
-// ---------------- THẺ THÔNG TIN SIÊU GỌN ----------------
 class StudentCompactCard extends StatelessWidget {
   final Student student;
 
@@ -132,16 +127,14 @@ class StudentCompactCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            // Avatar thu nhỏ gọn gàng
             ClipRRect(
               borderRadius: BorderRadius.circular(30.0),
-              // ĐÃ ĐỔI TỪ Image.network SANG Image.asset
+
               child: Image.asset(
                 student.imageUrl,
                 width: 55,
                 height: 55,
                 fit: BoxFit.cover,
-                // Dự phòng trường hợp gõ sai tên file ảnh
                 errorBuilder: (context, error, stackTrace) => const Icon(
                   Icons.person,
                   size: 55,
@@ -151,7 +144,6 @@ class StudentCompactCard extends StatelessWidget {
             ),
             const SizedBox(height: 8.0),
 
-            // Tên
             Text(
               student.name,
               textAlign: TextAlign.center,
@@ -165,7 +157,6 @@ class StudentCompactCard extends StatelessWidget {
             ),
             const SizedBox(height: 2.0),
 
-            // MSSV
             Text(
               student.studentId,
               style: TextStyle(
@@ -174,8 +165,6 @@ class StudentCompactCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4.0),
-
-            // Vị trí
             Text(
               student.position,
               style: TextStyle(
