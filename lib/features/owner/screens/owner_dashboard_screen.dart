@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:quynh/auth/auth_service.dart';
 import 'package:quynh/features/owner/screens/add_court_screen.dart';
 import 'package:quynh/features/owner/screens/owner_courts_screen.dart';
+import 'package:quynh/features/shop/screens/owner_shop_management_screen.dart';
+import 'package:quynh/features/shop/screens/owner_order_management_screen.dart';
 
 class OwnerDashboardScreen extends StatelessWidget {
   const OwnerDashboardScreen({super.key});
@@ -95,6 +97,32 @@ class OwnerDashboardScreen extends StatelessWidget {
               color: Colors.amber,
               onTap: () {
                 // TODO: Xem đánh giá
+              },
+            ),
+
+            const SizedBox(height: 16),
+            const Text('Quản lý Cửa hàng', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+
+            _buildMenuOption(
+              context,
+              icon: Icons.inventory_2_rounded,
+              title: 'Quản lý Sản phẩm',
+              subtitle: 'Thêm, sửa, xóa sản phẩm trong shop',
+              color: Colors.deepOrange,
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const OwnerShopManagementScreen()));
+              },
+            ),
+
+            _buildMenuOption(
+              context,
+              icon: Icons.local_shipping_rounded,
+              title: 'Quản lý Đơn hàng',
+              subtitle: 'Xem và xử lý thông tin người mua',
+              color: Colors.indigo,
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const OwnerOrderManagementScreen()));
               },
             ),
           ],

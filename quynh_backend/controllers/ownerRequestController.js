@@ -8,13 +8,22 @@ exports.submitRequest = async (req, res) => {
       return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin hồ sơ và CCCD.' });
     }
 
+    // Kiểm tra xem đã có chủ sân nào chưa
+    const [owners] = await db.query('SELECT id FROM users WHERE role = "owner"');
+    if (owners.length > 0) {
+      return res.status(403).json({ message: 'Hệ thống đã có chủ sân. Không thể đăng ký thêm.' });
+    }
+
+    // Tự động nâng cấp thành chủ sân
+    await db.query("UPDATE users SET role = 'owner' WHERE id = ?", [userId]);
+
     const sql = `
-      INSERT INTO owner_requests (user_id, court_name, court_address, cccd_front, cccd_back)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO owner_requests (user_id, court_name, court_address, cccd_front, cccd_back, status)
+      VALUES (?, ?, ?, ?, ?, 'approved')
     `;
     await db.query(sql, [userId, courtName, courtAddress, cccdFront, cccdBack]);
     
-    res.status(201).json({ message: 'Yêu cầu của bạn đã được gửi. Vui lòng chờ quản trị viên phê duyệt.' });
+    res.status(201).json({ message: 'Chúc mừng! Bạn đã đăng ký thành công và trở thành chủ sân duy nhất.' });
   } catch (err) {
     console.error('Error submitting owner request:', err);
     res.status(500).json({ message: 'Lỗi server khi gửi yêu cầu', error: err.message });

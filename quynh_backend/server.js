@@ -20,6 +20,10 @@ app.use('/api/courts', courtRoutes);
 const matchmakingRoutes = require('./routes/matchmakingRoutes');
 app.use('/api/matchmaking', matchmakingRoutes);
 
+
+const productRoutes = require('./routes/productRoutes');
+app.use('/api/products', productRoutes);
+
 const ownerRequestRoutes = require('./routes/ownerRequestRoutes');
 app.use('/api/owner-requests', ownerRequestRoutes);
 

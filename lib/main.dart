@@ -11,12 +11,12 @@ import 'package:quynh/models/badminton_court.dart';
 import 'package:quynh/services/location_service.dart';
 import 'package:quynh/models/booking.dart';
 import 'package:intl/intl.dart';
-import 'package:quynh/features/owner/screens/admin_dashboard_screen.dart';
 import 'package:quynh/features/owner/screens/owner_registration_screen.dart';
 import 'package:quynh/services/api_booking_service.dart';
 import 'package:quynh/theme/app_theme.dart';
 import 'package:quynh/features/owner/screens/owner_dashboard_screen.dart';
 import 'package:quynh/services/court_service.dart';
+import 'package:quynh/features/shop/screens/shop_screen.dart';
 
 void main() {
   runApp(
@@ -552,6 +552,7 @@ class FeatureSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthService>(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
       child: Column(
@@ -570,7 +571,6 @@ class FeatureSection extends StatelessWidget {
                 subtitle: 'Nhanh & tiện lợi',
                 gradient: AppTheme.warmGradient,
                 onTap: () {
-                  final auth = Provider.of<AuthService>(context, listen: false);
                   if (auth.isAuthenticated) {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const BookingScreen()));
                   } else {
@@ -585,7 +585,6 @@ class FeatureSection extends StatelessWidget {
                 subtitle: 'Chơi cùng bạn bè',
                 gradient: AppTheme.matchmakingGradient,
                 onTap: () {
-                  final auth = Provider.of<AuthService>(context, listen: false);
                   if (auth.isAuthenticated) {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const MatchmakingScreen()));
                   } else {
@@ -599,23 +598,20 @@ class FeatureSection extends StatelessWidget {
           Row(
             children: [
               Expanded(child: FeatureCard(
-                icon: Icons.store_rounded,
-                title: 'Chủ sân',
-                subtitle: 'Quản lý kinh doanh',
-                gradient: AppTheme.ownerGradient,
+                icon: auth.user?.role == 'owner' ? Icons.store_rounded : Icons.shopping_bag_rounded,
+                title: auth.user?.role == 'owner' ? 'Quản lý' : 'Cửa hàng',
+                subtitle: auth.user?.role == 'owner' ? 'Quản lý sân của bạn' : 'Phụ kiện cầu lông',
+                gradient: auth.user?.role == 'owner' ? AppTheme.ownerGradient : const LinearGradient(colors: [Color(0xFF6441A5), Color(0xFF2a0845)]),
                 onTap: () {
-                  final auth = Provider.of<AuthService>(context, listen: false);
                   if (!auth.isAuthenticated) {
                     showLoginRequiredDialog(context);
                     return;
                   }
                   
-                  if (auth.user?.role == 'admin') {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
-                  } else if (auth.user?.role == 'owner') {
+                  if (auth.user?.role == 'owner') {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const OwnerDashboardScreen()));
                   } else {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const OwnerRegistrationScreen()));
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ShopScreen()));
                   }
                 },
               )),
@@ -630,6 +626,16 @@ class FeatureSection extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showComingSoon(BuildContext context, String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Tính năng $feature đang được phát triển!'),
+        backgroundColor: AppTheme.primary,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

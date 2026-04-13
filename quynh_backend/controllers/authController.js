@@ -75,6 +75,12 @@ exports.upgradeToOwner = async (req, res) => {
   }
 
   try {
+    // Kiểm tra xem đã có chủ sân nào chưa
+    const [owners] = await db.query('SELECT id FROM users WHERE role = "owner"');
+    if (owners.length > 0) {
+      return res.status(403).json({ message: 'Hệ thống đã có chủ sân duy nhất. Không thể nâng cấp thêm.' });
+    }
+
     const [result] = await db.query(
       'UPDATE users SET role = "owner" WHERE id = ?',
       [userId]
@@ -84,7 +90,7 @@ exports.upgradeToOwner = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy người dùng.' });
     }
 
-    res.json({ message: 'Nâng cấp tài khoản thành công!' });
+    res.json({ message: 'Bạn đã trở thành chủ sân duy nhất của hệ thống!' });
   } catch (err) {
     res.status(500).json({ message: 'Lỗi server khi nâng cấp', error: err.message });
   }

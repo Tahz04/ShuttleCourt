@@ -85,7 +85,7 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
             const SizedBox(height: 20),
             const Center(
               child: Text(
-                'Lưu ý: Yêu cầu sẽ được phê duyệt bởi quản trị viên trong vòng 24h.',
+                'Lưu ý: Hệ thống chỉ cho phép duy nhất 1 người làm chủ sân.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
               ),
@@ -169,7 +169,7 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
       if (response.statusCode == 201) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Gửi yêu cầu thành công! Vui lòng chờ phê duyệt.'), backgroundColor: AppTheme.success),
+          const SnackBar(content: Text('✅ Chúc mừng! Bạn đã trở thành chủ sân duy nhất.'), backgroundColor: AppTheme.success),
         );
         Navigator.pop(context);
       } else {
