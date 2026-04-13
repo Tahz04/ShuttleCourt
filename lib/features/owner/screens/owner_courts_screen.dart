@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:quynh/auth/auth_service.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:quynh/config/api_config.dart';
+import 'package:quynh/theme/app_theme.dart';
 
 class OwnerCourtsScreen extends StatefulWidget {
   const OwnerCourtsScreen({super.key});
@@ -37,11 +38,7 @@ class _OwnerCourtsScreenState extends State<OwnerCourtsScreen> {
       return;
     }
 
-    // Tự động nhận diện Web hoặc Điện thoại
-    final String myIp = '10.121.66.20';
-    final String apiUrl = kIsWeb
-        ? 'http://localhost:3000/api/courts/owner/${user.id}'
-        : 'http://$myIp:3000/api/courts/owner/${user.id}';
+    final String apiUrl = '${ApiConfig.courtsUrl}/owner/${user.id}';
 
     try {
       final response = await http.get(Uri.parse(apiUrl));

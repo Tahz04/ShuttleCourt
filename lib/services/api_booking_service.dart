@@ -1,23 +1,11 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:quynh/models/booking.dart';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:quynh/config/api_config.dart';
 
 class ApiBookingService {
 
-  // 🔥 Tự động chọn đúng host theo môi trường
-  static String get baseHost {
-    if (kIsWeb) {
-      return 'localhost'; // Flutter Web
-    } else if (Platform.isAndroid) {
-      return '10.0.2.2'; // Android Emulator
-    } else {
-      return '192.168.2.36';
-    }
-  }
-
-  static String get baseUrl => 'http://$baseHost:3000/api/bookings';
+  static String get baseUrl => ApiConfig.bookingsUrl;
 
   // ================= CREATE BOOKING =================
   static Future<void> createBooking(int userId, Booking booking) async {

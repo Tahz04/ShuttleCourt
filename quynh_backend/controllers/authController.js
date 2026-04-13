@@ -42,7 +42,13 @@ exports.login = async (req, res) => {
     }
     // Tạo token (JWT)
     const token = jwt.sign(
-      { id: user[0].id, email: user[0].email, fullName: user[0].full_name, phone: user[0].phone },
+      { 
+        id: user[0].id, 
+        email: user[0].email, 
+        fullName: user[0].full_name, 
+        phone: user[0].phone,
+        role: user[0].role // Thêm role vào token
+      },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
@@ -53,10 +59,52 @@ exports.login = async (req, res) => {
         id: user[0].id,
         email: user[0].email,
         fullName: user[0].full_name,
-        phone: user[0].phone
+        phone: user[0].phone,
+        role: user[0].role // Thêm role vào phản hồi
       }
     });
   } catch (err) {
+    res.status(500).json({ message: 'Lỗi server', error: err.message });
+  }
+};
+
+exports.upgradeToOwner = async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) {
+    return res.status(400).json({ message: 'Thiếu ID người dùng.' });
+  }
+
+  try {
+    const [result] = await db.query(
+      'UPDATE users SET role = "owner" WHERE id = ?',
+      [userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng.' });
+    }
+
+    res.json({ message: 'Nâng cấp tài khoản thành công!' });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi server khi nâng cấp', error: err.message });
+  }
+};
+
+exports.getOwners = async (req, res) => {
+  console.log('--- Đang lấy danh sách chủ sân ---');
+  try {
+    const sql = `
+      SELECT u.id, u.full_name as fullName, u.email, u.phone,
+             GROUP_CONCAT(c.name SEPARATOR ', ') as courts
+      FROM users u
+      LEFT JOIN courts c ON u.id = c.owner_id
+      WHERE u.role = 'owner'
+      GROUP BY u.id
+    `;
+    const [result] = await db.query(sql);
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching owners:', err);
     res.status(500).json({ message: 'Lỗi server', error: err.message });
   }
 };

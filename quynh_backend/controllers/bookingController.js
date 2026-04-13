@@ -63,3 +63,19 @@ exports.getBookingsByUser = async (req, res) => {
         });
     }
 };
+
+exports.getAllBookings = async (req, res) => {
+    try {
+        const sql = `
+            SELECT b.*, u.full_name as user_name 
+            FROM bookings b
+            JOIN users u ON b.user_id = u.id
+            ORDER BY b.created_at DESC
+        `;
+        const [result] = await db.query(sql);
+        res.status(200).json(result);
+    } catch (err) {
+        console.error('Database error:', err);
+        res.status(500).json({ message: "Failed to fetch all bookings", error: err.message });
+    }
+};

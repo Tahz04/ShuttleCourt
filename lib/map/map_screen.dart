@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -5,7 +6,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:quynh/models/badminton_court.dart';
-import 'package:flutter/foundation.dart' show kIsWeb; // <-- Thêm thư viện nhận diện Web
+import 'package:quynh/config/api_config.dart';
+import 'package:quynh/theme/app_theme.dart';
 
 class MapScreen extends StatefulWidget {
   final String? searchQuery;
@@ -21,437 +23,708 @@ class MapScreen extends StatefulWidget {
   State<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> {
-  // Danh sách chứa dữ liệu thật từ Database
+class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   List<BadmintonCourt> allCourtsFromDB = [];
   List<BadmintonCourt> filteredCourts = [];
   BadmintonCourt? selectedCourt;
 
   final MapController mapController = MapController();
-
   double? userLat;
   double? userLng;
-  bool isSearching = false;
-  String currentKeyword = '';
-  static final LatLng center = LatLng(21.0285, 105.8542);
-
-  List<Marker> markers = [];
-
-  // Polyline cho đường đi
+  bool isLoading = true;
   List<LatLng> routePoints = [];
+  double? routeDistanceKm;
+  int? routeDurationMin;
+  bool isLoadingRoute = false;
+  static const LatLng defaultCenter = LatLng(21.0285, 105.8542);
+
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  late AnimationController _routeInfoController;
+  late Animation<double> _routeInfoSlideAnimation;
 
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
-    _fetchAllCourts();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _routeInfoController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _routeInfoSlideAnimation = CurvedAnimation(
+      parent: _routeInfoController,
+      curve: Curves.easeOutCubic,
+    );
+
+    _initMap();
   }
 
-  // Hàm "hút" dữ liệu sân thật từ Backend
-  Future<void> _fetchAllCourts() async {
-    final String myIp = '10.121.66.20';
-    final String apiUrl = kIsWeb
-        ? 'http://localhost:3000/api/courts/all'
-        : 'http://$myIp:3000/api/courts/all';
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _routeInfoController.dispose();
+    super.dispose();
+  }
 
+  Future<void> _initMap() async {
+    // Run both tasks in parallel to speed up initial load
+    await Future.wait([
+      _getCurrentLocation(),
+      _fetchAllCourts(),
+    ]);
+  }
+
+  Future<void> _fetchAllCourts() async {
+    final String apiUrl = '${ApiConfig.courtsUrl}/all';
     try {
-      final response = await http.get(Uri.parse(apiUrl));
+      final response = await http.get(Uri.parse(apiUrl)).timeout(ApiConfig.connectionTimeout);
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-
-        // Chuyển đổi dữ liệu JSON thành Object BadmintonCourt
         final List<BadmintonCourt> loadedCourts = data.map((json) {
           return BadmintonCourt(
             id: json['id'].toString(),
-            name: json['name'] ?? 'Chưa có tên',
-            address: json['address'] ?? 'Chưa có địa chỉ',
-            latitude: double.tryParse(json['latitude'].toString()) ?? 0.0,
-            longitude: double.tryParse(json['longitude'].toString()) ?? 0.0,
-            pricePerHour: double.tryParse(json['price_per_hour'].toString()) ?? 0.0,
-            phone: 'Liên hệ qua App', // Mặc định nếu DB chưa có
-            rating: 5.0,
-            reviews: 0,
-            amenities: ['Wifi', 'Chỗ để xe'],
+            name: json['name'] ?? 'Sân Cầu Lông',
+            address: json['address'] ?? 'Đang cập nhật địa chỉ',
+            latitude: double.tryParse(json['latitude']?.toString() ?? '0') ?? 0.0,
+            longitude: double.tryParse(json['longitude']?.toString() ?? '0') ?? 0.0,
+            pricePerHour: double.tryParse(json['price_per_hour']?.toString() ?? '0') ?? 0.0,
+            phone: json['phone'] ?? 'Liên hệ qua App',
+            rating: json['rating']?.toDouble() ?? 4.5,
+            reviews: json['reviews']?.toInt() ?? 10,
+            amenities: ['Wifi', 'Gửi xe', 'Nước uống'],
           );
         }).toList();
 
-        setState(() {
-          allCourtsFromDB = loadedCourts;
-        });
-
-        // Xử lý tự động tìm kiếm và Zoom nếu được gọi từ màn hình khác sang
-        if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
-          _search(widget.searchQuery!);
-        } else {
-          _filterNearbyCourts();
+        if (mounted) {
+          setState(() {
+            allCourtsFromDB = loadedCourts;
+            isLoading = false;
+          });
+          if (widget.searchQuery != null && widget.searchQuery!.isNotEmpty) {
+            _search(widget.searchQuery!);
+          } else {
+            _filterNearbyCourts();
+          }
         }
+      } else {
+        // Handle non-200 responses
+        if (mounted) setState(() => isLoading = false);
       }
     } catch (e) {
-      print('Lỗi tải dữ liệu bản đồ: $e');
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
-  void _zoomToFirstResult() {
+  Future<void> _getCurrentLocation() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+        final position = await Geolocator.getCurrentPosition();
+        if (mounted) {
+          setState(() {
+            userLat = position.latitude;
+            userLng = position.longitude;
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _filterNearbyCourts() {
+    setState(() {
+      if (userLat != null && userLng != null && !widget.isGlobalSearch) {
+        filteredCourts = allCourtsFromDB.where((c) => c.distanceTo(userLat!, userLng!) <= 10).toList();
+        filteredCourts.sort((a, b) => a.distanceTo(userLat!, userLng!).compareTo(b.distanceTo(userLat!, userLng!)));
+      } else {
+        filteredCourts = allCourtsFromDB;
+      }
+    });
+  }
+
+  void _search(String query) {
+    setState(() {
+      filteredCourts = allCourtsFromDB.where((court) =>
+          court.name.toLowerCase().contains(query.toLowerCase()) ||
+          court.address.toLowerCase().contains(query.toLowerCase())).toList();
+    });
+
     if (filteredCourts.isNotEmpty) {
       final first = filteredCourts.first;
-      mapController.move(
-        LatLng(first.latitude, first.longitude),
-        14,
-      );
-    }
-  }
-
-  /// 📍 LẤY VỊ TRÍ USER THẬT TỪ GPS THIẾT BỊ (ĐÃ ĐƯỢC NÂNG CẤP)
-  Future<void> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // 1. Kiểm tra xem dịch vụ GPS trên máy đã bật chưa
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vui lòng bật dịch vụ Vị trí (GPS) trên thiết bị.')),
-        );
-      }
-      return;
-    }
-
-    // 2. Kiểm tra và xin quyền truy cập vị trí
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ứng dụng bị từ chối quyền truy cập vị trí.')),
-          );
-        }
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Quyền vị trí bị từ chối vĩnh viễn. Không thể lấy vị trí hiện tại.')),
-        );
-      }
-      return;
-    }
-
-    // 3. Lấy tọa độ thực tế (Độ chính xác cao)
-    try {
-      final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high
-      );
-
-      // Cập nhật State
-      if (mounted) {
-        setState(() {
-          userLat = position.latitude;
-          userLng = position.longitude;
-        });
-
-        // 4. Zoom bản đồ về vị trí của bạn và lọc sân
-        if (!isSearching && allCourtsFromDB.isNotEmpty) {
-          _filterNearbyCourts();
-          mapController.move(
-            LatLng(userLat!, userLng!),
-            14,
-          );
-        } else {
-          _initializeMarkers();
-        }
-      }
-    } catch (e) {
-      print("Lỗi khi lấy GPS: $e");
-    }
-  }
-
-  /// 🔥 LỌC 5KM
-  void _filterNearbyCourts() {
-    if (userLat == null || userLng == null) return;
-
-    setState(() {
-      filteredCourts = allCourtsFromDB.where((court) {
-        if (widget.isGlobalSearch) return true; // không giới hạn
-
-        final distance = court.distanceTo(userLat!, userLng!);
-        return distance <= 5;
-      }).toList();
-
-      // sort
-      if (userLat != null && userLng != null) {
-        filteredCourts.sort((a, b) =>
-            a.distanceTo(userLat!, userLng!)
-                .compareTo(b.distanceTo(userLat!, userLng!)));
-      }
-    });
-
-    _initializeMarkers();
-  }
-
-  /// 🔥 MARKER
-  void _initializeMarkers() {
-    final List<Marker> newMarkers = [];
-
-    // 👉 marker sân
-    for (var court in allCourtsFromDB) {
-      final isSelected = selectedCourt?.id == court.id;
-
-      newMarkers.add(
-        Marker(
-          point: LatLng(court.latitude, court.longitude),
-          width: 80,
-          height: 80,
-          child: GestureDetector(
-            onTap: () {
-              setState(() {
-                selectedCourt = court;
-              });
-
-              _moveToCourt(court);
-              _showCourtDetails(context, court);
-              _initializeMarkers();
-            },
-            child: Column(
-              children: [
-                Icon(
-                  Icons.location_on,
-                  size: 35,
-                  color: isSelected ? Colors.red : Colors.green,
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  color: Colors.white,
-                  child: Text(
-                    '${(court.pricePerHour / 1000).toStringAsFixed(0)}k',
-                    style: const TextStyle(fontSize: 10),
-                  ),
-                )
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    // 👉 marker user
-    if (userLat != null && userLng != null) {
-      newMarkers.add(
-        Marker(
-          point: LatLng(userLat!, userLng!),
-          width: 80,
-          height: 80,
-          child: const Icon(
-            Icons.my_location,
-            color: Colors.blue,
-            size: 35,
-          ),
-        ),
-      );
-    }
-
-    setState(() {
-      markers = newMarkers;
-    });
-  }
-
-  /// 🔍 SEARCH
-  void _search(String value) {
-    final keyword = value.trim().toLowerCase();
-
-    // 👉 nếu clear search → quay lại nearby
-    if (keyword.isEmpty) {
-      setState(() {
-        isSearching = false;
-        currentKeyword = '';
-      });
-
-      _filterNearbyCourts();
-      return;
-    }
-
-    final results = allCourtsFromDB.where((court) {
-      return court.name.toLowerCase().contains(keyword) ||
-          court.address.toLowerCase().contains(keyword);
-    }).toList();
-
-    if (results.isEmpty) {
-      setState(() {
-        isSearching = true;
-        currentKeyword = keyword;
-        filteredCourts = [];
-      });
-      return;
-    }
-
-    final first = results.first;
-
-    // update list
-    setState(() {
-      isSearching = true;
-      currentKeyword = keyword;
-      filteredCourts = results;
+      mapController.move(LatLng(first.latitude, first.longitude), 14.5);
       selectedCourt = first;
-    });
-
-    // zoom
-    mapController.move(
-      LatLng(first.latitude, first.longitude),
-      15,
-    );
-
-    _initializeMarkers();
-
-    // Bật popup nếu được truyền tên cụ thể từ trang danh sách sân
-    if (widget.searchQuery != null && widget.searchQuery == value && results.length == 1) {
-      _showCourtDetails(context, first);
     }
   }
 
-  /// 🎯 MOVE
   void _moveToCourt(BadmintonCourt court) {
-    mapController.move(
-      LatLng(court.latitude, court.longitude),
-      15,
-    );
+    mapController.move(LatLng(court.latitude, court.longitude), 15);
+  }
+
+  void _clearRoute() {
+    setState(() {
+      routePoints = [];
+      routeDistanceKm = null;
+      routeDurationMin = null;
+    });
+    _routeInfoController.reverse();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.searchQuery != null ? AppBar(
-        title: const Text('Vị trí sân', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.purple,
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
-      ) : null,
+      backgroundColor: AppTheme.scaffoldDark,
       body: Stack(
         children: [
-          /// 🌍 MAP
+          // Map
           FlutterMap(
             mapController: mapController,
             options: MapOptions(
-              initialCenter: center,
+              initialCenter: userLat != null ? LatLng(userLat!, userLng!) : defaultCenter,
               initialZoom: 13,
+              onTap: (_, __) {
+                if (routePoints.isNotEmpty) {
+                  _clearRoute();
+                }
+              },
             ),
             children: [
               TileLayer(
                 urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                userAgentPackageName: 'com.yourname.baitap.quynh',
+                userAgentPackageName: 'com.shuttlecourt.app',
               ),
-              if (routePoints.isNotEmpty)
+              // Route Polyline with border effect
+              if (routePoints.isNotEmpty) ...[
+                // Shadow/border polyline
                 PolylineLayer(
                   polylines: [
                     Polyline(
                       points: routePoints,
-                      color: Colors.blue,
-                      strokeWidth: 6,
+                      color: const Color(0xFF1565C0).withOpacity(0.3),
+                      strokeWidth: 10,
                     ),
                   ],
                 ),
-              MarkerLayer(markers: markers),
+                // Main route polyline
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: routePoints,
+                      color: const Color(0xFF2196F3),
+                      strokeWidth: 5,
+                      borderColor: Colors.white,
+                      borderStrokeWidth: 1.5,
+                    ),
+                  ],
+                ),
+              ],
+              // Markers
+              MarkerLayer(
+                markers: [
+                  // User location marker with pulse animation
+                  if (userLat != null && userLng != null)
+                    Marker(
+                      point: LatLng(userLat!, userLng!),
+                      width: 60, height: 60,
+                      child: AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Outer pulse ring
+                              Container(
+                                width: 60 * _pulseAnimation.value,
+                                height: 60 * _pulseAnimation.value,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFF2196F3).withOpacity(0.15),
+                                ),
+                              ),
+                              // Middle ring
+                              Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFF2196F3).withOpacity(0.2),
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                              ),
+                              // Inner dot
+                              Container(
+                                width: 14,
+                                height: 14,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFF2196F3),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x552196F3),
+                                      blurRadius: 8,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  // Route start marker
+                  if (routePoints.isNotEmpty && userLat != null)
+                    Marker(
+                      point: LatLng(userLat!, userLng!),
+                      width: 40, height: 50,
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2196F3),
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: const [
+                                BoxShadow(color: Color(0x552196F3), blurRadius: 6, offset: Offset(0, 2)),
+                              ],
+                            ),
+                            child: const Text('Bạn', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  // Court markers
+                  ...filteredCourts.map((court) {
+                    final isSelected = selectedCourt?.id == court.id;
+                    final isRouteTarget = routePoints.isNotEmpty && isSelected;
+                    return Marker(
+                      point: LatLng(court.latitude, court.longitude),
+                      width: isSelected ? 56 : 44,
+                      height: isSelected ? 64 : 52,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() => selectedCourt = court);
+                          _moveToCourt(court);
+                          _showCourtDetails(context, court);
+                        },
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                gradient: isRouteTarget
+                                    ? const LinearGradient(colors: [Color(0xFFFF5252), Color(0xFFD32F2F)])
+                                    : isSelected
+                                        ? const LinearGradient(colors: [Color(0xFF00C853), Color(0xFF009624)])
+                                        : LinearGradient(colors: [Colors.white, Colors.grey.shade100]),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: isRouteTarget
+                                        ? const Color(0x55FF5252)
+                                        : isSelected
+                                            ? const Color(0x5500C853)
+                                            : const Color(0x33000000),
+                                    blurRadius: isSelected ? 12 : 6,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: isSelected ? 2.5 : 2,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.sports_tennis,
+                                color: isRouteTarget || isSelected ? Colors.white : AppTheme.primary,
+                                size: isSelected ? 20 : 16,
+                              ),
+                            ),
+                            // Small triangle pointer
+                            CustomPaint(
+                              size: const Size(10, 6),
+                              painter: _TrianglePainter(
+                                color: isRouteTarget
+                                    ? const Color(0xFFD32F2F)
+                                    : isSelected
+                                        ? const Color(0xFF009624)
+                                        : Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
             ],
           ),
 
-          /// 🔍 SEARCH
+          // Top gradient overlay for status bar
           Positioned(
-            top: widget.searchQuery != null ? 10 : 50,
-            left: 16,
-            right: 16,
+            top: 0, left: 0, right: 0,
             child: Container(
+              height: MediaQuery.of(context).padding.top + 60,
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
-              child: Autocomplete<String>(
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  if (textEditingValue.text.isEmpty) {
-                    return const Iterable<String>.empty();
-                  }
-
-                  return allCourtsFromDB
-                      .map((e) => e.name)
-                      .where((name) => name
-                      .toLowerCase()
-                      .contains(textEditingValue.text.toLowerCase()));
-                },
-                onSelected: (String selection) {
-                  _search(selection);
-                },
-                fieldViewBuilder:
-                    (context, controller, focusNode, onEditingComplete) {
-                  if (widget.searchQuery != null && controller.text.isEmpty) {
-                    controller.text = widget.searchQuery!;
-                  }
-                  return TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    onChanged: (value) {
-                      if (value.isEmpty) {
-                        _search('');
-                      }
-                    },
-                    // ✅ chỉ search khi nhấn Enter
-                    onSubmitted: (value) {
-                      _search(value);
-                    },
-                    decoration: const InputDecoration(
-                      hintText: 'Tìm sân cầu lông...',
-                      prefixIcon: Icon(Icons.search),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 15),
-                    ),
-                  );
-                },
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.4),
+                    Colors.black.withOpacity(0.1),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
 
-          /// 📋 LIST
+          // Search Bar
           Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
+            top: MediaQuery.of(context).padding.top + 12,
+            left: 16, right: 16,
             child: Container(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.35,
-              ),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: [
-                  BoxShadow(color: Colors.black12, blurRadius: 15, offset: Offset(0, -5)),
+                  BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 20, offset: const Offset(0, 4)),
                 ],
               ),
-              child: Column(
+              child: Row(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      'Sân cầu lông (${filteredCourts.length})',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                  const SizedBox(width: 16),
+                  const Icon(Icons.search_rounded, color: AppTheme.primary, size: 22),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: filteredCourts.isEmpty
-                        ? const Center(child: Text('Không tìm thấy sân nào gần đây'))
-                        : ListView.builder(
-                      itemCount: filteredCourts.length,
-                      itemBuilder: (context, index) {
-                        final court = filteredCourts[index];
-                        return _buildCourtCard(context, court);
-                      },
+                    child: TextField(
+                      onSubmitted: _search,
+                      style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 14, fontWeight: FontWeight.w500),
+                      decoration: InputDecoration(
+                        hintText: 'Tìm sân cầu lông...',
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
                     ),
                   ),
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.tune_rounded, color: AppTheme.primary, size: 18),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // My Location FAB
+          Positioned(
+            right: 16,
+            bottom: 160,
+            child: Column(
+              children: [
+                // Clear route button
+                if (routePoints.isNotEmpty)
+                  _buildMapFab(
+                    icon: Icons.close_rounded,
+                    color: AppTheme.error,
+                    onTap: _clearRoute,
+                    tooltip: 'Xóa đường đi',
+                    marginBottom: 12,
+                  ),
+                // My location button
+                _buildMapFab(
+                  icon: Icons.my_location_rounded,
+                  color: AppTheme.accent,
+                  onTap: () {
+                    if (userLat != null && userLng != null) {
+                      mapController.move(LatLng(userLat!, userLng!), 15);
+                    }
+                  },
+                  tooltip: 'Vị trí của tôi',
+                ),
+              ],
+            ),
+          ),
+
+          // Route Info Panel
+          if (routeDistanceKm != null && routeDurationMin != null)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 80,
+              left: 16, right: 16,
+              child: SlideTransition(
+                position: Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero)
+                    .animate(_routeInfoSlideAnimation),
+                child: FadeTransition(
+                  opacity: _routeInfoSlideAnimation,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(color: const Color(0xFF1565C0).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 4)),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.directions_car_rounded, color: Colors.white, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                selectedCourt?.name ?? 'Điểm đến',
+                                style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.w500),
+                                maxLines: 1, overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  _buildRouteInfoChip(Icons.straighten_rounded, '${routeDistanceKm!.toStringAsFixed(1)} km'),
+                                  const SizedBox(width: 12),
+                                  _buildRouteInfoChip(Icons.access_time_rounded, '~$routeDurationMin phút'),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: _clearRoute,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // Loading route indicator
+          if (isLoadingRoute)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 80,
+              left: 16, right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 12, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2196F3)),
+                    ),
+                    SizedBox(width: 12),
+                    Text('Đang tìm đường đi...', style: TextStyle(color: Color(0xFF1A1A1A), fontSize: 13, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            ),
+
+          // Bottom Court List
+          Positioned(
+            bottom: 0, left: 0, right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withOpacity(0),
+                    Colors.white.withOpacity(0.8),
+                    Colors.white,
+                  ],
+                  stops: const [0, 0.3, 0.6],
+                ),
+              ),
+              padding: const EdgeInsets.only(top: 20, bottom: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2.5),
+                      ),
+                    )
+                  else if (filteredCourts.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(left: 20, bottom: 10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.sports_tennis, color: AppTheme.primary, size: 14),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${filteredCourts.length} sân gần bạn',
+                              style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 110,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: filteredCourts.length,
+                        itemBuilder: (context, index) {
+                          final court = filteredCourts[index];
+                          final isSelected = selectedCourt?.id == court.id;
+                          final distance = userLat != null ? court.distanceTo(userLat!, userLng!).toStringAsFixed(1) : null;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() => selectedCourt = court);
+                              _moveToCourt(court);
+                              _showCourtDetails(context, court);
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 240,
+                              margin: const EdgeInsets.only(right: 12),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isSelected ? AppTheme.primary : Colors.grey.shade200,
+                                  width: isSelected ? 2 : 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: isSelected
+                                        ? AppTheme.primary.withOpacity(0.15)
+                                        : Colors.black.withOpacity(0.06),
+                                    blurRadius: isSelected ? 16 : 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 48, height: 48,
+                                    decoration: BoxDecoration(
+                                      gradient: isSelected
+                                          ? AppTheme.primaryGradient
+                                          : LinearGradient(colors: [AppTheme.primary.withOpacity(0.1), AppTheme.primary.withOpacity(0.05)]),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Icon(
+                                      Icons.sports_tennis,
+                                      color: isSelected ? Colors.white : AppTheme.primary,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          court.name,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 13,
+                                            color: isSelected ? AppTheme.primary : const Color(0xFF1A1A1A),
+                                          ),
+                                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.star_rounded, color: Color(0xFFFFB300), size: 14),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              '${court.rating}',
+                                              style: const TextStyle(fontSize: 12, color: Color(0xFF666666), fontWeight: FontWeight.w600),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text('(${court.reviews})', style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                                          ],
+                                        ),
+                                        if (distance != null) ...[
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.near_me_rounded, size: 12, color: AppTheme.accent.withOpacity(0.7)),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '${distance}km',
+                                                style: TextStyle(fontSize: 11, color: AppTheme.accent.withOpacity(0.8), fontWeight: FontWeight.w600),
+                                              ),
+                                              const Spacer(),
+                                              Text(
+                                                '${(court.pricePerHour / 1000).toStringAsFixed(0)}k/h',
+                                                style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w800, fontSize: 12),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -461,204 +734,341 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  /// 📦 CARD GIỐNG GOOGLE MAP
-  Widget _buildCourtCard(BuildContext context, BadmintonCourt court) {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          selectedCourt = court;
-        });
-
-        _moveToCourt(court);
-        _showCourtDetails(context, court);
-        _initializeMarkers();
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  Widget _buildMapFab({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    String? tooltip,
+    double marginBottom = 0,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: marginBottom),
+      child: GestureDetector(
+        onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(12),
+          width: 48, height: 48,
           decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.greenAccent.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.sports_tennis, color: Colors.green, size: 25),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      court.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 14),
-                        Text(' ${court.rating} (${court.reviews})', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${(court.pricePerHour / 1000).toStringAsFixed(0)}k/giờ',
-                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 12, offset: const Offset(0, 4)),
             ],
           ),
+          child: Icon(icon, color: color, size: 22),
         ),
       ),
     );
   }
 
-  /// 📄 BOTTOM SHEET CHI TIẾT
+  Widget _buildRouteInfoChip(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: Colors.white, size: 14),
+        const SizedBox(width: 4),
+        Text(text, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+
   void _showCourtDetails(BuildContext context, BadmintonCourt court) {
+    final distance = userLat != null ? court.distanceTo(userLat!, userLng!) : null;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(court.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.star, color: Colors.amber, size: 16),
-                            Text(' ${court.rating} (${court.reviews} đánh giá)', style: const TextStyle(color: Colors.grey)),
-                          ],
+                        // Court Icon
+                        Container(
+                          width: 56, height: 56,
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.primaryGradient,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+                            ],
+                          ),
+                          child: const Icon(Icons.sports_tennis_rounded, color: Colors.white, size: 28),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                court.name,
+                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A), letterSpacing: -0.3),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFF8E1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.star_rounded, color: Color(0xFFFFB300), size: 14),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          '${court.rating}',
+                                          style: const TextStyle(color: Color(0xFFF57F17), fontWeight: FontWeight.w700, fontSize: 12),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text('${court.reviews} đánh giá', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(Icons.close_rounded, color: Colors.grey.shade600, size: 18),
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Divider(),
-              const SizedBox(height: 16),
-              const Text('Địa chỉ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(Icons.location_on, color: Colors.red, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(court.address, style: const TextStyle(color: Colors.grey))),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Text('Liên hệ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(Icons.phone, color: Colors.green, size: 18),
-                  const SizedBox(width: 8),
-                  Text(court.phone, style: const TextStyle(color: Colors.grey)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Text('Giá cước', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(height: 4),
-              Text(
-                '${(court.pricePerHour / 1000).toStringAsFixed(0)}k/giờ',
-                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-              const SizedBox(height: 16),
-              const Text('Tiện ích', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: court.amenities.map((amenity) {
-                  return Chip(
-                    label: Text(amenity),
-                    backgroundColor: Colors.green[50],
-                    side: BorderSide(color: Colors.green[200]!),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Đặt sân ${court.name}'), backgroundColor: Colors.green),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Đặt Sân Ngay', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const SizedBox(height: 20),
+
+                    // Info Cards Row
+                    Row(
+                      children: [
+                        Expanded(child: _buildInfoCard(Icons.attach_money_rounded, 'Giá',
+                          '${(court.pricePerHour / 1000).toStringAsFixed(0)}k/giờ', AppTheme.primary)),
+                        const SizedBox(width: 10),
+                        Expanded(child: _buildInfoCard(Icons.near_me_rounded, 'Khoảng cách',
+                          distance != null ? '${distance.toStringAsFixed(1)}km' : 'N/A', AppTheme.accent)),
+                        const SizedBox(width: 10),
+                        Expanded(child: _buildInfoCard(Icons.phone_rounded, 'Liên hệ',
+                          'Gọi ngay', const Color(0xFF9C27B0))),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Address
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFEBEE),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.location_on_rounded, color: Color(0xFFD32F2F), size: 18),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Địa chỉ', style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 11, fontWeight: FontWeight.w500)),
+                                const SizedBox(height: 2),
+                                Text(court.address, style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 13, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Amenities
+                    const Text('Tiện ích', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF1A1A1A))),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8, runSpacing: 8,
+                      children: court.amenities.map((amenity) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+                          ),
+                          child: Text(
+                            amenity,
+                            style: const TextStyle(color: AppTheme.primaryDark, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Action Buttons
+                    Row(
+                      children: [
+                        // Route button
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                              _showRouteToCourt(court);
+                            },
+                            child: Container(
+                              height: 52,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF1976D2), Color(0xFF1565C0)],
+                                ),
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(color: const Color(0xFF1976D2).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+                                ],
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.directions_rounded, color: Colors.white, size: 20),
+                                  SizedBox(width: 8),
+                                  Text('Đường đi', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Book button
+                        Expanded(
+                          flex: 2,
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Đặt sân ${court.name}'),
+                                  backgroundColor: AppTheme.primary,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 52,
+                              decoration: BoxDecoration(
+                                gradient: AppTheme.primaryGradient,
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+                                ],
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.flash_on_rounded, color: Colors.white, size: 20),
+                                  SizedBox(width: 8),
+                                  Text('Đặt Sân Ngay', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.alt_route, color: Colors.white),
-                  label: const Text('Xem đường đi', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showRouteToCourt(court);
-                  },
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard(IconData icon, String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 6),
+          Text(label, style: TextStyle(color: color.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 2),
+          Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
+        ],
       ),
     );
   }
 
   void _showRouteToCourt(BadmintonCourt court) async {
     if (userLat == null || userLng == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không xác định được vị trí của bạn.'), duration: Duration(seconds: 2)),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.location_off_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 10),
+                Text('Không xác định được vị trí của bạn.'),
+              ],
+            ),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
       return;
     }
 
     setState(() {
       routePoints = [];
+      routeDistanceKm = null;
+      routeDurationMin = null;
+      isLoadingRoute = true;
     });
+    _routeInfoController.reverse();
 
     final start = '$userLng,$userLat';
     final end = '${court.longitude},${court.latitude}';
@@ -668,19 +1078,76 @@ class _MapScreenState extends State<MapScreen> {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final coords = data['routes'][0]['geometry']['coordinates'] as List;
+        final route = data['routes'][0];
+        final coords = route['geometry']['coordinates'] as List;
         final points = coords.map<LatLng>((c) => LatLng(c[1] as double, c[0] as double)).toList();
-        setState(() {
-          routePoints = points;
-        });
-        if (points.isNotEmpty) {
-          mapController.fitCamera(CameraFit.bounds(bounds: LatLngBounds.fromPoints(points), padding: const EdgeInsets.all(60)));
+        final distanceMeters = route['distance'] as num;
+        final durationSeconds = route['duration'] as num;
+
+        if (mounted) {
+          setState(() {
+            routePoints = points;
+            routeDistanceKm = distanceMeters / 1000.0;
+            routeDurationMin = (durationSeconds / 60.0).ceil();
+            isLoadingRoute = false;
+          });
+          _routeInfoController.forward();
+          if (points.isNotEmpty) {
+            mapController.fitCamera(CameraFit.bounds(
+              bounds: LatLngBounds.fromPoints(points),
+              padding: const EdgeInsets.fromLTRB(60, 160, 60, 180),
+            ));
+          }
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không lấy được đường đi.'), duration: Duration(seconds: 2)));
+        if (mounted) {
+          setState(() => isLoadingRoute = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Không lấy được đường đi.'),
+              backgroundColor: AppTheme.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi khi lấy đường đi: $e'), duration: const Duration(seconds: 2)));
+      if (mounted) {
+        setState(() => isLoadingRoute = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi khi lấy đường đi: $e'),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
+}
+
+// Custom triangle painter for marker pointers
+class _TrianglePainter extends CustomPainter {
+  final Color color;
+  _TrianglePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    final path = ui.Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

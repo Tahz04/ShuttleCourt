@@ -5,6 +5,9 @@ import 'package:uuid/uuid.dart';
 import 'package:quynh/services/api_booking_service.dart';
 import 'package:provider/provider.dart';
 import 'package:quynh/auth/auth_service.dart';
+import 'package:quynh/theme/app_theme.dart';
+import 'package:intl/intl.dart';
+
 class CheckoutScreen extends StatefulWidget {
   final String selectedSlot;
   final BadmintonCourt selectedCourt;
@@ -26,111 +29,223 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Thanh toán'), backgroundColor: Colors.green),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Xác Nhận Đặt Sân', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Tóm tắt đơn đặt sân', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Card(
-              child: ListTile(
-                leading: Icon(Icons.sports_tennis, color: Colors.green),
-                title: Text(widget.selectedCourt.name),
-                subtitle: Text('Ngày: ${widget.selectedDate.day}/${widget.selectedDate.month}/${widget.selectedDate.year}\n${widget.selectedCourt.address}'),
+            const Text('Tóm tắt đặt sân', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+            const SizedBox(height: 16),
+            
+            // Summary Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+                ],
+              ),
+              child: Column(
+                children: [
+                   _buildSummaryRow(Icons.sports_tennis_rounded, 'Sân', widget.selectedCourt.name, AppTheme.primary),
+                  const Divider(height: 24, color: Color(0xFFEEEEEE)),
+                  _buildSummaryRow(Icons.location_on_rounded, 'Địa chỉ', widget.selectedCourt.address, AppTheme.error),
+                  const Divider(height: 24, color: Color(0xFFEEEEEE)),
+                  _buildSummaryRow(Icons.calendar_month_rounded, 'Ngày', DateFormat('dd/MM/yyyy').format(widget.selectedDate), AppTheme.accentGold),
+                  const Divider(height: 24, color: Color(0xFFEEEEEE)),
+                  _buildSummaryRow(Icons.access_time_filled_rounded, 'Khung giờ', widget.selectedSlot, AppTheme.accent),
+                ],
               ),
             ),
-            ListTile(
-              title: const Text('Khung giờ'),
-              trailing: Text(widget.selectedSlot, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            ListTile(
-              title: const Text('Giá thuê'),
-              trailing: Text(
-                '${widget.selectedCourt.pricePerHour.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}đ',
-                style: const TextStyle(fontWeight: FontWeight.bold)
+
+            const SizedBox(height: 28),
+            const Text('Phương thức thanh toán', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+            const SizedBox(height: 16),
+
+            _buildPaymentOption(1, 'Ví Momo / ZaloPay', Icons.account_balance_wallet_rounded, AppTheme.primary),
+            const SizedBox(height: 10),
+            _buildPaymentOption(2, 'Chuyển khoản Ngân hàng (QR)', Icons.qr_code_scanner_rounded, AppTheme.accent),
+            const SizedBox(height: 10),
+            _buildPaymentOption(3, 'Thanh toán tại quầy', Icons.payments_rounded, AppTheme.accentGold),
+
+            const SizedBox(height: 32),
+            
+            // Total Price Section
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.primary.withOpacity(0.1)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Tổng cộng:', style: TextStyle(fontSize: 15, color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
+                  Text(
+                    currencyFormat.format(widget.selectedCourt.pricePerHour),
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppTheme.primary),
+                  ),
+                ],
               ),
             ),
-            const Divider(),
-            const Text('Chọn phương thức thanh toán', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            RadioListTile(
-              value: 1,
-              groupValue: _selectedPaymentMethod,
-              onChanged: (value) => setState(() => _selectedPaymentMethod = value!),
-              title: const Text('Ví Momo / ZaloPay'),
-              secondary: const Icon(Icons.wallet)
+            
+            const SizedBox(height: 32),
+            
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () => _handlePayment(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 4,
+                  shadowColor: AppTheme.primary.withOpacity(0.2),
+                ),
+                child: const Text('XÁC NHẬN & THANH TOÁN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+              ),
             ),
-            RadioListTile(
-              value: 2,
-              groupValue: _selectedPaymentMethod,
-              onChanged: (value) => setState(() => _selectedPaymentMethod = value!),
-              title: const Text('Chuyển khoản Ngân hàng (QR)'),
-              secondary: const Icon(Icons.qr_code)
-            ),
-            RadioListTile(
-              value: 3,
-              groupValue: _selectedPaymentMethod,
-              onChanged: (value) => setState(() => _selectedPaymentMethod = value!),
-              title: const Text('Thanh toán trực tiếp'),
-              secondary: const Icon(Icons.money)
-            ),
-            const Spacer(),
-            ElevatedButton(
-              onPressed: () async {
-                // Giả lập thanh toán thành công
-                final paymentMethod = _selectedPaymentMethod == 1 ? 'Ví Momo / ZaloPay' :
-                                     _selectedPaymentMethod == 2 ? 'Chuyển khoản Ngân hàng (QR)' :
-                                     'Thanh toán trực tiếp';
-
-                // Tạo booking mới
-                final booking = Booking(
-                  id: const Uuid().v4(),
-                  courtName: widget.selectedCourt.name,
-                  courtAddress: widget.selectedCourt.address,
-                  slot: widget.selectedSlot,
-                  date: widget.selectedDate,
-                  price: widget.selectedCourt.pricePerHour,
-                  paymentMethod: paymentMethod,
-                  createdAt: DateTime.now(),
-                );
-
-                // Lưu booking
-                final auth = Provider.of<AuthService>(context, listen: false);
-                int currentUserId = int.parse(auth.user!.id);
-
-                try {
-                  await ApiBookingService.createBooking(currentUserId, booking);
-
-                  if (mounted) {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Icon(Icons.check_circle, color: Colors.green, size: 60),
-                        content: const Text('Đặt sân thành công!'),
-                        actions: [
-                          TextButton(
-                              onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
-                              child: const Text('VỀ TRANG CHỦ')
-                          )
-                        ],
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Lỗi: $e'))
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(double.infinity, 50)),
-              child: const Text('THANH TOÁN NGAY', style: TextStyle(color: Colors.white)),
-            )
+            const SizedBox(height: 30),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildSummaryRow(IconData icon, String label, String value, Color iconColor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, color: iconColor, size: 18),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 12, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 2),
+              Text(value, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentOption(int value, String title, IconData icon, Color color) {
+    bool isSelected = _selectedPaymentMethod == value;
+    return InkWell(
+      onTap: () => setState(() => _selectedPaymentMethod = value),
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: isSelected ? color : Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Text(title, style: TextStyle(color: AppTheme.textPrimary, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500, fontSize: 14)),
+            const Spacer(),
+            if (isSelected)
+              Icon(Icons.check_circle_rounded, color: color, size: 22)
+            else
+              Container(width: 22, height: 22, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade300, width: 2))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handlePayment(BuildContext context) async {
+    final paymentMethod = _selectedPaymentMethod == 1 ? 'Ví Momo / ZaloPay' :
+                         _selectedPaymentMethod == 2 ? 'Chuyển khoản Ngân hàng (QR)' :
+                         'Thanh toán trực tiếp';
+
+    final booking = Booking(
+      id: const Uuid().v4(),
+      courtName: widget.selectedCourt.name,
+      courtAddress: widget.selectedCourt.address,
+      slot: widget.selectedSlot,
+      date: widget.selectedDate,
+      price: widget.selectedCourt.pricePerHour,
+      paymentMethod: paymentMethod,
+      createdAt: DateTime.now(),
+    );
+
+    final auth = Provider.of<AuthService>(context, listen: false);
+    if (auth.user == null) return;
+    int currentUserId = int.parse(auth.user!.id);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+    );
+
+    try {
+      await ApiBookingService.createBooking(currentUserId, booking);
+      if (mounted) {
+        Navigator.pop(context);
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Column(
+              children: [
+                Icon(Icons.check_circle_rounded, color: AppTheme.primary, size: 70),
+                SizedBox(height: 16),
+                Text('Thành Công!', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w800)),
+              ],
+            ),
+            content: const Text('Bạn đã đặt sân thành công. Hãy đến đúng giờ nhé!', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textSecondary)),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: const Text('VỀ TRANG CHỦ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                ),
+              )
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppTheme.error));
+      }
+    }
   }
 }

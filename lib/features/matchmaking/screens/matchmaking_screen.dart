@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
+import 'package:quynh/theme/app_theme.dart';
+import 'package:quynh/models/match_model.dart';
+import 'package:quynh/features/matchmaking/services/matchmaking_service.dart';
+import 'package:quynh/features/matchmaking/screens/create_match_screen.dart';
+import 'package:intl/intl.dart';
 
 class MatchmakingScreen extends StatefulWidget {
   const MatchmakingScreen({super.key});
@@ -7,144 +13,276 @@ class MatchmakingScreen extends StatefulWidget {
   State<MatchmakingScreen> createState() => _MatchmakingScreenState();
 }
 
-class _MatchmakingScreenState extends State<MatchmakingScreen> {
+class _MatchmakingScreenState extends State<MatchmakingScreen> with TickerProviderStateMixin {
   String selectedLevel = 'Tất cả';
+  late final AnimationController _animController;
+  late Future<List<MatchModel>> _matchesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..forward();
+    _refreshMatches();
+  }
+
+  void _refreshMatches() {
+    setState(() {
+      _matchesFuture = MatchmakingService.getAllMatches();
+    });
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('Tìm Kèo Ghép', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: Colors.blueAccent,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: Column(
+      backgroundColor: AppTheme.scaffoldLight,
+      body: Stack(
         children: [
-          // 1. THANH LỌC TRÌNH ĐỘ (CHIPS)
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            color: Colors.white,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: ['Tất cả', 'Mới chơi', 'Trung bình', 'Khá', 'Pro'].map((level) {
-                  bool isSelected = selectedLevel == level;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(level),
-                      selected: isSelected,
-                      onSelected: (val) => setState(() => selectedLevel = level),
-                      selectedColor: Colors.blueAccent.withOpacity(0.2),
-                      checkmarkColor: Colors.blueAccent,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.blueAccent : Colors.black54,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildModernAppBar(),
+              SliverToBoxAdapter(child: _buildWelcomeHeader()),
+              SliverToBoxAdapter(child: _buildFilterSection()),
+              FutureBuilder<List<MatchModel>>(
+                future: _matchesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
+                    );
+                  }
+                  
+                  final matches = snapshot.data ?? [];
+                  final filteredMatches = selectedLevel == 'Tất cả' 
+                      ? matches 
+                      : matches.where((m) => m.level == selectedLevel).toList();
+
+                  if (filteredMatches.isEmpty) {
+                    return SliverFillRemaining(
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.search_off_rounded, size: 64, color: Colors.grey.shade300),
+                            const SizedBox(height: 16),
+                            const Text('Chưa có kèo nào được đăng.', style: TextStyle(color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final delay = index * 0.1;
+                          return _buildAnimatedCard(filteredMatches[index], delay);
+                        },
+                        childCount: filteredMatches.length,
                       ),
                     ),
                   );
-                }).toList(),
+                },
               ),
-            ),
+            ],
           ),
-
-          // 2. DANH SÁCH KÈO CHI TIẾT
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: 5,
-              itemBuilder: (context, index) => _buildAdvancedMatchCard(context, index),
-            ),
-          ),
+          _buildFloatingActionButton(),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        label: const Text('Tạo Kèo Mới'),
-        icon: const Icon(Icons.add_location_alt_rounded),
-        backgroundColor: Colors.blueAccent,
       ),
     );
   }
 
-  Widget _buildAdvancedMatchCard(BuildContext context, int index) {
+  Widget _buildModernAppBar() {
+    return SliverAppBar(
+      pinned: true,
+      backgroundColor: Colors.white.withValues(alpha: 0.8),
+      elevation: 0,
+      centerTitle: true,
+      title: const Text(
+        'Kèo Ghép Cầu Lông',
+        style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
+      ),
+      flexibleSpace: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(color: Colors.transparent),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Sẵn sàng ra sân?',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.textPrimary, letterSpacing: -0.8),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Tìm đồng đội cùng trình độ và đam mê ngay hôm nay',
+            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary.withValues(alpha: 0.8)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterSection() {
+    final levels = ['Tất cả', 'Mới chơi', 'Trung bình', 'Khá', 'Pro'];
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: levels.map((level) {
+            final bool isSelected = selectedLevel == level;
+            return Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: InkWell(
+                onTap: () => setState(() => selectedLevel = level),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: isSelected ? AppTheme.matchmakingGradient : null,
+                    color: isSelected ? null : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: isSelected ? AppTheme.glowShadowColor(const Color(0xFF2196F3)) : [],
+                    border: Border.all(color: isSelected ? Colors.transparent : Colors.grey.shade100, width: 1.5),
+                  ),
+                  child: Text(
+                    level,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : AppTheme.textSecondary,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedCard(MatchModel match, double delay) {
+    return FadeTransition(
+      opacity: _animController,
+      child: SlideTransition(
+        position: Tween<Offset>(begin: const Offset(0.1, 0), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animController,
+            curve: Interval(delay.clamp(0.0, 1.0), 1.0, curve: Curves.easeOutCubic),
+          ),
+        ),
+        child: _buildMatchCard(match),
+      ),
+    );
+  }
+
+  Widget _buildMatchCard(MatchModel match) {
+    final bool isPro = match.level == 'Pro' || match.level == 'Khá';
+    final String dateStr = DateFormat('dd/MM').format(match.matchDate);
+    final String timeStr = match.startTime.substring(0, 5);
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.blueGrey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        boxShadow: AppTheme.cardShadow,
       ),
       child: Column(
         children: [
-          // Phần Header của Card (Ảnh sân + Trạng thái)
-          Stack(
-            children: [
-              Container(
-                height: 120,
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  gradient: LinearGradient(colors: [Colors.blueAccent, Colors.blue.shade200]),
-                ),
-                child: const Center(child: Icon(Icons.sports_tennis, size: 50, color: Colors.white)),
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-                  child: const Text('🔥 Thiếu 2 người', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.redAccent)),
-                ),
-              ),
-            ],
-          ),
-
-          // Phần nội dung
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Sân Cầu Lông Kỳ Hòa - Quận 10', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const CircleAvatar(radius: 12, backgroundColor: Colors.blueAccent, child: Icon(Icons.person, size: 15, color: Colors.white)),
-                    const SizedBox(width: 8),
-                    const Text('Host: Nam Nguyễn', style: TextStyle(color: Colors.grey)),
-                    const Spacer(),
-                    const Icon(Icons.star, color: Colors.amber, size: 16),
-                    const Text(' 4.9', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                const Divider(height: 30),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildIconDetail(Icons.calendar_today, 'Sáng mai', '08:00 - 10:00'),
-                    _buildIconDetail(Icons.flash_on, 'Trình độ', 'Khá - Pro'),
-                    _buildIconDetail(Icons.monetization_on, 'Phí dự kiến', '35k/người'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: (isPro ? AppTheme.warning : AppTheme.success).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        match.level.toUpperCase(),
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isPro ? AppTheme.warning : AppTheme.success),
+                      ),
+                    ),
+                    Text(
+                      '${NumberFormat('#,###').format(match.price)}đ',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.primary),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => _showMatchDetails(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                const SizedBox(height: 16),
+                Text(
+                  match.courtName,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimary),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.access_time_filled_rounded, size: 14, color: AppTheme.accent),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$dateStr lúc $timeStr',
+                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
                     ),
-                    child: const Text('XEM CHI TIẾT & THAM GIA', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    Text(
+                      'Đã có ${match.joinedCount}/${match.capacity}',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppTheme.scaffoldLight.withValues(alpha: 0.5),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppTheme.radiusXl)),
+              border: Border(top: BorderSide(color: Colors.grey.shade100)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.person_pin_rounded, size: 20, color: AppTheme.accent),
+                const SizedBox(width: 10),
+                Text('Host: ${match.hostName}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    backgroundColor: AppTheme.accent,
+                    minimumSize: Size.zero,
                   ),
+                  child: const Text('Tham gia', style: TextStyle(fontSize: 12)),
                 ),
               ],
             ),
@@ -154,25 +292,35 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     );
   }
 
-  Widget _buildIconDetail(IconData icon, String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 14, color: Colors.blueAccent),
-            const SizedBox(width: 4),
-            Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-          ],
+  Widget _buildFloatingActionButton() {
+    return Positioned(
+      bottom: 24,
+      left: 24,
+      right: 24,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: ElevatedButton(
+            onPressed: () async {
+              final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateMatchScreen()));
+              if (result == true) _refreshMatches();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accent.withValues(alpha: 0.9),
+              padding: const EdgeInsets.symmetric(vertical: 18),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add_location_alt_rounded),
+                SizedBox(width: 12),
+                Text('TẠO KÈO GHÉP MỚI', style: TextStyle(fontWeight: FontWeight.w900)),
+              ],
+            ),
+          ),
         ),
-        const SizedBox(height: 2),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-      ],
+      ),
     );
-  }
-
-  void _showMatchDetails(BuildContext context) {
-    // Logic hiện popup hoặc trang chi tiết
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đang tải thông tin trận đấu...')));
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/checkout_screen.dart';
 import 'package:quynh/models/badminton_court.dart';
 import 'package:intl/intl.dart';
+import 'package:quynh/theme/app_theme.dart';
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -10,8 +11,7 @@ class BookingScreen extends StatefulWidget {
   State<BookingScreen> createState() => _BookingScreenState();
 }
 
-class _BookingScreenState extends State<BookingScreen> {
-  // Giả lập danh sách khung giờ
+class _BookingScreenState extends State<BookingScreen> with TickerProviderStateMixin {
   final List<String> _timeSlots = [
     '05:00 - 06:00', '06:00 - 07:00', '07:00 - 08:00',
     '17:00 - 18:00', '18:00 - 19:00', '19:00 - 20:00',
@@ -22,153 +22,97 @@ class _BookingScreenState extends State<BookingScreen> {
   BadmintonCourt? _selectedCourt;
   String _searchQuery = '';
   DateTime _selectedDate = DateTime.now();
+  late AnimationController _animController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.scaffoldDark,
       appBar: AppBar(
         title: Text(
-          _selectedCourt == null ? 'Chọn sân để đặt' : 'Đặt sân ngay',
-          style: const TextStyle(color: Colors.white)
+          _selectedCourt == null ? 'Đặt Sân Cầu Lông' : 'Thông Tin Đặt Sân',
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
         ),
-        backgroundColor: Colors.green,
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: _selectedCourt != null ? IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () {
-            setState(() {
-              _selectedCourt = null;
-              _selectedSlot = '';
-              _selectedDate = DateTime.now();
-            });
+            if (_selectedCourt != null) {
+              setState(() => _selectedCourt = null);
+            } else {
+              Navigator.pop(context);
+            }
           },
-        ) : null,
+        ),
       ),
-      body: _selectedCourt == null ? _buildCourtSelection() : _buildBookingDetails(),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: _selectedCourt == null ? _buildCourtSelection() : _buildBookingDetails(),
+      ),
     );
   }
 
-  // Widget chọn sân
   Widget _buildCourtSelection() {
-    final filteredCourts = sampleBadmintonCourts.where((court) => court.name.toLowerCase().contains(_searchQuery.toLowerCase()) || court.address.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    final filteredCourts = sampleBadmintonCourts.where((court) => 
+      court.name.toLowerCase().contains(_searchQuery.toLowerCase()) || 
+      court.address.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
     return Column(
+      key: const ValueKey('selection'),
       children: [
-        const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(
-            'Chọn sân cầu lông bạn muốn đặt',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        ),
-        // Thanh tìm kiếm
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: TextField(
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
-            decoration: InputDecoration(
-              hintText: 'Tìm kiếm sân theo tên hoặc địa chỉ',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.green),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Lựa chọn sân phù hợp',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, letterSpacing: -0.5),
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Colors.green, width: 2),
+              const SizedBox(height: 16),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.cardDark,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                ),
+                child: TextField(
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                  decoration: const InputDecoration(
+                    hintText: 'Tìm theo tên hoặc địa chỉ...',
+                    hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+                    prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primary, size: 22),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 15),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            physics: const BouncingScrollPhysics(),
             itemCount: filteredCourts.length,
             itemBuilder: (context, index) {
               final court = filteredCourts[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedCourt = court;
-                    });
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.greenAccent,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.sports_tennis,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                court.name,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                court.address,
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(Icons.star, size: 16, color: Colors.amber),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${court.rating} (${court.reviews})',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Text(
-                                    '${court.pricePerHour.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}đ/giờ',
-                                    style: const TextStyle(
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.grey,
-                          size: 16,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
+              return _buildCourtListItem(court);
             },
           ),
         ),
@@ -176,47 +120,117 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  // Widget chi tiết đặt sân (sau khi chọn sân)
-  Widget _buildBookingDetails() {
-    if (_selectedCourt == null) return const SizedBox.shrink();
-
-    return Column(
-      children: [
-        // 1. Thông tin tóm tắt sân
-        Container(
-          padding: const EdgeInsets.all(16),
-          color: Colors.green.withOpacity(0.1),
+  Widget _buildCourtListItem(BadmintonCourt court) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      child: InkWell(
+        onTap: () => setState(() => _selectedCourt = court),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppTheme.cardDark,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+            ],
+          ),
           child: Row(
             children: [
               Container(
-                width: 80,
-                height: 80,
+                width: 64, height: 64,
                 decoration: BoxDecoration(
-                  color: Colors.greenAccent,
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(colors: [AppTheme.primary.withValues(alpha: 0.2), AppTheme.primary.withValues(alpha: 0.05)]),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.sports_tennis,
-                  color: Colors.white,
-                  size: 40,
+                child: const Icon(Icons.sports_tennis_rounded, color: AppTheme.primary, size: 28),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(court.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppTheme.textPrimary)),
+                    const SizedBox(height: 4),
+                    Text(court.address, style: const TextStyle(color: AppTheme.textMuted, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.star_rounded, size: 14, color: AppTheme.accentGold),
+                            const SizedBox(width: 2),
+                            Text('${court.rating}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                        Text(
+                          '${(court.pricePerHour / 1000).toStringAsFixed(0)}k/h',
+                          style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w800, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.textMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookingDetails() {
+    return Column(
+      key: const ValueKey('details'),
+      children: [
+        // Court Summary Card
+        Container(
+          margin: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.green.shade100, Colors.white],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+            boxShadow: [
+              BoxShadow(color: Colors.black12, blurRadius: 15, offset: const Offset(0, 8)),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 70, height: 70,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.sports_tennis_rounded, color: AppTheme.primary, size: 32),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _selectedCourt!.name,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
-                    ),
-                    Text(
-                      _selectedCourt!.address,
-                      style: const TextStyle(color: Colors.grey)
-                    ),
-                    Text(
-                      '${_selectedCourt!.pricePerHour.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}đ / Giờ',
-                      style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)
+                    Text(_selectedCourt!.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+                    const SizedBox(height: 4),
+                    Text(_selectedCourt!.address, style: const TextStyle(color: AppTheme.textMuted, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.payments_rounded, size: 14, color: AppTheme.accentGold),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${(_selectedCourt!.pricePerHour / 1000).toStringAsFixed(0)}kđ / Giờ',
+                          style: const TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.w700, fontSize: 13),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -225,68 +239,89 @@ class _BookingScreenState extends State<BookingScreen> {
           ),
         ),
 
-        // 2. Chọn ngày
+        // Date Selection
         Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: InkWell(
-            onTap: () async {
-              final DateTime? picked = await showDatePicker(
-                context: context,
-                initialDate: _selectedDate,
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
-              );
-              if (picked != null && picked != _selectedDate) {
-                setState(() {
-                  _selectedDate = picked;
-                });
-              }
-            },
-            child: Row(
-              children: [
-                Icon(Icons.calendar_month, color: Colors.green),
-                const SizedBox(width: 8),
-                Text(
-                  'Chọn ngày: ${DateFormat('EEEE, dd/MM/yyyy').format(_selectedDate)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Chọn ngày đặt', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppTheme.textPrimary)),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 90)),
+                  );
+                  if (picked != null) setState(() => _selectedDate = picked);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardDark,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today_rounded, color: AppTheme.primary, size: 18),
+                      const SizedBox(width: 12),
+                      Text(
+                        DateFormat('EEEE, dd/MM/yyyy').format(_selectedDate),
+                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontSize: 14),
+                      ),
+                      const Spacer(),
+                      const Icon(Icons.edit_calendar_rounded, color: AppTheme.textMuted, size: 18),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
 
-        // 3. Danh sách khung giờ
+        const SizedBox(height: 24),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Text('Chọn khung giờ', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppTheme.textPrimary)),
+        ),
+        const SizedBox(height: 14),
+
+        // Time Slots Grid
         Expanded(
           child: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            physics: const BouncingScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 2.2,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
+              crossAxisCount: 2,
+              childAspectRatio: 2.8,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
             ),
             itemCount: _timeSlots.length,
             itemBuilder: (context, index) {
               bool isSelected = _selectedSlot == _timeSlots[index];
               return InkWell(
-                onTap: () {
-                  setState(() {
-                    _selectedSlot = _timeSlots[index];
-                  });
-                },
-                child: Container(
+                onTap: () => setState(() => _selectedSlot = _timeSlots[index]),
+                borderRadius: BorderRadius.circular(10),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
-                    color: isSelected ? Colors.green : Colors.white,
-                    border: Border.all(color: Colors.green),
-                    borderRadius: BorderRadius.circular(8),
+                    gradient: isSelected ? AppTheme.primaryGradient : null,
+                    color: isSelected ? null : AppTheme.cardDark,
+                    border: Border.all(color: isSelected ? Colors.transparent : Colors.white.withValues(alpha: 0.05)),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: isSelected ? AppTheme.glowShadow : null,
                   ),
                   child: Center(
                     child: Text(
                       _timeSlots[index],
                       style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.green,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : AppTheme.textSecondary,
+                        fontSize: 13,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                       ),
                     ),
                   ),
@@ -296,34 +331,42 @@ class _BookingScreenState extends State<BookingScreen> {
           ),
         ),
 
-        // 4. Nút tiến hành thanh toán
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton(
-            onPressed: _selectedSlot.isEmpty
-                ? null
-                : () {
-              // Chuyển sang màn hình Thanh toán và truyền thông tin sân và khung giờ
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CheckoutScreen(
-                    selectedSlot: _selectedSlot,
-                    selectedCourt: _selectedCourt!,
-                    selectedDate: _selectedDate,
+        // Bottom Action Bar
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceDark,
+            border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+          ),
+          child: SafeArea(
+            child: ElevatedButton(
+              onPressed: _selectedSlot.isEmpty ? null : () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CheckoutScreen(
+                      selectedSlot: _selectedSlot,
+                      selectedCourt: _selectedCourt!,
+                      selectedDate: _selectedDate,
+                    ),
                   ),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              disabledBackgroundColor: Colors.grey.shade300,
-            ),
-            child: const Text(
-                'TIẾN HÀNH THANH TOÁN',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                minimumSize: const Size(double.infinity, 54),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 4,
+                shadowColor: AppTheme.primary.withValues(alpha: 0.3),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('TIẾP TỤC THANH TOÁN', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.5)),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                ],
+              ),
             ),
           ),
         ),

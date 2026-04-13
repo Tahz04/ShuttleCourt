@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:quynh/auth/auth_service.dart';
-import 'package:flutter/foundation.dart' show kIsWeb; // Thêm thư viện nhận diện Web/App
+import 'package:quynh/config/api_config.dart';
 
 class AddCourtScreen extends StatefulWidget {
   const AddCourtScreen({super.key});
@@ -145,11 +145,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đang lưu thông tin sân...')));
 
                       try {
-                        // 2. Tự động lấy URL chuẩn (Web dùng localhost, App dùng IP)
-                        final String myIp = '10.121.66.20';
-                        final String apiUrl = kIsWeb
-                            ? 'http://localhost:3000/api/courts/add'
-                            : 'http://$myIp:3000/api/courts/add';
+                        final String apiUrl = '${ApiConfig.courtsUrl}/add';
 
                         // 3. Gửi dữ liệu xuống Server Node.js
                         final response = await http.post(

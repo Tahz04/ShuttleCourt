@@ -1,21 +1,21 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'dart:io' show Platform;
+import 'package:quynh/config/api_config.dart';
 
 class User {
   final String id;
   final String email;
   final String fullName;
   final String phone;
-  final String role;
+  String role;
 
   User({
     required this.id,
     required this.email,
     required this.fullName,
     required this.phone,
-    this.role = 'user',
+    required this.role,
   });
 }
 
@@ -29,17 +29,7 @@ class AuthService extends ChangeNotifier {
   bool get isAuthenticated => _user != null;
   String? get errorMessage => _errorMessage;
 
-  // --- SỬA LỖI DẤU CÁCH Ở ĐÂY ---
-  final String _myIp = '10.121.66.20';
-
-  String get _baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:3000/api';
-    } else {
-      // Dùng IP máy tính cho cả máy ảo và máy thật
-      return 'http://$_myIp:3000/api';
-    }
-  }
+  String get _baseUrl => ApiConfig.authUrl;
 
   // --- Đăng nhập ---
   Future<bool> login(String email, String password) async {
