@@ -130,4 +130,16 @@ class ShopService {
       return false;
     }
   }
+  static Future<List<dynamic>> getOrders() async {
+    try {
+      final response = await http.get(Uri.parse(ApiConfig.productsUrl + '/orders'));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching orders: $e');
+      return [];
+    }
+  }
 }

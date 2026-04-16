@@ -26,7 +26,8 @@ class ApiConfig {
   static String get bookingsUrl => '$baseUrl/bookings';
   static String get matchmakingUrl => '$baseUrl/matchmaking';
   static String get ownerRequestsUrl => '$baseUrl/owner-requests';
-  static String get productsUrl => '$baseUrl/products'; // NEW
+  static String get productsUrl => '$baseUrl/products';
+  static String get notificationsUrl => '$baseUrl/notifications';
   static String get authUrl => baseUrl;
 
   // Timeout settings

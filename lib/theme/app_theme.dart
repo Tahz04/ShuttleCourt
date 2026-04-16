@@ -1,86 +1,70 @@
 import 'package:flutter/material.dart';
 
-/// ShuttleCourt Design System - Premium Light Theme
+/// ShuttleCourt Design System - Premium "Modern Slate" Light Theme
 class AppTheme {
-  // BRAND COLORS
-  static const Color primary = Color(0xFF00C853);        // Vibrant Green
-  static const Color primaryDark = Color(0xFF009624);     // Deep Green
-  static const Color accent = Color(0xFF007BFF);          // Blue Accent
-  static const Color accentGold = Color(0xFFFFB300);      // Gold
+  // BRAND COLORS (Professional & Trustworthy)
+  static const Color primary = Color(0xFF2D3250);        // Deep Slate/Indigo
+  static const Color primaryDeep = Color(0xFF1B2038);      // Even deeper slate
+  static const Color primaryLight = Color(0xFF424769);
+  static const Color accent = Color(0xFF7077A1);         // Muted Blue
+  static const Color highlight = Color(0xFFF6B17A);      // Warm Coral/Orange (Call to Action)
+  static const Color glassmorphic = Color(0xCCFFFFFF);   // Glass effect
 
-  // BACKGROUND COLORS (Light Mode)
-  static const Color scaffoldLight = Color(0xFFF8F9FA);
+  // BACKGROUND COLORS (Sophisticated Light)
+  static const Color scaffoldLight = Color(0xFFF8FAFC);  // Very light slate gray
   static const Color surfaceLight = Colors.white;
   static const Color cardLight = Colors.white;
+  static const Color borderLight = Color(0xFFE2E8F0);    // Slate 200
 
   // TEXT COLORS
-  static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF666666);
-  static const Color textMuted = Color(0xFF9E9E9E);
+  static const Color textPrimary = Color(0xFF1E293B);    // Slate 900
+  static const Color textSecondary = Color(0xFF64748B);  // Slate 500
+  static const Color textMuted = Color(0xFF94A3B8);      // Slate 400
 
   // STATUS COLORS
-  static const Color success = Color(0xFF2E7D32);
-  static const Color warning = Color(0xFFF9A825);
-  static const Color error = Color(0xFFD32F2F);
+  static const Color success = Color(0xFF10B981);       // Emerald 500
+  static const Color warning = Color(0xFFF59E0B);       // Amber 500
+  static const Color error = Color(0xFFEF4444);         // Rose 500
 
-  // GRADIENTS
+  // PREMIUM GRADIENTS
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF00C853), Color(0xFF64DD17)],
+    colors: [Color(0xFF2D3250), Color(0xFF424769)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  static const LinearGradient heroGradient = LinearGradient(
-    colors: [Color(0xFF00C853), Color(0xFF009624)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient matchmakingGradient = LinearGradient(
-    colors: [Color(0xFF2196F3), Color(0xFF00BCD4)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient ownerGradient = LinearGradient(
-    colors: [Color(0xFF9C27B0), Color(0xFFE91E63)],
+  static const LinearGradient accentGradient = LinearGradient(
+    colors: [Color(0xFF7077A1), Color(0xFF424769)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient warmGradient = LinearGradient(
-    colors: [Color(0xFFFF9800), Color(0xFFFF5722)],
+    colors: [Color(0xFFF6B17A), Color(0xFFD68A5E)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   // BORDER RADIUS
+  static const double radiusSm = 8.0;
   static const double radiusMd = 12.0;
-  static const double radiusLg = 16.0;
-  static const double radiusXl = 24.0;
+  static const double radiusLg = 24.0;
+  static const double radiusXl = 32.0;
 
-  // SHADOWS
-  static List<BoxShadow> get cardShadow => [
+  // SHADOWS (Soft & Airy)
+  static List<BoxShadow> get premiumShadow => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.05),
-      blurRadius: 15,
-      offset: const Offset(0, 5),
+      color: const Color(0xFF0F172A).withOpacity(0.08),
+      blurRadius: 24,
+      offset: const Offset(0, 8),
     ),
   ];
 
-  static List<BoxShadow> get glowShadow => [
+  static List<BoxShadow> get softShadow => [
     BoxShadow(
-      color: primary.withOpacity(0.2),
-      blurRadius: 15,
-      offset: const Offset(0, 5),
-    ),
-  ];
-
-  static List<BoxShadow> glowShadowColor(Color color) => [
-    BoxShadow(
-      color: color.withOpacity(0.15),
-      blurRadius: 15,
-      offset: const Offset(0, 5),
+      color: const Color(0xFF0F172A).withOpacity(0.04),
+      blurRadius: 10,
+      offset: const Offset(0, 4),
     ),
   ];
 
@@ -90,48 +74,63 @@ class AppTheme {
       brightness: Brightness.light,
       useMaterial3: true,
       scaffoldBackgroundColor: scaffoldLight,
-      colorScheme: ColorScheme.light(
+      colorScheme: const ColorScheme.light(
         primary: primary,
         secondary: accent,
         surface: surfaceLight,
+        onSurface: textPrimary,
         error: error,
       ),
-      fontFamily: 'Roboto',
+      fontFamily: 'Inter', // Professional sans-serif
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(color: textPrimary),
-        titleTextStyle: TextStyle(
-          color: textPrimary,
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-        ),
+        titleTextStyle: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.5),
       ),
       cardTheme: CardThemeData(
         color: cardLight,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusLg),
-          side: BorderSide(color: Colors.grey.shade200),
+          side: const BorderSide(color: borderLight, width: 1),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
           foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          elevation: 2,
+          shadowColor: primary.withOpacity(0.2),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusMd)),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 0.1),
         ),
       ),
     );
   }
 
-  // To maintain compatibility with existing code during transition
-  static Color get scaffoldDark => scaffoldLight;
-  static Color get surfaceDark => surfaceLight;
-  static Color get cardDark => cardLight;
-  static ThemeData get darkTheme => lightTheme; 
+  // Compatibility helpers (Mapped to New Professional Light Theme)
+  static const Color accentGold = warning;
+  static const Color primaryDark = primary;
+  static const Color scaffoldDark = scaffoldLight;
+  static const Color surfaceDark = surfaceLight;
+  static const Color cardDark = cardLight;
+  static const Color borderDark = borderLight;
+  static const LinearGradient heroGradient = primaryGradient;
+  static const LinearGradient matchmakingGradient = accentGradient;
+  static const LinearGradient ownerGradient = primaryGradient;
+  static const LinearGradient matchGradient = accentGradient;
+  
+  static List<BoxShadow> glowShadowColor(Color color) => [
+    BoxShadow(color: color.withOpacity(0.12), blurRadius: 15, offset: const Offset(0, 5))
+  ];
+
+  static ThemeData get darkTheme => lightTheme; // Maintaining Light UI as the "Professional" standard
+  static const Color surfaceLightCard = Colors.white;
+  static List<BoxShadow> get cardShadow => premiumShadow;
+  static List<BoxShadow> get glowShadow => [
+    BoxShadow(color: primary.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 5))
+  ];
 }

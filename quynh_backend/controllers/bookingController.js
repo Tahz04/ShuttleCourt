@@ -33,6 +33,20 @@ exports.createBooking = async (req, res) => {
             payment_method
         ]);
 
+        // THÔNG BÁO CHO CHỦ SÂN
+        const [owners] = await db.query("SELECT id FROM users WHERE role = 'owner'");
+        for (const owner of owners) {
+          await db.query(
+            "INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)",
+            [
+              owner.id,
+              "🏸 Lịch đặt sân mới!",
+              `Sân "${court_name}" được đặt vào ngày ${booking_date} (Khung giờ: ${slot}).`,
+              "booking"
+            ]
+          );
+        }
+
         res.status(200).json({ 
             message: "Booking created successfully", 
             id: result.insertId 
@@ -77,5 +91,34 @@ exports.getAllBookings = async (req, res) => {
     } catch (err) {
         console.error('Database error:', err);
         res.status(500).json({ message: "Failed to fetch all bookings", error: err.message });
+    }
+};
+
+exports.updateBookingStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    try {
+        // 1. Cập nhật trạng thái
+        await db.query('UPDATE bookings SET status = ? WHERE id = ?', [status, id]);
+
+        // 2. Lấy user_id và thông tin sân để gửi thông báo cho khách
+        const [[booking]] = await db.query('SELECT user_id, court_name FROM bookings WHERE id = ?', [id]);
+        
+        if (booking) {
+            const icon = status === 'Đã duyệt' ? '✅' : '❌';
+            await db.query(
+                "INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)",
+                [
+                    booking.user_id,
+                    `${icon} Cập nhật lịch sân`,
+                    `Lịch đặt tại "${booking.court_name}" của bạn đã được ${status.toLowerCase()}.`,
+                    "booking_status"
+                ]
+            );
+        }
+
+        res.status(200).json({ message: 'Cập nhật trạng thái thành công' });
+    } catch (err) {
+        res.status(500).json({ message: 'Lỗi server', error: err.message });
     }
 };

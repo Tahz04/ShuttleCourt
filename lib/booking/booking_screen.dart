@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'screens/checkout_screen.dart';
+import 'package:quynh/services/court_service.dart';
 import 'package:quynh/models/badminton_court.dart';
 import 'package:intl/intl.dart';
 import 'package:quynh/theme/app_theme.dart';
+import 'package:quynh/features/matchmaking/screens/matchmaking_screen.dart';
+import 'package:quynh/main.dart';
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -23,6 +26,10 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
   String _searchQuery = '';
   DateTime _selectedDate = DateTime.now();
   late AnimationController _animController;
+  int _selectedPlayers = 2; // Default: 2 people
+  
+  List<BadmintonCourt> _courts = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -31,6 +38,16 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
       vsync: this,
       duration: const Duration(milliseconds: 400),
     )..forward();
+    _loadCourts();
+  }
+
+  Future<void> _loadCourts() async {
+    setState(() => _isLoading = true);
+    final data = await CourtService.getAllCourts();
+    setState(() {
+      _courts = data;
+      _isLoading = false;
+    });
   }
 
   @override
@@ -67,7 +84,7 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
   }
 
   Widget _buildCourtSelection() {
-    final filteredCourts = sampleBadmintonCourts.where((court) => 
+    final filteredCourts = _courts.where((court) => 
       court.name.toLowerCase().contains(_searchQuery.toLowerCase()) || 
       court.address.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
@@ -106,15 +123,19 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            physics: const BouncingScrollPhysics(),
-            itemCount: filteredCourts.length,
-            itemBuilder: (context, index) {
-              final court = filteredCourts[index];
-              return _buildCourtListItem(court);
-            },
-          ),
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+            : filteredCourts.isEmpty
+              ? const Center(child: Text('Không tìm thấy sân phù hợp', style: TextStyle(color: AppTheme.textMuted)))
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: filteredCourts.length,
+                  itemBuilder: (context, index) {
+                    final court = filteredCourts[index];
+                    return _buildCourtListItem(court);
+                  },
+                ),
         ),
       ],
     );
@@ -285,6 +306,25 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
         const SizedBox(height: 24),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Text('Số lượng người chơi', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppTheme.textPrimary)),
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              _buildPlayerOption(1, '1 người'),
+              const SizedBox(width: 10),
+              _buildPlayerOption(2, '2 người'),
+              const SizedBox(width: 10),
+              _buildPlayerOption(4, '4 người'),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 24),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
           child: Text('Chọn khung giờ', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppTheme.textPrimary)),
         ),
         const SizedBox(height: 14),
@@ -341,16 +381,20 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
           child: SafeArea(
             child: ElevatedButton(
               onPressed: _selectedSlot.isEmpty ? null : () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CheckoutScreen(
-                      selectedSlot: _selectedSlot,
-                      selectedCourt: _selectedCourt!,
-                      selectedDate: _selectedDate,
+                if (_selectedPlayers == 1) {
+                  _showMatchmakingDialog();
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CheckoutScreen(
+                        selectedSlot: _selectedSlot,
+                        selectedCourt: _selectedCourt!,
+                        selectedDate: _selectedDate,
+                      ),
                     ),
-                  ),
-                );
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
@@ -371,6 +415,80 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPlayerOption(int count, String label) {
+    bool isSelected = _selectedPlayers == count;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _selectedPlayers = count),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primary : AppTheme.cardDark,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: isSelected ? Colors.transparent : Colors.white.withValues(alpha: 0.05)),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(color: isSelected ? Colors.white : AppTheme.textSecondary, fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600, fontSize: 13),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showMatchmakingDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Icon(Icons.people_alt_rounded, color: AppTheme.primary, size: 50),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Bạn đang đi 1 mình?', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+            const SizedBox(height: 8),
+            const Text('Chúng tôi có dịch vụ "Ghép Kèo" để giúp bạn tìm bạn chơi cùng. Bạn có muốn tham gia không?', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textSecondary)),
+          ],
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => CheckoutScreen(
+                      selectedSlot: _selectedSlot,
+                      selectedCourt: _selectedCourt!,
+                      selectedDate: _selectedDate,
+                    )));
+                  },
+                  child: const Text('KHÔNG, ĐẶT SÂN RIÊNG', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    // Chuyển sang màn hình Ghép Kèo
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => MatchmakingScreen()));
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
+                  child: Text('CÓ, GHÉP KÈO NGAY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

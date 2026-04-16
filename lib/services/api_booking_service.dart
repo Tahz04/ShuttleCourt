@@ -34,20 +34,45 @@ class ApiBookingService {
   }
 
   // ================= GET BOOKINGS =================
-  static Future<List> getBookings(int userId) async {
+  static Future<List<Booking>> getBookings(int userId) async {
     try {
-      final res = await http.get(
-        Uri.parse('$baseUrl/user/$userId'),
-      );
-
+      final res = await http.get(Uri.parse('$baseUrl/user/$userId'));
       if (res.statusCode == 200) {
-        return jsonDecode(res.body);
-      } else {
-        throw Exception('Fetch bookings failed: ${res.body}');
+        List body = jsonDecode(res.body);
+        return body.map((json) => Booking.fromJson(json)).toList();
       }
-
+      return [];
     } catch (e) {
       throw Exception('Network error: $e');
+    }
+  }
+
+  // ================= OWNER: GET ALL BOOKINGS =================
+  static Future<List<Booking>> getAllBookings() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/all'));
+      if (res.statusCode == 200) {
+        List body = jsonDecode(res.body);
+        return body.map((json) => Booking.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // ================= OWNER: UPDATE STATUS =================
+  static Future<bool> updateBookingStatus(String bookingId, String status) async {
+    try {
+      final res = await http.put(
+        Uri.parse('$baseUrl/$bookingId/status'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'status': status}),
+      );
+      return res.statusCode == 200;
+    } catch (e) {
+      print('Error update status: $e');
+      return false;
     }
   }
 }

@@ -69,7 +69,25 @@ exports.updateOrderStatus = async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
   try {
+    // 1. Cập nhật trạng thái
     await db.query('UPDATE product_orders SET status = ? WHERE id = ?', [status, orderId]);
+
+    // 2. Lấy user_id để gửi thông báo cho khách hàng
+    const [[order]] = await db.query('SELECT user_id, total_price FROM product_orders WHERE id = ?', [orderId]);
+    
+    if (order) {
+      const icon = status === 'Đã duyệt' || status === 'Đã giao' ? '📦' : '❌';
+      await db.query(
+        "INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)",
+        [
+          order.user_id,
+          `${icon} Cập nhật đơn hàng`,
+          `Đơn hàng trị giá ${order.total_price.toLocaleString()}đ của bạn đã được ${status.toLowerCase()}.`,
+          "order_status"
+        ]
+      );
+    }
+
     res.json({ message: 'Cập nhật trạng thái thành công' });
   } catch (err) {
     res.status(500).json({ message: 'Lỗi server', error: err.message });
@@ -107,6 +125,20 @@ exports.placeOrder = async (req, res) => {
       await connection.query(
         'UPDATE products SET stock = stock - ? WHERE id = ?',
         [item.quantity, item.productId]
+      );
+    }
+
+    // 4. THÊM THÔNG BÁO CHO CHỦ SÂN (OWNER)
+    const [owners] = await connection.query("SELECT id FROM users WHERE role = 'owner'");
+    for (const owner of owners) {
+      await connection.query(
+        "INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)",
+        [
+          owner.id,
+          "📦 Đơn hàng mới!",
+          `Bạn nhận được đơn hàng mới giá trị ${totalPrice.toLocaleString()}đ từ khách hàng.`,
+          "order"
+        ]
       );
     }
 

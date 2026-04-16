@@ -5,6 +5,8 @@ import 'package:quynh/models/match_model.dart';
 import 'package:quynh/features/matchmaking/services/matchmaking_service.dart';
 import 'package:quynh/features/matchmaking/screens/create_match_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:quynh/auth/auth_service.dart';
 
 class MatchmakingScreen extends StatefulWidget {
   const MatchmakingScreen({super.key});
@@ -276,7 +278,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> with TickerProvid
                 Text('Host: ${match.hostName}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 const Spacer(),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => _handleJoinMatch(match),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     backgroundColor: AppTheme.accent,
@@ -322,5 +324,41 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> with TickerProvid
         ),
       ),
     );
+  }
+
+  void _handleJoinMatch(MatchModel match) async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    if (!auth.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng đăng nhập để tham gia kèo!')),
+      );
+      return;
+    }
+
+    if (auth.user!.id == match.hostId.toString()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bạn là chủ kèo này rồi!')),
+      );
+      return;
+    }
+
+    final success = await MatchmakingService.requestJoin(
+      userId: int.parse(auth.user!.id),
+      matchId: match.id,
+      hostId: match.hostId,
+      senderName: auth.user!.fullName,
+      courtName: match.courtName,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success 
+            ? 'Đã gửi yêu cầu ghép kèo! Đang chờ chủ sân phê duyệt.' 
+            : 'Gửi yêu cầu thất bại. Vui lòng thử lại.'),
+          backgroundColor: success ? AppTheme.success : AppTheme.error,
+        ),
+      );
+    }
   }
 }

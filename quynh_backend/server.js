@@ -22,7 +22,9 @@ app.use('/api/matchmaking', matchmakingRoutes);
 
 
 const productRoutes = require('./routes/productRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 app.use('/api/products', productRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 const ownerRequestRoutes = require('./routes/ownerRequestRoutes');
 app.use('/api/owner-requests', ownerRequestRoutes);
