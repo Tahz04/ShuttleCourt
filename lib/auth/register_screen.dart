@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quynh/auth/auth_service.dart';
 import 'package:quynh/theme/app_theme.dart';
+import 'package:quynh/utils/validators.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -38,7 +39,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppTheme.textPrimary, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppTheme.textPrimary,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -50,7 +55,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               const Text(
                 'Tham gia ngay',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppTheme.textPrimary, letterSpacing: -1),
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.textPrimary,
+                  letterSpacing: -1,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -58,7 +68,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 32),
-              
+
               _buildTextField(
                 label: 'Họ tên',
                 hint: 'Nguyễn Văn A',
@@ -66,7 +76,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _fullNameController,
               ),
               const SizedBox(height: 18),
-              
+
               _buildTextField(
                 label: 'Email',
                 hint: 'example@email.com',
@@ -74,7 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _emailController,
               ),
               const SizedBox(height: 18),
-              
+
               _buildTextField(
                 label: 'Số điện thoại',
                 hint: '09xxxxxxx',
@@ -82,7 +92,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _phoneController,
               ),
               const SizedBox(height: 18),
-              
+
               _buildTextField(
                 label: 'Mật khẩu',
                 hint: '••••••••',
@@ -90,10 +100,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _passwordController,
                 isPassword: true,
                 obscureText: _obscurePassword,
-                onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
+                onToggleVisibility: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
               const SizedBox(height: 18),
-              
+
               _buildTextField(
                 label: 'Xác nhận mật khẩu',
                 hint: '••••••••',
@@ -101,11 +112,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _confirmPasswordController,
                 isPassword: true,
                 obscureText: _obscureConfirmPassword,
-                onToggleVisibility: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                onToggleVisibility: () => setState(
+                  () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                ),
               ),
-              
+
               const SizedBox(height: 20),
-              
+
               Row(
                 children: [
                   SizedBox(
@@ -113,37 +126,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     width: 24,
                     child: Checkbox(
                       value: _agreeTerms,
-                      onChanged: (v) => setState(() => _agreeTerms = v ?? false),
+                      onChanged: (v) =>
+                          setState(() => _agreeTerms = v ?? false),
                       activeColor: AppTheme.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Text(
                       'Tôi đồng ý với các Điều khoản & Chính sách',
-                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               Consumer<AuthService>(
                 builder: (context, auth, _) {
                   return SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: (auth.isLoading || !_agreeTerms) ? null : _handleRegister,
+                      onPressed: (auth.isLoading || !_agreeTerms)
+                          ? null
+                          : _handleRegister,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                       child: auth.isLoading
-                          ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
-                          : const Text('ĐĂNG KÝ TÀI KHOẢN', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                          ? const CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 3,
+                            )
+                          : const Text(
+                              'ĐĂNG KÝ TÀI KHOẢN',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                     ),
                   );
                 },
@@ -168,7 +200,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textPrimary,
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
@@ -182,11 +221,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
             style: const TextStyle(fontWeight: FontWeight.w600),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w400),
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontWeight: FontWeight.w400,
+              ),
               prefixIcon: Icon(icon, color: AppTheme.primary, size: 20),
               suffixIcon: isPassword
                   ? IconButton(
-                      icon: Icon(obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: Colors.grey),
+                      icon: Icon(
+                        obscureText
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                        color: Colors.grey,
+                      ),
                       onPressed: onToggleVisibility,
                     )
                   : null,
@@ -200,11 +247,83 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _handleRegister() async {
-    if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu xác nhận không khớp!')));
+    // Validation - Họ tên
+    final fullNameError = Validators.validateFullName(_fullNameController.text);
+    if (fullNameError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(fullNameError),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       return;
     }
-    
+
+    // Validation - Email
+    final emailError = Validators.validateEmail(_emailController.text);
+    if (emailError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(emailError),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Validation - Số điện thoại
+    final phoneError = Validators.validatePhoneNumber(_phoneController.text);
+    if (phoneError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(phoneError),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Validation - Mật khẩu
+    final passwordError = Validators.validatePasswordRegister(
+      _passwordController.text,
+    );
+    if (passwordError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(passwordError),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Validation - Xác nhận mật khẩu
+    final confirmPasswordError = Validators.validateConfirmPassword(
+      _passwordController.text,
+      _confirmPasswordController.text,
+    );
+    if (confirmPasswordError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(confirmPasswordError),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Validation - Đồng ý điều khoản
+    final termsError = Validators.validateTermsAgreement(_agreeTerms);
+    if (termsError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(termsError),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final auth = Provider.of<AuthService>(context, listen: false);
     final success = await auth.register(
       _emailController.text,
