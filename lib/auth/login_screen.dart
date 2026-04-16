@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quynh/auth/auth_service.dart';
 import 'package:quynh/theme/app_theme.dart';
+import 'package:quynh/utils/validators.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -39,12 +40,15 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [AppTheme.primary.withOpacity(0.1), AppTheme.accent.withOpacity(0.05)],
+                  colors: [
+                    AppTheme.primary.withOpacity(0.1),
+                    AppTheme.accent.withOpacity(0.05),
+                  ],
                 ),
               ),
             ),
           ),
-          
+
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -52,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 60),
-                  
+
                   // Logo / Icon
                   Center(
                     child: Container(
@@ -63,11 +67,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: AppTheme.glowShadow,
                       ),
-                      child: const Icon(Icons.sports_tennis_rounded, color: Colors.white, size: 40),
+                      child: const Icon(
+                        Icons.sports_tennis_rounded,
+                        color: Colors.white,
+                        size: 40,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   const Center(
                     child: Text(
                       'ShuttleCourt',
@@ -89,21 +97,28 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 50),
-                  
+
                   const Text(
                     'Đăng nhập',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppTheme.textPrimary),
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     'Vui lòng nhập thông tin tài khoản của bạn',
-                    style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Email Field
                   _buildTextField(
                     label: 'Email',
@@ -112,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _emailController,
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Password Field
                   _buildTextField(
                     label: 'Mật khẩu',
@@ -121,22 +136,26 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _passwordController,
                     isPassword: true,
                     obscureText: _obscurePassword,
-                    onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
+                    onToggleVisibility: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
-                  
+
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {},
                       child: const Text(
                         'Quên mật khẩu?',
-                        style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          color: AppTheme.accent,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 12),
-                  
+
                   // Error Message
                   Consumer<AuthService>(
                     builder: (context, auth, _) {
@@ -145,14 +164,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           padding: const EdgeInsets.only(bottom: 20),
                           child: Text(
                             auth.errorMessage!,
-                            style: const TextStyle(color: AppTheme.error, fontSize: 13, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              color: AppTheme.error,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         );
                       }
                       return const SizedBox.shrink();
                     },
                   ),
-                  
+
                   // Login Button
                   Consumer<AuthService>(
                     builder: (context, auth, _) {
@@ -164,29 +187,51 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primary,
                             elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                           child: auth.isLoading
-                              ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
-                              : const Text('ĐĂNG NHẬP', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                )
+                              : const Text(
+                                  'ĐĂNG NHẬP',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
                         ),
                       );
                     },
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Register Link
                   Center(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Chưa có tài khoản? ', style: TextStyle(color: AppTheme.textSecondary)),
+                        const Text(
+                          'Chưa có tài khoản? ',
+                          style: TextStyle(color: AppTheme.textSecondary),
+                        ),
                         TextButton(
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterScreen(),
+                            ),
+                          ),
                           child: const Text(
                             'Đăng ký ngay',
-                            style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w800),
+                            style: TextStyle(
+                              color: AppTheme.primary,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ],
@@ -213,7 +258,14 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textPrimary,
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
@@ -227,11 +279,19 @@ class _LoginScreenState extends State<LoginScreen> {
             style: const TextStyle(fontWeight: FontWeight.w600),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w400),
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontWeight: FontWeight.w400,
+              ),
               prefixIcon: Icon(icon, color: AppTheme.primary, size: 20),
               suffixIcon: isPassword
                   ? IconButton(
-                      icon: Icon(obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: Colors.grey),
+                      icon: Icon(
+                        obscureText
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                        color: Colors.grey,
+                      ),
                       onPressed: onToggleVisibility,
                     )
                   : null,
@@ -245,8 +305,36 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() async {
+    // Validation
+    final emailError = Validators.validateEmail(_emailController.text);
+    if (emailError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(emailError),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final passwordError = Validators.validatePasswordLogin(
+      _passwordController.text,
+    );
+    if (passwordError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(passwordError),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final auth = Provider.of<AuthService>(context, listen: false);
-    final success = await auth.login(_emailController.text, _passwordController.text);
+    final success = await auth.login(
+      _emailController.text,
+      _passwordController.text,
+    );
     if (success && mounted) {
       Navigator.pop(context);
     }

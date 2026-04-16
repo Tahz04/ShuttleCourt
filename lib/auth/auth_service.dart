@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:quynh/config/api_config.dart';
+import 'package:quynh/utils/validators.dart';
 
 class User {
   final String id;
@@ -33,6 +34,21 @@ class AuthService extends ChangeNotifier {
 
   // --- Đăng nhập ---
   Future<bool> login(String email, String password) async {
+    // Validation
+    final emailError = Validators.validateEmail(email);
+    if (emailError != null) {
+      _errorMessage = emailError;
+      notifyListeners();
+      return false;
+    }
+
+    final passwordError = Validators.validatePasswordLogin(password);
+    if (passwordError != null) {
+      _errorMessage = passwordError;
+      notifyListeners();
+      return false;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -41,10 +57,7 @@ class AuthService extends ChangeNotifier {
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        body: jsonEncode({'email': email, 'password': password}),
       );
 
       final data = jsonDecode(response.body);
@@ -54,7 +67,10 @@ class AuthService extends ChangeNotifier {
         _user = User(
           id: data['user']['id'].toString(),
           email: data['user']['email'],
-          fullName: data['user']['fullName'] ?? data['user']['full_name'] ?? 'Người dùng',
+          fullName:
+              data['user']['fullName'] ??
+              data['user']['full_name'] ??
+              'Người dùng',
           phone: data['user']['phone'] ?? '',
           role: data['user']['role'] ?? 'user',
         );
@@ -76,7 +92,41 @@ class AuthService extends ChangeNotifier {
   }
 
   // --- Đăng ký ---
-  Future<bool> register(String email, String password, String fullName, String phone) async {
+  Future<bool> register(
+    String email,
+    String password,
+    String fullName,
+    String phone,
+  ) async {
+    // Validation
+    final fullNameError = Validators.validateFullName(fullName);
+    if (fullNameError != null) {
+      _errorMessage = fullNameError;
+      notifyListeners();
+      return false;
+    }
+
+    final emailError = Validators.validateEmail(email);
+    if (emailError != null) {
+      _errorMessage = emailError;
+      notifyListeners();
+      return false;
+    }
+
+    final phoneError = Validators.validatePhoneNumber(phone);
+    if (phoneError != null) {
+      _errorMessage = phoneError;
+      notifyListeners();
+      return false;
+    }
+
+    final passwordError = Validators.validatePasswordRegister(password);
+    if (passwordError != null) {
+      _errorMessage = passwordError;
+      notifyListeners();
+      return false;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -124,9 +174,7 @@ class AuthService extends ChangeNotifier {
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/upgrade-to-owner'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'userId': _user!.id,
-        }),
+        body: jsonEncode({'userId': _user!.id}),
       );
 
       final data = jsonDecode(response.body);
