@@ -8,6 +8,7 @@ import 'package:quynh/features/matchmaking/services/matchmaking_service.dart';
 import 'package:quynh/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:quynh/services/notification_service.dart';
+import 'package:quynh/features/reviews/screens/write_review_screen.dart';
 
 // RE-WRITTEN BOOKING HISTORY SCREEN
 class BookingHistoryScreen extends StatefulWidget {
@@ -146,6 +147,33 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
               Text('${b.price.toInt()}đ', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w900, fontSize: 15)),
             ],
           ),
+          if (isConfirmed) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(
+                      builder: (context) => WriteReviewScreen(
+                        courtName: b.courtName,
+                        bookingId: int.tryParse(b.id),
+                      )
+                    )
+                  );
+                },
+                icon: const Icon(Icons.star_rate_rounded, size: 16),
+                label: const Text('ĐÁNH GIÁ SÂN NÀY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.accentGold,
+                  side: const BorderSide(color: AppTheme.accentGold),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

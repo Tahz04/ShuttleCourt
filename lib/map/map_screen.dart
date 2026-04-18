@@ -8,6 +8,8 @@ import 'dart:convert';
 import 'package:quynh/models/badminton_court.dart';
 import 'package:quynh/config/api_config.dart';
 import 'package:quynh/theme/app_theme.dart';
+import 'package:quynh/features/reviews/screens/court_reviews_screen.dart';
+import 'package:quynh/booking/booking_screen.dart';
 
 class MapScreen extends StatefulWidget {
   final String? searchQuery;
@@ -67,6 +69,14 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   @override
+  void didUpdateWidget(MapScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.searchQuery != oldWidget.searchQuery && widget.searchQuery != null) {
+      _search(widget.searchQuery!);
+    }
+  }
+
+  @override
   void dispose() {
     _pulseController.dispose();
     _routeInfoController.dispose();
@@ -99,6 +109,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             rating: json['rating']?.toDouble() ?? 4.5,
             reviews: json['reviews']?.toInt() ?? 10,
             amenities: ['Wifi', 'Gửi xe', 'Nước uống'],
+            mainImage: json['main_image'],
+            descImage1: json['desc_image1'],
+            descImage2: json['desc_image2'],
+            status: json['status'] ?? 'active',
           );
         }).toList();
 
@@ -321,11 +335,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                gradient: isRouteTarget
+                                gradient: court.status == 'maintenance'
                                     ? const LinearGradient(colors: [Color(0xFFFF5252), Color(0xFFD32F2F)])
-                                    : isSelected
-                                        ? const LinearGradient(colors: [Color(0xFF00C853), Color(0xFF009624)])
-                                        : LinearGradient(colors: [Colors.white, Colors.grey.shade100]),
+                                    : isRouteTarget
+                                        ? const LinearGradient(colors: [Color(0xFF1565C0), Color(0xFF0D47A1)])
+                                        : isSelected
+                                            ? const LinearGradient(colors: [Color(0xFF00C853), Color(0xFF009624)])
+                                            : LinearGradient(colors: [Colors.white, Colors.grey.shade100]),
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
@@ -342,11 +358,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                                   color: Colors.white,
                                   width: isSelected ? 2.5 : 2,
                                 ),
-                              ),
-                              child: Icon(
-                                Icons.sports_tennis,
-                                color: isRouteTarget || isSelected ? Colors.white : AppTheme.primary,
-                                size: isSelected ? 20 : 16,
                               ),
                             ),
                             // Small triangle pointer
@@ -867,6 +878,20 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         ),
                       ],
                     ),
+                    // Image Gallery
+                    if (court.mainImage != null || court.descImage1 != null || court.descImage2 != null)
+                      SizedBox(
+                        height: 140,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          children: [
+                            if (court.mainImage != null) _buildGalleryItem(court.mainImage!, 'Ảnh chính', isMain: true),
+                            if (court.descImage1 != null) _buildGalleryItem(court.descImage1!, 'Mô tả 1'),
+                            if (court.descImage2 != null) _buildGalleryItem(court.descImage2!, 'Mô tả 2'),
+                          ],
+                        ),
+                      ),
                     const SizedBox(height: 20),
 
                     // Info Cards Row
@@ -940,6 +965,25 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                     ),
                     const SizedBox(height: 24),
 
+                    // Xem Đánh giá
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => CourtReviewsScreen(courtId: int.parse(court.id), courtName: court.name)));
+                        },
+                        icon: const Icon(Icons.star_rate_rounded, size: 20),
+                        label: const Text('XEM ĐÁNH GIÁ (Click để thử)', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.accentGold,
+                          side: BorderSide(color: AppTheme.accentGold.withOpacity(0.5)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
                     // Action Buttons
                     Row(
                       children: [
@@ -979,14 +1023,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                           child: GestureDetector(
                             onTap: () {
                               Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Đặt sân ${court.name}'),
-                                  backgroundColor: AppTheme.primary,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                              );
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => BookingScreen(initialCourt: court)));
                             },
                             child: Container(
                               height: 52,
@@ -1012,6 +1049,54 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                     ),
                     SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
                   ],
+
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGalleryItem(String url, String label, {bool isMain = false}) {
+    return Container(
+      width: isMain ? 220 : 140,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceLight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              url,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const Center(
+                child: Icon(Icons.broken_image_rounded, color: AppTheme.textMuted),
+              ),
+            ),
+            Positioned(
+              bottom: 0, left: 0, right: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Colors.black54, Colors.transparent],
+                  ),
+                ),
+                child: Text(
+                  label,
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                 ),
               ),
             ),

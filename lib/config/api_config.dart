@@ -29,6 +29,16 @@ class ApiConfig {
   static String get productsUrl => '$baseUrl/products';
   static String get notificationsUrl => '$baseUrl/notifications';
   static String get authUrl => baseUrl;
+  static String get uploadUrl => '$baseUrl/upload';
+
+  // Raw base URL for static files (uploads)
+  static String get rawBaseUrl {
+    if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows) {
+      return 'http://localhost:$serverPort';
+    } else {
+      return 'http://$serverIp:$serverPort';
+    }
+  }
 
   // Timeout settings
   static const Duration connectionTimeout = Duration(seconds: 10);

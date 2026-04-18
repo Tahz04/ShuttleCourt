@@ -13,6 +13,11 @@ class BadmintonCourt {
   final double pricePerHour;
   final List<String> amenities;
 
+  final String? mainImage;
+  final String? descImage1;
+  final String? descImage2;
+  final String status; // 'active', 'maintenance'
+
   BadmintonCourt({
     required this.id,
     required this.name,
@@ -24,7 +29,32 @@ class BadmintonCourt {
     required this.phone,
     required this.pricePerHour,
     required this.amenities,
+    this.mainImage,
+    this.descImage1,
+    this.descImage2,
+    this.status = 'active',
   });
+
+  factory BadmintonCourt.fromJson(Map<String, dynamic> json) {
+    return BadmintonCourt(
+      id: (json['id'] ?? '').toString(),
+      name: json['name'] ?? 'Sân Cầu Lông',
+      latitude: double.tryParse(json['latitude']?.toString() ?? '0') ?? 0.0,
+      longitude: double.tryParse(json['longitude']?.toString() ?? '0') ?? 0.0,
+      rating: double.tryParse((json['average_rating'] ?? json['rating'] ?? '0').toString()) ?? 4.5,
+      reviews: int.tryParse((json['total_reviews'] ?? json['reviews'] ?? '0').toString()) ?? 0,
+      address: json['address'] ?? '',
+      phone: json['phone'] ?? '',
+      pricePerHour: double.tryParse(json['price_per_hour']?.toString() ?? '0') ?? 0.0,
+      amenities: json['amenities'] != null 
+          ? (json['amenities'] is String ? json['amenities'].split(',') : List<String>.from(json['amenities']))
+          : ['Wifi', 'Gửi xe'],
+      mainImage: json['main_image'],
+      descImage1: json['desc_image1'],
+      descImage2: json['desc_image2'],
+      status: json['status'] ?? 'active',
+    );
+  }
 
   LatLng get latLng => LatLng(latitude, longitude);
 

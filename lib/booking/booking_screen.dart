@@ -8,7 +8,8 @@ import 'package:quynh/features/matchmaking/screens/matchmaking_screen.dart';
 import 'package:quynh/main.dart';
 
 class BookingScreen extends StatefulWidget {
-  const BookingScreen({super.key});
+  final BadmintonCourt? initialCourt;
+  const BookingScreen({super.key, this.initialCourt});
 
   @override
   State<BookingScreen> createState() => _BookingScreenState();
@@ -34,6 +35,7 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
+    _selectedCourt = widget.initialCourt;
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),

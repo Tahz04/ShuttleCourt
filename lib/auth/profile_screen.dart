@@ -7,6 +7,7 @@ import 'register_screen.dart';
 import 'edit_profile_screen.dart';
 import 'security_screen.dart';
 import 'notification_settings_screen.dart';
+import 'package:quynh/features/owner/screens/owner_dashboard_screen.dart';
 import 'language_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -173,6 +174,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildSettingsSection(BuildContext context) {
+    final user = Provider.of<AuthService>(context).user;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -180,6 +182,8 @@ class ProfileScreen extends StatelessWidget {
           padding: EdgeInsets.only(left: 8, bottom: 12),
           child: Text('CÀI ĐẶT & HỖ TRỢ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textMuted, letterSpacing: 1.2)),
         ),
+        if (user?.role == 'owner')
+          _buildSettingTile(context, Icons.dashboard_customize_rounded, 'Bảng điều khiển Chủ sân', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OwnerDashboardScreen()))),
         _buildSettingTile(context, Icons.shield_outlined, 'Bảo mật & Mật khẩu', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SecurityScreen()))),
         _buildSettingTile(context, Icons.notifications_none_rounded, 'Thông báo', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()))),
         _buildSettingTile(context, Icons.language_rounded, 'Ngôn ngữ', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LanguageSettingsScreen()))),

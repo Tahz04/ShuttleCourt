@@ -62,10 +62,11 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   int _selectedIndex = 0;
   late final AnimationController _fadeController;
+  String? _mapSearchQuery;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const MapScreen(),
+  List<Widget> get _screens => [
+    HomeScreen(onTabChange: _onItemTapped),
+    MapScreen(searchQuery: _mapSearchQuery),
     const BookingHistoryScreen(),
     const ProfileScreen(),
   ];
@@ -85,11 +86,14 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _onItemTapped(int index) {
-    if (_selectedIndex != index) {
+  void _onItemTapped(int index, {String? query}) {
+    if (_selectedIndex != index || query != null) {
       _fadeController.reset();
       _fadeController.forward();
-      setState(() => _selectedIndex = index);
+      setState(() {
+        _selectedIndex = index;
+        _mapSearchQuery = query;
+      });
     }
   }
 
@@ -159,11 +163,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// HOME SCREEN
-// ═══════════════════════════════════════════════════════════════════════
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final Function(int, {String? query})? onTabChange;
+  const HomeScreen({super.key, this.onTabChange});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -175,7 +177,24 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _nearestCourtsFuture = LocationService.getNearestCourts(maxResults: 5);
+    _refresh();
+  }
+
+  void _refresh() {
+    setState(() {
+      _nearestCourtsFuture = LocationService.getNearestCourts(maxResults: 5);
+    });
+  }
+
+  void _showComingSoon(BuildContext context, String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Tính năng $feature đang được phát triển!'),
+        backgroundColor: AppTheme.accent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   @override
@@ -183,15 +202,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final auth = Provider.of<AuthService>(context);
     return Scaffold(
       backgroundColor: AppTheme.scaffoldLight,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildHeroHeader(auth),
-          _buildSearchSection(),
-          _buildNearbySection(),
-          _buildFeatureSection(auth),
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
+      body: RefreshIndicator(
+        onRefresh: () async { _refresh(); },
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            _buildHeroHeader(auth),
+            _buildSearchSection(),
+            _buildNearbySection(),
+            _buildFeatureSection(auth),
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
+        ),
       ),
     );
   }
@@ -213,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Chào bạn, vận động viên! 👋', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+                    const Text('Chào bạn! 👋', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
                     Text(
                       auth.isAuthenticated ? auth.user!.fullName : 'Khách chơi',
                       style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5),
@@ -241,8 +263,13 @@ class _HomeScreenState extends State<HomeScreen> {
             boxShadow: AppTheme.softShadow,
             border: Border.all(color: AppTheme.borderLight),
           ),
-          child: const TextField(
-            decoration: InputDecoration(
+          child: TextField(
+            onSubmitted: (value) {
+              if (value.trim().isNotEmpty) {
+                widget.onTabChange?.call(1, query: value.trim());
+              }
+            },
+            decoration: const InputDecoration(
               hintText: 'Tìm kiếm sân cầu lông...',
               prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primary),
               border: InputBorder.none,
@@ -261,19 +288,44 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-             const Text('Sân gần bạn', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppTheme.primary)),
+            InkWell(
+              onTap: () => widget.onTabChange?.call(1),
+              borderRadius: BorderRadius.circular(8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Sân gần bạn', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppTheme.primary)),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 24),
+                    child: Row(
+                      children: [
+                        Text('Xem bản đồ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primary.withOpacity(0.7))),
+                        const SizedBox(width: 4),
+                        Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppTheme.primary.withOpacity(0.7)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
              const SizedBox(height: 16),
              FutureBuilder<List<CourtWithDistance>>(
                future: _nearestCourtsFuture,
                builder: (context, snapshot) {
-                 if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox(height: 180, child: Center(child: CircularProgressIndicator()));
+                 if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
                  final list = snapshot.data ?? [];
+                 if (list.isEmpty) return const SizedBox(height: 100, child: Center(child: Text('Không tìm thấy sân nào gần đây', style: TextStyle(color: AppTheme.textMuted))));
+                 
                  return SizedBox(
-                   height: 180,
+                   height: 220,
                    child: ListView.builder(
                      scrollDirection: Axis.horizontal,
                      itemCount: list.length,
-                     itemBuilder: (_, i) => CourtCard(data: list[i]),
+                     physics: const BouncingScrollPhysics(),
+                     itemBuilder: (_, i) => CourtCard(
+                       data: list[i],
+                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BookingScreen(initialCourt: list[i].court))),
+                     ),
                    ),
                  );
                },
@@ -291,41 +343,25 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Tiện ích', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppTheme.primary)),
+            const Text('Khám phá thêm', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppTheme.primary)),
             const SizedBox(height: 16),
             GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 1.4,
+              shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2, mainAxisSpacing: 16, crossAxisSpacing: 16, childAspectRatio: 1.1,
               children: [
-                _FeatureCard(Icons.sports_tennis_rounded, 'Đặt sân ngay', 'Nhanh chóng & tiện lợi', AppTheme.primaryGradient, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BookingScreen()))),
-                _FeatureCard(Icons.group_rounded, 'Ghép kèo', 'Chơi cùng đồng đội', AppTheme.accentGradient, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MatchmakingScreen()))),
+                _FeatureCard(Icons.groups_rounded, 'Tìm đồng đội', 'Ghép sân ngay', AppTheme.primaryGradient, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MatchmakingScreen()))),
+                _FeatureCard(Icons.event_available_rounded, 'Đặt sân ngay', 'Tìm sân trống', AppTheme.primaryGradient, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BookingScreen()))),
+                _FeatureCard(Icons.shopping_bag_rounded, 'Cửa hàng', 'Dụng cụ thể thao', AppTheme.primaryGradient, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ShopScreen()))),
                 _FeatureCard(
-                  auth.user?.role == 'owner' ? Icons.dashboard_rounded : Icons.shopping_bag_rounded,
-                  auth.user?.role == 'owner' ? 'Quản lý' : 'Cửa hàng',
-                  auth.user?.role == 'owner' ? 'Bảng điều khiển' : 'Dụng cụ thi đấu',
-                  AppTheme.warmGradient,
+                  auth.user?.role == 'owner' ? Icons.inventory_2_rounded : Icons.star_rate_rounded, 
+                  auth.user?.role == 'owner' ? 'Quản lý sân' : 'Đánh giá sân',
+                  auth.user?.role == 'owner' ? 'Bảng điều khiển' : 'Chia sẻ trải nghiệm',
+                  AppTheme.primaryGradient,
                   () {
                     if (auth.user?.role == 'owner') {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const OwnerDashboardScreen()));
                     } else {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ShopScreen()));
-                    }
-                  }
-                ),
-                _FeatureCard(
-                  auth.user?.role == 'owner' ? Icons.shopping_bag_rounded : Icons.rocket_launch_rounded,
-                  auth.user?.role == 'owner' ? 'Đơn hàng' : 'Trở thành đối tác',
-                  auth.user?.role == 'owner' ? 'Sản phẩm & Đơn hàng' : 'Đăng ký chủ sân',
-                  AppTheme.primaryGradient,
-                  () {
-                    if (auth.user?.role == 'owner') {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ShopScreen()));
-                    } else {
-                      showUpgradeDialog(context, auth);
+                      widget.onTabChange?.call(2);
                     }
                   }
                 ),
@@ -355,6 +391,7 @@ class _FeatureCard extends StatelessWidget {
             Icon(icon, color: Colors.white, size: 28),
             const Spacer(),
             Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+            const SizedBox(height: 2),
             Text(sub, style: const TextStyle(color: Colors.white70, fontSize: 10)),
           ],
         ),
@@ -416,8 +453,18 @@ class _UserNotificationBellState extends State<UserNotificationBell> {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: n.isRead ? Colors.transparent : AppTheme.primary.withOpacity(0.04), borderRadius: BorderRadius.circular(16)),
-                      child: Text(n.message, style: TextStyle(color: AppTheme.primary, fontWeight: n.isRead ? FontWeight.normal : FontWeight.w700)),
+                      decoration: BoxDecoration(
+                        color: n.isRead ? Colors.transparent : AppTheme.primary.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: n.isRead ? AppTheme.borderLight : AppTheme.primary.withOpacity(0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: n.isRead ? Colors.grey.withOpacity(0.1) : AppTheme.primary.withOpacity(0.1), shape: BoxShape.circle), child: Icon(Icons.notifications_rounded, color: n.isRead ? Colors.grey : AppTheme.primary, size: 20)),
+                          const SizedBox(width: 16),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(n.title, style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primary, fontSize: 13)), Text(n.message, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11))])),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -431,12 +478,14 @@ class _UserNotificationBellState extends State<UserNotificationBell> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        IconButton(icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 26), onPressed: _showNotifications),
-        if (_unreadCount > 0)
-          Positioned(right: 8, top: 8, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: Text('$_unreadCount', style: const TextStyle(color: Colors.white, fontSize: 8)))),
-      ],
+    return GestureDetector(
+      onTap: _showNotifications,
+      child: Stack(
+        children: [
+          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24)),
+          if (_unreadCount > 0) Positioned(right: 4, top: 4, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: AppTheme.accent, shape: BoxShape.circle), child: Text('$_unreadCount', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)))),
+        ],
+      ),
     );
   }
 }
@@ -445,15 +494,7 @@ void showUpgradeDialog(BuildContext context, AuthService authService) {
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
-      backgroundColor: AppTheme.surfaceLight,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: const Row(
-        children: [
-          Icon(Icons.rocket_launch_rounded, color: AppTheme.primary),
-          SizedBox(width: 12),
-          Text('Partner Registration', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w900, fontSize: 18)),
-        ],
-      ),
+      title: const Text('Become Owner', style: TextStyle(fontWeight: FontWeight.w900, color: AppTheme.primary)),
       content: const Text('Do you want to become a court owner and manage your business?', style: TextStyle(color: AppTheme.textSecondary)),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Later', style: TextStyle(color: AppTheme.textMuted))),
@@ -474,25 +515,59 @@ void showUpgradeDialog(BuildContext context, AuthService authService) {
 
 class CourtCard extends StatelessWidget {
   final CourtWithDistance data;
-  const CourtCard({super.key, required this.data});
+  final VoidCallback? onTap;
+  const CourtCard({super.key, required this.data, this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final isMaintenance = data.court.status == 'maintenance';
+    const String placeholder = 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60';
+    final String imageToShow = (data.court.mainImage != null && data.court.mainImage!.isNotEmpty) ? data.court.mainImage! : placeholder;
+
     return Container(
-      width: 200, margin: const EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(color: AppTheme.surfaceLight, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppTheme.borderLight), boxShadow: AppTheme.softShadow),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: Container(decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.05), borderRadius: const BorderRadius.vertical(top: Radius.circular(20))))),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(data.court.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppTheme.primary)),
-              Text('Cách bạn ${data.distanceKm.toStringAsFixed(1)} km', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-            ]),
+      width: 220, margin: const EdgeInsets.only(right: 16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          decoration: BoxDecoration(color: AppTheme.surfaceLight, borderRadius: BorderRadius.circular(24), border: Border.all(color: AppTheme.borderLight), boxShadow: AppTheme.softShadow),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Stack(fit: StackFit.expand, children: [
+                    Image.network(
+                      imageToShow, fit: BoxFit.cover,
+                      loadingBuilder: (c, child, p) => p == null ? child : Container(color: AppTheme.primary.withOpacity(0.05), child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))),
+                      errorBuilder: (c, e, s) => Container(color: AppTheme.primary.withOpacity(0.05), child: const Center(child: Icon(Icons.broken_image_rounded, color: AppTheme.primary, size: 32))),
+                    ),
+                    if (isMaintenance) Container(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.black54, Colors.black.withOpacity(0.8)])), child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Container(padding: const EdgeInsets.all(8), decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: const Icon(Icons.build_rounded, color: AppTheme.error, size: 20)), const SizedBox(height: 8), const Text('BẢO TRÌ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10))]))),
+                    Positioned(top: 10, right: 10, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(12)), child: Text('${(data.court.pricePerHour/1000).toStringAsFixed(0)}k', style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.primary, fontSize: 11)))),
+                  ]),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(data.court.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppTheme.primary), maxLines: 1),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(children: [const Icon(Icons.near_me_rounded, size: 10, color: AppTheme.accent), const SizedBox(width: 2), Text('${data.distanceKm.toStringAsFixed(1)} km', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.w600))]),
+                          Text(isMaintenance ? 'OFFLINE' : 'ACTIVE', style: TextStyle(color: isMaintenance ? AppTheme.error : Colors.green, fontSize: 9, fontWeight: FontWeight.w900)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
