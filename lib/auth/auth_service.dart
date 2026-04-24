@@ -215,4 +215,43 @@ class AuthService extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
   }
+
+  // --- Đổi mật khẩu ---
+  Future<bool> updatePassword(String oldPassword, String newPassword) async {
+    if (_user == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/update-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': _user!.id,
+          'oldPassword': oldPassword,
+          'newPassword': newPassword,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = data['message'] ?? 'Đổi mật khẩu thất bại';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Lỗi hệ thống: $e';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
 }

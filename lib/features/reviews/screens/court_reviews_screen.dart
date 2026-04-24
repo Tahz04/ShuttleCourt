@@ -125,8 +125,9 @@ class _CourtReviewsScreenState extends State<CourtReviewsScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppTheme.borderLight),
+        boxShadow: AppTheme.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,52 +137,88 @@ class _CourtReviewsScreenState extends State<CourtReviewsScreen> {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    backgroundColor: AppTheme.primary.withOpacity(0.1),
-                    child: Text((review.userName ?? 'U')[0].toUpperCase(), style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w800)),
+                  Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.1), shape: BoxShape.circle),
+                    child: Center(child: Text((review.userName ?? 'U')[0].toUpperCase(), style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w900))),
                   ),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(review.userName ?? 'Người dùng Ẩn danh', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                      Text(review.userName ?? 'Người dùng Ẩn danh', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppTheme.primary)),
                       Text(DateFormat('dd/MM/yyyy').format(review.createdAt), style: const TextStyle(color: AppTheme.textMuted, fontSize: 11)),
                     ],
                   ),
                 ],
               ),
-              Row(
-                children: List.generate(5, (index) => Icon(
-                  index < review.rating ? Icons.star_rounded : Icons.star_outline_rounded,
-                  color: AppTheme.accentGold, size: 14
-                )),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: AppTheme.accentGold.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                child: Row(
+                  children: List.generate(5, (index) => Icon(
+                    index < review.rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                    color: AppTheme.accentGold, size: 12
+                  )),
+                ),
               ),
             ],
           ),
           if (review.comment != null && review.comment!.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text(review.comment!, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, height: 1.5)),
+            Text(review.comment!, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, height: 1.6, fontWeight: FontWeight.w500)),
           ],
           if (review.photos.isNotEmpty) ...[
             const SizedBox(height: 16),
             SizedBox(
-              height: 80,
+              height: 90,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: review.photos.length,
+                physics: const BouncingScrollPhysics(),
                 itemBuilder: (context, idx) {
                   return Container(
-                    width: 80,
-                    margin: const EdgeInsets.only(right: 8),
+                    width: 90,
+                    margin: const EdgeInsets.only(right: 12),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(16),
                       image: DecorationImage(image: NetworkImage(review.photos[idx]), fit: BoxFit.cover),
+                      border: Border.all(color: AppTheme.borderLight),
                     ),
                   );
                 },
               ),
             ),
-          ]
+          ],
+          
+          if (review.ownerReply != null) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(16),
+                border: Border(left: BorderSide(color: AppTheme.primary, width: 3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.verified_user_rounded, color: AppTheme.primary, size: 14),
+                      const SizedBox(width: 6),
+                      const Text('Phản hồi từ chủ sân', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: AppTheme.primary)),
+                      const Spacer(),
+                      if (review.ownerReplyAt != null)
+                        Text(DateFormat('dd/MM/yyyy').format(review.ownerReplyAt!), style: const TextStyle(color: AppTheme.textMuted, fontSize: 10)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(review.ownerReply!, style: const TextStyle(fontSize: 13, height: 1.5, color: AppTheme.textPrimary, fontStyle: FontStyle.italic)),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

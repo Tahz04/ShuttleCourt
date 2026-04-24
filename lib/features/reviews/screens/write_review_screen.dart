@@ -157,202 +157,232 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
     return Scaffold(
       backgroundColor: AppTheme.scaffoldLight,
       appBar: AppBar(
-        title: const Text('Đánh giá sân', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        title: const Text('Đánh giá trải nghiệm', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppTheme.primary)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppTheme.primary),
           onPressed: () => Navigator.pop(context),
         ),
+        backgroundColor: AppTheme.scaffoldLight,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Court Header
             Container(
-              padding: const EdgeInsets.all(16),
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
               decoration: BoxDecoration(
                 color: AppTheme.primary.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.primary.withOpacity(0.1)),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.sports_tennis_rounded, color: AppTheme.primary),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Sân bạn đã chơi', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                        Text(widget.courtName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
-                      ],
-                    ),
-                  ),
+                   const SizedBox(height: 20),
+                   Container(
+                     padding: const EdgeInsets.all(16),
+                     decoration: BoxDecoration(
+                       color: Colors.white,
+                       borderRadius: BorderRadius.circular(24),
+                       boxShadow: AppTheme.softShadow,
+                     ),
+                     child: Row(
+                       children: [
+                         Container(
+                           padding: const EdgeInsets.all(12),
+                           decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+                           child: const Icon(Icons.sports_tennis_rounded, color: AppTheme.primary, size: 28),
+                         ),
+                         const SizedBox(width: 16),
+                         Expanded(
+                           child: Column(
+                             crossAxisAlignment: CrossAxisAlignment.start,
+                             children: [
+                               const Text('Bạn nghĩ sao về', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w500)),
+                               Text(widget.courtName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppTheme.primary)),
+                             ],
+                           ),
+                         ),
+                       ],
+                     ),
+                   ),
+                   const SizedBox(height: 32),
+                   const Text('Chất lượng sân thế nào?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.primary)),
+                   const SizedBox(height: 16),
+                   Row(
+                     mainAxisAlignment: MainAxisAlignment.center,
+                     children: List.generate(5, (index) {
+                       bool isActive = _rating > index;
+                       return GestureDetector(
+                         onTap: () {
+                           Feedback.forTap(context);
+                           setState(() => _rating = index + 1);
+                         },
+                         child: AnimatedContainer(
+                           duration: const Duration(milliseconds: 300),
+                           curve: Curves.elasticOut,
+                           margin: const EdgeInsets.symmetric(horizontal: 6),
+                           padding: const EdgeInsets.all(8),
+                           decoration: BoxDecoration(
+                             color: isActive ? AppTheme.accentGold.withOpacity(0.15) : Colors.transparent,
+                             shape: BoxShape.circle,
+                           ),
+                           child: Icon(
+                             isActive ? Icons.star_rounded : Icons.star_outline_rounded,
+                             color: isActive ? AppTheme.accentGold : AppTheme.textMuted.withOpacity(0.3),
+                             size: 44,
+                           ),
+                         ),
+                       );
+                     }),
+                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
-
-            // Rating Stars
-            const Center(child: Text('Trải nghiệm của bạn thế nào?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppTheme.textPrimary))),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (index) {
-                return GestureDetector(
-                  onTap: () => setState(() => _rating = index + 1),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      transform: Matrix4.identity()..scale(_rating > index ? 1.2 : 1.0),
-                      child: Icon(
-                        _rating > index ? Icons.star_rounded : Icons.star_outline_rounded,
-                        color: _rating > index ? AppTheme.accentGold : AppTheme.borderLight,
-                        size: 40,
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-            const SizedBox(height: 32),
-
-            // Quick Tags
-            const Text('Điều gì làm bạn hài lòng?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8, runSpacing: 8,
-              children: _quickTags.map((tag) {
-                bool isSelected = _selectedTags.contains(tag);
-                return InkWell(
-                  onTap: () => _toggleTag(tag),
-                  borderRadius: BorderRadius.circular(20),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppTheme.primary : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: isSelected ? AppTheme.primary : AppTheme.borderLight),
-                      boxShadow: isSelected ? [BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))] : [],
-                    ),
-                    child: Text(
-                      tag,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : AppTheme.textSecondary,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 32),
-
-            // Comment Box
-            const Text('Chia sẻ thêm chi tiết (Không bắt buộc)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderLight),
-              ),
-              child: TextField(
-                controller: _commentController,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  hintText: 'Bạn nghĩ gì về chất lượng sân, nhân viên, cơ sở vật chất?...',
-                  hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(16),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Image Upload
-            const Text('Thêm ảnh minh họa (Tối đa 3)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 100,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
+            
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_selectedImages.length < 3)
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        width: 100,
-                        margin: const EdgeInsets.only(right: 12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceLight,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.primary.withOpacity(0.2), style: BorderStyle.solid),
+                  const Text('Chọn thẻ nhận xét nhanh', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppTheme.primary)),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 10, runSpacing: 10,
+                    children: _quickTags.map((tag) {
+                      bool isSelected = _selectedTags.contains(tag);
+                      return InkWell(
+                        onTap: () {
+                           Feedback.forTap(context);
+                           _toggleTag(tag);
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppTheme.primary : Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: isSelected ? AppTheme.primary : AppTheme.borderLight),
+                            boxShadow: isSelected ? [BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))] : [],
+                          ),
+                          child: Text(
+                            tag,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : AppTheme.textSecondary,
+                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add_a_photo_rounded, color: AppTheme.primary.withOpacity(0.6)),
-                            const SizedBox(height: 4),
-                            Text('Thêm ảnh', style: TextStyle(fontSize: 11, color: AppTheme.primary.withOpacity(0.6), fontWeight: FontWeight.w600)),
-                          ],
-                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 32),
+
+                  const Text('Chi tiết đánh giá (Nếu có)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppTheme.primary)),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppTheme.borderLight),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
+                    child: TextField(
+                      controller: _commentController,
+                      maxLines: 5,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      decoration: InputDecoration(
+                        hintText: 'Cảm nhận của bạn về buổi chơi hôm nay...',
+                        hintStyle: TextStyle(color: AppTheme.textMuted.withOpacity(0.5), fontSize: 14),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.all(20),
                       ),
                     ),
-                  ..._selectedImages.asMap().entries.map((entry) {
-                    return Container(
-                      width: 100,
-                      margin: const EdgeInsets.only(right: 12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        image: DecorationImage(image: FileImage(entry.value), fit: BoxFit.cover),
-                      ),
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            top: 4, right: 4,
-                            child: GestureDetector(
-                              onTap: () => _removeImage(entry.key),
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                                child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+                  ),
+                  const SizedBox(height: 32),
+
+                  const Text('Hình ảnh thực tế', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppTheme.primary)),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 110,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        if (_selectedImages.length < 3)
+                          GestureDetector(
+                            onTap: _pickImage,
+                            child: Container(
+                              width: 110,
+                              margin: const EdgeInsets.only(right: 12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceLight,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppTheme.primary.withOpacity(0.2), width: 2, style: BorderStyle.solid),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_a_photo_rounded, color: AppTheme.primary, size: 32),
+                                  const SizedBox(height: 8),
+                                  const Text('Thêm ảnh', style: TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.w800)),
+                                ],
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ],
-              ),
-            ),
-            const SizedBox(height: 40),
+                        ..._selectedImages.asMap().entries.map((entry) {
+                          return Container(
+                            width: 110,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              image: DecorationImage(image: FileImage(entry.value), fit: BoxFit.cover),
+                              boxShadow: AppTheme.softShadow,
+                            ),
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  top: 8, right: 8,
+                                  child: GestureDetector(
+                                    onTap: () => _removeImage(entry.key),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                      child: const Icon(Icons.close_rounded, size: 16, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 48),
 
-            // Submit Button
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _submitReview,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  elevation: 0,
-                ),
-                child: _isSubmitting 
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('GỬI ĐÁNH GIÁ', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting ? null : _submitReview,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        elevation: 8,
+                        shadowColor: AppTheme.primary.withOpacity(0.4),
+                      ),
+                      child: _isSubmitting 
+                        ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                        : const Text('GỬI ĐÁNH GIÁ NGAY', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
             ),
           ],

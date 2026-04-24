@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quynh/theme/app_theme.dart';
+import 'package:provider/provider.dart';
+import 'package:quynh/auth/auth_service.dart';
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -82,18 +84,42 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   void _updatePassword() async {
-    if (_newPasswordController.text != _confirmPasswordController.text) {
+    final oldPassword = _oldPasswordController.text.trim();
+    final newPassword = _newPasswordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    if (oldPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng điền đầy đủ thông tin!')));
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu mới không khớp!')));
       return;
     }
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Đã đổi mật khẩu thành công!'), backgroundColor: AppTheme.success),
-      );
-      Navigator.pop(context);
+
+    if (newPassword.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mật khẩu mới phải từ 6 ký tự trở lên!')));
+      return;
     }
-    setState(() => _isLoading = false);
+
+    setState(() => _isLoading = true);
+    
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final success = await authService.updatePassword(oldPassword, newPassword);
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Đã đổi mật khẩu thành công!'), backgroundColor: AppTheme.success),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ ${authService.errorMessage ?? 'Đổi mật khẩu thất bại'}'), backgroundColor: AppTheme.error),
+        );
+      }
+    }
   }
 }

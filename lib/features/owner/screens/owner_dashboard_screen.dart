@@ -6,6 +6,7 @@ import 'package:quynh/features/owner/screens/owner_courts_screen.dart';
 import 'package:quynh/features/shop/screens/owner_shop_management_screen.dart';
 import 'package:quynh/features/shop/screens/owner_order_management_screen.dart';
 import 'package:quynh/features/owner/screens/owner_booking_management_screen.dart';
+import 'package:quynh/features/owner/screens/owner_review_management_screen.dart';
 import 'package:quynh/services/notification_service.dart';
 import 'package:quynh/services/api_booking_service.dart';
 import 'package:quynh/services/shop_service.dart';
@@ -102,7 +103,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                 _MenuIcon(Icons.add_business_rounded, 'Thêm Sân', AppTheme.primary, () => _nav(const AddCourtScreen())),
                 _MenuIcon(Icons.stadium_rounded, 'Kho Sân', AppTheme.primary, () => _nav(const OwnerCourtsScreen())),
                 _MenuIcon(Icons.calendar_today_rounded, 'Lịch Đặt', AppTheme.highlight, () => _nav(const OwnerBookingManagementScreen())),
-                _MenuIcon(Icons.analytics_rounded, 'Báo Cáo', AppTheme.primary, () {}),
+                _MenuIcon(Icons.rate_review_rounded, 'Đánh Giá', AppTheme.accentGold, () => _nav(const OwnerReviewManagementScreen())),
               ]),
               _buildMenuSection('CỬA HÀNG', [
                 _MenuIcon(Icons.inventory_2_rounded, 'Sản Phẩm', AppTheme.accent, () => _nav(const OwnerShopManagementScreen())),

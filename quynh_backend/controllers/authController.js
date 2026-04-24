@@ -114,3 +114,25 @@ exports.getOwners = async (req, res) => {
     res.status(500).json({ message: 'Lỗi server', error: err.message });
   }
 };
+
+exports.updatePassword = async (req, res) => {
+  const { userId, oldPassword, newPassword } = req.body;
+  if (!userId || !oldPassword || !newPassword) {
+    return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin.' });
+  }
+  try {
+    const [user] = await db.query('SELECT password FROM users WHERE id = ?', [userId]);
+    if (user.length === 0) {
+      return res.status(404).json({ message: 'Người dùng không tồn tại.' });
+    }
+    const valid = await bcrypt.compare(oldPassword, user[0].password);
+    if (!valid) {
+      return res.status(400).json({ message: 'Mật khẩu cũ không chính xác.' });
+    }
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await db.query('UPDATE users SET password = ? WHERE id = ?', [hashedNewPassword, userId]);
+    res.json({ message: 'Đổi mật khẩu thành công!' });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi server khi đổi mật khẩu', error: err.message });
+  }
+};

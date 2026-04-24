@@ -68,3 +68,44 @@ exports.getUserReviews = async (req, res) => {
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
+// Get reviews for all courts owned by a specific owner
+exports.getOwnerReviews = async (req, res) => {
+    try {
+        const ownerId = req.params.ownerId;
+        const [reviews] = await db.execute(
+            `SELECT r.*, u.full_name as user_name, c.name as court_name 
+             FROM reviews r 
+             JOIN users u ON r.user_id = u.id 
+             JOIN courts c ON r.court_id = c.id 
+             WHERE c.owner_id = ? 
+             ORDER BY r.created_at DESC`,
+            [ownerId]
+        );
+        res.json({ success: true, reviews });
+    } catch (error) {
+        console.error('Error fetching owner reviews:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+
+// Owner replies to a review
+exports.replyToReview = async (req, res) => {
+    try {
+        const reviewId = req.params.id;
+        const { reply } = req.body;
+        
+        if (!reply) {
+            return res.status(400).json({ success: false, message: 'Reply content is required' });
+        }
+
+        await db.execute(
+            'UPDATE reviews SET owner_reply = ?, owner_reply_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [reply, reviewId]
+        );
+        
+        res.json({ success: true, message: 'Reply added successfully' });
+    } catch (error) {
+        console.error('Error replying to review:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};

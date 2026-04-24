@@ -75,4 +75,44 @@ class ReviewService {
       return [];
     }
   }
+
+  static Future<List<Review>> getOwnerReviews(int ownerId) async {
+    try {
+      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/reviews/owner/$ownerId'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          final List<dynamic> rawReviews = data['reviews'];
+          return rawReviews.map((json) => Review.fromJson(json)).toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      print('=== ReviewService: Error getting owner reviews ===');
+      print(e);
+      return [];
+    }
+  }
+
+  static Future<bool> replyToReview({
+    required int reviewId,
+    required String reply,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/reviews/reply/$reviewId'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'reply': reply,
+        }),
+      );
+
+      final data = json.decode(response.body);
+      return data['success'] == true;
+    } catch (e) {
+      print('=== ReviewService: Error replying to review ===');
+      print(e);
+      return false;
+    }
+  }
 }

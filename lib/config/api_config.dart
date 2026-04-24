@@ -5,7 +5,7 @@ class ApiConfig {
   // ════════════════════════════════════════════════════════
   // 🔧 THAY ĐỔI IP Ở ĐÂY KHI ĐỔI MẠNG
   // ════════════════════════════════════════════════════════
-  static const String serverIp = '10.121.66.20';
+  static const String serverIp = '192.168.1.108';
   static const int serverPort = 3000;
 
   // ════════════════════════════════════════════════════════

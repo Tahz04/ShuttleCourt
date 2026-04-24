@@ -10,6 +10,9 @@ class Review {
   final String? userName;
   final String? courtName;
 
+  final String? ownerReply;
+  final DateTime? ownerReplyAt;
+
   Review({
     required this.id,
     required this.courtId,
@@ -21,17 +24,21 @@ class Review {
     required this.createdAt,
     this.userName,
     this.courtName,
+    this.ownerReply,
+    this.ownerReplyAt,
   });
 
   factory Review.fromJson(Map<String, dynamic> json) {
     List<String> parsedPhotos = [];
     if (json['photos'] != null) {
       if (json['photos'] is String) {
-        // Depending on how JSON is returned from MySQL
         try {
-            // some db drivers return JSON strings
             final parsedString = json['photos'] as String;
-            parsedPhotos = parsedString.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+            if (parsedString.startsWith('[') && parsedString.endsWith(']')) {
+              parsedPhotos = parsedString.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+            } else {
+              parsedPhotos = [parsedString];
+            }
         } catch (e) {
             parsedPhotos = [];
         }
@@ -51,6 +58,8 @@ class Review {
       createdAt: DateTime.parse(json['created_at']),
       userName: json['user_name'],
       courtName: json['court_name'],
+      ownerReply: json['owner_reply'],
+      ownerReplyAt: json['owner_reply_at'] != null ? DateTime.parse(json['owner_reply_at']) : null,
     );
   }
 }

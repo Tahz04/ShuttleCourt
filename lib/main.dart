@@ -20,6 +20,7 @@ import 'package:quynh/features/shop/screens/shop_screen.dart';
 import 'package:quynh/features/booking/screens/booking_history_screen.dart';
 import 'package:quynh/services/notification_service.dart';
 import 'package:quynh/features/matchmaking/services/matchmaking_service.dart';
+import 'package:quynh/features/reviews/screens/user_review_history_screen.dart';
 
 void main() {
   debugPrint('--- APP STARTING ---');
@@ -99,6 +100,12 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final isWide = MediaQuery.of(context).size.width > 900;
+    return isWide ? _buildWebLayout() : _buildMobileLayout();
+  }
+
+  // ── Mobile: BottomNavigationBar (logic gốc giữ nguyên) ──────
+  Widget _buildMobileLayout() {
     return Scaffold(
       backgroundColor: AppTheme.scaffoldLight,
       body: FadeTransition(
@@ -125,6 +132,72 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ── Web (> 900px): NavigationRail bên trái ──────────────────
+  Widget _buildWebLayout() {
+    return Scaffold(
+      backgroundColor: AppTheme.scaffoldLight,
+      body: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceLight,
+              border: const Border(right: BorderSide(color: AppTheme.borderLight)),
+              boxShadow: AppTheme.softShadow,
+            ),
+            child: NavigationRail(
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (i) => _onItemTapped(i),
+              labelType: NavigationRailLabelType.all,
+              backgroundColor: Colors.transparent,
+              minWidth: 80,
+              selectedIconTheme: const IconThemeData(color: AppTheme.primary, size: 24),
+              unselectedIconTheme: const IconThemeData(color: AppTheme.textMuted, size: 22),
+              selectedLabelTextStyle: const TextStyle(
+                color: AppTheme.primary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+              unselectedLabelTextStyle: const TextStyle(
+                color: AppTheme.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+              indicatorColor: AppTheme.primary.withOpacity(0.08),
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home_rounded),
+                  label: Text('Trang chủ'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.map_outlined),
+                  selectedIcon: Icon(Icons.map_rounded),
+                  label: Text('Bản đồ'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.calendar_month_outlined),
+                  selectedIcon: Icon(Icons.calendar_month_rounded),
+                  label: Text('Lịch sử'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.person_outlined),
+                  selectedIcon: Icon(Icons.person_rounded),
+                  label: Text('Tài khoản'),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: FadeTransition(
+              opacity: CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+              child: _screens[_selectedIndex],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -284,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNearbySection() {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 32, 0, 0),
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -295,41 +368,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Sân gần bạn', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppTheme.primary)),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 24),
-                    child: Row(
-                      children: [
-                        Text('Xem bản đồ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primary.withOpacity(0.7))),
-                        const SizedBox(width: 4),
-                        Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppTheme.primary.withOpacity(0.7)),
-                      ],
-                    ),
+                  Row(
+                    children: [
+                      Text('Xem bản đồ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primary.withOpacity(0.7))),
+                      const SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppTheme.primary.withOpacity(0.7)),
+                    ],
                   ),
                 ],
               ),
             ),
-             const SizedBox(height: 16),
-             FutureBuilder<List<CourtWithDistance>>(
-               future: _nearestCourtsFuture,
-               builder: (context, snapshot) {
-                 if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
-                 final list = snapshot.data ?? [];
-                 if (list.isEmpty) return const SizedBox(height: 100, child: Center(child: Text('Không tìm thấy sân nào gần đây', style: TextStyle(color: AppTheme.textMuted))));
-                 
-                 return SizedBox(
-                   height: 220,
-                   child: ListView.builder(
-                     scrollDirection: Axis.horizontal,
-                     itemCount: list.length,
-                     physics: const BouncingScrollPhysics(),
-                     itemBuilder: (_, i) => CourtCard(
-                       data: list[i],
-                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BookingScreen(initialCourt: list[i].court))),
-                     ),
-                   ),
-                 );
-               },
-             ),
+            const SizedBox(height: 16),
+            FutureBuilder<List<CourtWithDistance>>(
+              future: _nearestCourtsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
+                }
+                final list = snapshot.data ?? [];
+                if (list.isEmpty) {
+                  return const SizedBox(height: 100, child: Center(child: Text('Không tìm thấy sân nào gần đây', style: TextStyle(color: AppTheme.textMuted))));
+                }
+                return _HorizontalCourtCarousel(
+                  courts: list,
+                  onCourtTap: (court) => Navigator.push(context, MaterialPageRoute(builder: (_) => BookingScreen(initialCourt: court))),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -355,13 +420,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 _FeatureCard(
                   auth.user?.role == 'owner' ? Icons.inventory_2_rounded : Icons.star_rate_rounded, 
                   auth.user?.role == 'owner' ? 'Quản lý sân' : 'Đánh giá sân',
-                  auth.user?.role == 'owner' ? 'Bảng điều khiển' : 'Chia sẻ trải nghiệm',
+                  auth.user?.role == 'owner' ? 'Bảng điều khiển' : 'Lịch sử đánh giá',
                   AppTheme.primaryGradient,
                   () {
                     if (auth.user?.role == 'owner') {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const OwnerDashboardScreen()));
                     } else {
-                      widget.onTabChange?.call(2);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const UserReviewHistoryScreen()));
                     }
                   }
                 ),
@@ -513,6 +578,84 @@ void showUpgradeDialog(BuildContext context, AuthService authService) {
   );
 }
 
+class _HorizontalCourtCarousel extends StatefulWidget {
+  final List<CourtWithDistance> courts;
+  final void Function(dynamic court) onCourtTap;
+  const _HorizontalCourtCarousel({required this.courts, required this.onCourtTap});
+
+  @override
+  State<_HorizontalCourtCarousel> createState() => _HorizontalCourtCarouselState();
+}
+
+class _HorizontalCourtCarouselState extends State<_HorizontalCourtCarousel> {
+  late final PageController _pageController;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(viewportFraction: 0.78);
+    _pageController.addListener(() {
+      final page = _pageController.page?.round() ?? 0;
+      if (page != _currentPage) setState(() => _currentPage = page);
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 220,
+          child: PageView.builder(
+            controller: _pageController,
+            physics: const BouncingScrollPhysics(),
+            itemCount: widget.courts.length,
+            itemBuilder: (_, i) {
+              final isActive = i == _currentPage;
+              return AnimatedScale(
+                scale: isActive ? 1.0 : 0.93,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: CourtCard(
+                    data: widget.courts[i],
+                    onTap: () => widget.onCourtTap(widget.courts[i].court),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(widget.courts.length, (i) {
+            final isActive = i == _currentPage;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: isActive ? 20 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: isActive ? AppTheme.primary : AppTheme.primary.withOpacity(0.25),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
 class CourtCard extends StatelessWidget {
   final CourtWithDistance data;
   final VoidCallback? onTap;
@@ -524,9 +667,7 @@ class CourtCard extends StatelessWidget {
     const String placeholder = 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60';
     final String imageToShow = (data.court.mainImage != null && data.court.mainImage!.isNotEmpty) ? data.court.mainImage! : placeholder;
 
-    return Container(
-      width: 220, margin: const EdgeInsets.only(right: 16),
-      child: InkWell(
+    return InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(24),
         child: Container(
@@ -568,7 +709,6 @@ class CourtCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }
