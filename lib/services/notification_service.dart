@@ -9,6 +9,7 @@ class SystemNotification {
   final bool isRead;
   final String type;
   final int? senderId;
+  final String? senderName;
   final int? relatedId;
   final DateTime createdAt;
 
@@ -19,6 +20,7 @@ class SystemNotification {
     required this.isRead,
     required this.type,
     this.senderId,
+    this.senderName,
     this.relatedId,
     required this.createdAt,
   });
@@ -31,6 +33,7 @@ class SystemNotification {
       isRead: json['is_read'] == 1,
       type: json['type'] ?? 'general',
       senderId: json['sender_id'],
+      senderName: json['sender_name'],
       relatedId: json['related_id'],
       createdAt: DateTime.parse(json['created_at']),
     );
@@ -72,6 +75,34 @@ class NotificationService {
       return response.statusCode == 200;
     } catch (e) {
       print('Error marking all notifications as read: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> createNotification({
+    required int userId,
+    required String title,
+    required String message,
+    String type = 'general',
+    int? senderId,
+    int? relatedId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.notificationsUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'title': title,
+          'message': message,
+          'type': type,
+          'senderId': senderId,
+          'relatedId': relatedId,
+        }),
+      );
+      return response.statusCode == 201;
+    } catch (e) {
+      print('Error creating notification: $e');
       return false;
     }
   }

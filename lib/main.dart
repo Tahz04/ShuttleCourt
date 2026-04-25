@@ -19,8 +19,8 @@ import 'package:quynh/services/court_service.dart';
 import 'package:quynh/features/shop/screens/shop_screen.dart';
 import 'package:quynh/features/booking/screens/booking_history_screen.dart';
 import 'package:quynh/services/notification_service.dart';
-import 'package:quynh/features/matchmaking/services/matchmaking_service.dart';
 import 'package:quynh/features/reviews/screens/user_review_history_screen.dart';
+import 'package:quynh/features/notifications/notification_screen.dart';
 
 void main() {
   debugPrint('--- APP STARTING ---');
@@ -474,7 +474,6 @@ class UserNotificationBell extends StatefulWidget {
 
 class _UserNotificationBellState extends State<UserNotificationBell> {
   int _unreadCount = 0;
-  List<SystemNotification> _notifs = [];
 
   @override
   void initState() {
@@ -486,69 +485,47 @@ class _UserNotificationBellState extends State<UserNotificationBell> {
     final auth = Provider.of<AuthService>(context, listen: false);
     if (!auth.isAuthenticated) return;
     final list = await NotificationService.getNotifications(auth.user!.id.toString());
-    if (mounted) setState(() { _notifs = list; _unreadCount = list.where((n) => !n.isRead).length; });
+    if (mounted) setState(() { _unreadCount = list.where((n) => !n.isRead).length; });
   }
 
-  void _showNotifications() {
+  Future<void> _openNotifications() async {
     final auth = Provider.of<AuthService>(context, listen: false);
-    showModalBottomSheet(
-      context: context, backgroundColor: Colors.transparent, isScrollControlled: true,
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.8,
-        builder: (_, sc) => Container(
-          decoration: const BoxDecoration(color: AppTheme.surfaceLight, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Thông báo', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppTheme.primary)),
-                    TextButton(onPressed: () async { await NotificationService.markAllAsRead(auth.user!.id.toString()); _fetch(); }, child: const Text('Đọc hết', style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.w700))),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  controller: sc, padding: const EdgeInsets.symmetric(horizontal: 24),
-                  itemCount: _notifs.length,
-                  itemBuilder: (_, i) {
-                    final n = _notifs[i];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: n.isRead ? Colors.transparent : AppTheme.primary.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: n.isRead ? AppTheme.borderLight : AppTheme.primary.withOpacity(0.1)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: n.isRead ? Colors.grey.withOpacity(0.1) : AppTheme.primary.withOpacity(0.1), shape: BoxShape.circle), child: Icon(Icons.notifications_rounded, color: n.isRead ? Colors.grey : AppTheme.primary, size: 20)),
-                          const SizedBox(width: 16),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(n.title, style: TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primary, fontSize: 13)), Text(n.message, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11))])),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    if (!auth.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng đăng nhập để xem thông báo')),
+      );
+      return;
+    }
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NotificationScreen()),
     );
+    _fetch();
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _showNotifications,
+      onTap: _openNotifications,
       child: Stack(
         children: [
-          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24)),
-          if (_unreadCount > 0) Positioned(right: 4, top: 4, child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: AppTheme.accent, shape: BoxShape.circle), child: Text('$_unreadCount', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)))),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), shape: BoxShape.circle),
+            child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24),
+          ),
+          if (_unreadCount > 0)
+            Positioned(
+              right: 4, top: 4,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(color: AppTheme.accent, shape: BoxShape.circle),
+                child: Text(
+                  _unreadCount > 99 ? '99+' : '$_unreadCount',
+                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
         ],
       ),
     );
