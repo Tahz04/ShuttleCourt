@@ -40,7 +40,8 @@ class _WebNavbarState extends State<WebNavbar> {
     final list = await NotificationService.getNotifications(
       auth.user!.id.toString(),
     );
-    if (mounted) setState(() => _unreadCount = list.where((n) => !n.isRead).length);
+    if (mounted)
+      setState(() => _unreadCount = list.where((n) => !n.isRead).length);
   }
 
   static const List<_NavItem> _navItems = [
@@ -48,7 +49,8 @@ class _WebNavbarState extends State<WebNavbar> {
     _NavItem('Tìm sân', Icons.search_rounded, 1),
     _NavItem('Bản đồ', Icons.map_rounded, 2),
     _NavItem('Đặt lịch', Icons.calendar_month_rounded, 3),
-    _NavItem('Tài khoản', Icons.person_rounded, 4),
+    _NavItem('Ghép sân', Icons.people_rounded, 4),
+    _NavItem('Tài khoản', Icons.person_rounded, 5),
   ];
 
   @override
@@ -70,55 +72,66 @@ class _WebNavbarState extends State<WebNavbar> {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          // ── Logo ──────────────────────────────────────────
-          _buildLogo(),
+      child: ClipRect(
+        child: Row(
+          children: [
+            // ── Logo ──────────────────────────────────────────
+            _buildLogo(),
 
-          // ── Nav Links (center) ────────────────────────────
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: _navItems.map((item) => _NavLink(
-                item: item,
-                isActive: widget.selectedIndex == item.index,
-                onTap: () => widget.onNavTap(item.index),
-              )).toList(),
-            ),
-          ),
-
-          // ── Right Actions ─────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Notifications bell
-                if (auth.isAuthenticated) ...[
-                  _NotificationBell(
-                    unreadCount: _unreadCount,
-                    onTap: () async {
-                      final nav = Navigator.of(context);
-                      await nav.push(
-                        MaterialPageRoute(
-                          builder: (_) => const NotificationScreen(),
-                        ),
-                      );
-                      if (mounted) _fetchNotifications();
-                    },
+            // ── Nav Links (center) ────────────────────────────
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: _navItems
+                        .map(
+                          (item) => _NavLink(
+                            item: item,
+                            isActive: widget.selectedIndex == item.index,
+                            onTap: () => widget.onNavTap(item.index),
+                          ),
+                        )
+                        .toList(),
                   ),
-                  const SizedBox(width: 12),
-                ],
-
-                // Auth area
-                if (!auth.isAuthenticated)
-                  _buildGuestActions()
-                else
-                  _buildUserMenu(auth),
-              ],
+                ),
+              ),
             ),
-          ),
-        ],
+
+            // ── Right Actions ─────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Notifications bell
+                  if (auth.isAuthenticated) ...[
+                    _NotificationBell(
+                      unreadCount: _unreadCount,
+                      onTap: () async {
+                        final nav = Navigator.of(context);
+                        await nav.push(
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationScreen(),
+                          ),
+                        );
+                        if (mounted) _fetchNotifications();
+                      },
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+
+                  // Auth area
+                  if (!auth.isAuthenticated)
+                    _buildGuestActions()
+                  else
+                    _buildUserMenu(auth),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -235,7 +248,11 @@ class _WebNavbarState extends State<WebNavbar> {
           ),
           child: const Row(
             children: [
-              Icon(Icons.person_outline, size: 18, color: AppTheme.textSecondary),
+              Icon(
+                Icons.person_outline,
+                size: 18,
+                color: AppTheme.textSecondary,
+              ),
               SizedBox(width: 10),
               Text('Hồ sơ của tôi'),
             ],
@@ -291,12 +308,19 @@ class _WebNavbarState extends State<WebNavbar> {
                 ),
                 Text(
                   auth.user?.role == 'owner' ? 'Chủ sân' : 'Người dùng',
-                  style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppTheme.textMuted,
+                  ),
                 ),
               ],
             ),
             const SizedBox(width: 6),
-            const Icon(Icons.keyboard_arrow_down, color: AppTheme.textMuted, size: 18),
+            const Icon(
+              Icons.keyboard_arrow_down,
+              color: AppTheme.textMuted,
+              size: 18,
+            ),
           ],
         ),
       ),
@@ -317,7 +341,11 @@ class _NavLink extends StatefulWidget {
   final _NavItem item;
   final bool isActive;
   final VoidCallback onTap;
-  const _NavLink({required this.item, required this.isActive, required this.onTap});
+  const _NavLink({
+    required this.item,
+    required this.isActive,
+    required this.onTap,
+  });
 
   @override
   State<_NavLink> createState() => _NavLinkState();
@@ -342,7 +370,9 @@ class _NavLinkState extends State<_NavLink> {
               bottom: BorderSide(
                 color: widget.isActive
                     ? AppTheme.primary
-                    : (_hovered ? AppTheme.primary.withOpacity(0.3) : Colors.transparent),
+                    : (_hovered
+                          ? AppTheme.primary.withOpacity(0.3)
+                          : Colors.transparent),
                 width: 2.5,
               ),
             ),

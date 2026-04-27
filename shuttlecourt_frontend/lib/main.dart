@@ -20,6 +20,7 @@ import 'package:shuttlecourt/web/web_home_page.dart';
 import 'package:shuttlecourt/web/web_booking_page.dart';
 import 'package:shuttlecourt/web/web_search_page.dart';
 import 'package:shuttlecourt/web/web_map_page.dart';
+import 'package:shuttlecourt/web/web_matchmaking_page.dart';
 import 'package:shuttlecourt/web/web_profile_page.dart';
 
 void main() {
@@ -117,15 +118,10 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     // For web, render the appropriate web page based on selected index
     List<Widget> webScreens = [
       WebHomePage(onTabChange: _onItemTapped),
-      WebSearchPage(
-        initialQuery: _mapSearchQuery,
-        onTabChange: _onItemTapped,
-      ),
-      WebMapPage(
-        searchQuery: _mapSearchQuery,
-        onTabChange: _onItemTapped,
-      ),
+      WebSearchPage(initialQuery: _mapSearchQuery, onTabChange: _onItemTapped),
+      WebMapPage(searchQuery: _mapSearchQuery, onTabChange: _onItemTapped),
       WebBookingPage(onTabChange: _onItemTapped),
+      WebMatchmakingPage(onTabChange: _onItemTapped),
       WebProfilePage(onTabChange: _onItemTapped),
     ];
 
