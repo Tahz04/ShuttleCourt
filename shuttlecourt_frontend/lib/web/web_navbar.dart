@@ -4,7 +4,7 @@ import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/auth/auth_service.dart';
 import 'package:shuttlecourt/auth/login_screen.dart';
 import 'package:shuttlecourt/auth/register_screen.dart';
-import 'package:shuttlecourt/auth/profile_screen.dart';
+import 'package:shuttlecourt/web/web_profile_page.dart';
 import 'package:shuttlecourt/services/notification_service.dart';
 import 'package:shuttlecourt/web/web_notification_page.dart';
 
@@ -51,7 +51,6 @@ class _WebNavbarState extends State<WebNavbar> {
     _NavItem('Đặt lịch', Icons.calendar_month_rounded, 3),
     _NavItem('Ghép sân', Icons.people_rounded, 4),
     _NavItem('Cửa hàng', Icons.shopping_bag_rounded, 5),
-    _NavItem('Tài khoản', Icons.person_rounded, 6),
   ];
 
   @override
@@ -238,33 +237,41 @@ class _WebNavbarState extends State<WebNavbar> {
     );
   }
 
+  PopupMenuItem<String> _buildProfileMenuItem(BuildContext context, String label, IconData icon, int tabIndex) {
+    return PopupMenuItem(
+      value: 'tab_$tabIndex',
+      onTap: () => Future.delayed(
+        const Duration(milliseconds: 100),
+        () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => WebProfilePage(
+              initialTab: tabIndex,
+              onTabChange: widget.onNavTap,
+            ),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppTheme.textSecondary),
+          const SizedBox(width: 10),
+          Text(label),
+        ],
+      ),
+    );
+  }
+
   Widget _buildUserMenu(AuthService auth) {
     return PopupMenuButton<String>(
       position: PopupMenuPosition.under,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       offset: const Offset(0, 4),
       itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'profile',
-          onTap: () => Future.delayed(
-            const Duration(milliseconds: 100),
-            () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfileScreen()),
-            ),
-          ),
-          child: const Row(
-            children: [
-              Icon(
-                Icons.person_outline,
-                size: 18,
-                color: AppTheme.textSecondary,
-              ),
-              SizedBox(width: 10),
-              Text('Hồ sơ của tôi'),
-            ],
-          ),
-        ),
+        _buildProfileMenuItem(context, 'Tổng quan', Icons.dashboard_outlined, 0),
+        _buildProfileMenuItem(context, 'Lịch sử đặt sân', Icons.calendar_month_outlined, 1),
+        _buildProfileMenuItem(context, 'Lịch sử ghép sân', Icons.people_outline, 2),
+        _buildProfileMenuItem(context, 'Cài đặt', Icons.settings_outlined, 3),
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'logout',

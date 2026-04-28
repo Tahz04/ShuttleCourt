@@ -20,8 +20,9 @@ import 'package:shuttlecourt/web/web_footer.dart';
 /// Modern tabbed account page integrating profile, booking history, match history, and settings
 class WebProfilePage extends StatefulWidget {
   final Function(int)? onTabChange;
+  final int initialTab;
 
-  const WebProfilePage({super.key, this.onTabChange});
+  const WebProfilePage({super.key, this.onTabChange, this.initialTab = 0});
 
   @override
   State<WebProfilePage> createState() => _WebProfilePageState();
@@ -35,7 +36,7 @@ class _WebProfilePageState extends State<WebProfilePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTab);
     _loadHistory();
   }
 
@@ -65,6 +66,9 @@ class _WebProfilePageState extends State<WebProfilePage>
   }
 
   void _onNavTap(int index) {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
     if (widget.onTabChange != null) {
       widget.onTabChange!(index);
     }
@@ -93,7 +97,6 @@ class _WebProfilePageState extends State<WebProfilePage>
                   ],
                 ),
               ),
-              WebFooter(onNavTap: _onNavTap),
             ],
           ),
         );
@@ -345,87 +348,101 @@ class _WebProfilePageState extends State<WebProfilePage>
   }
 
   Widget _buildOverviewTab(dynamic user, AuthService authService) {
-    return SingleChildScrollView(
-      child: Center(
+    return LayoutBuilder(builder: (context, constraints) {
+      return SingleChildScrollView(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Thông tin tài khoản',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.borderLight),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildInfoRow('Họ tên', user.fullName),
-                      const Divider(height: 20, color: AppTheme.borderLight),
-                      _buildInfoRow('Email', user.email),
-                      const Divider(height: 20, color: AppTheme.borderLight),
-                      _buildInfoRow('Số điện thoại', user.phone),
-                      const Divider(height: 20, color: AppTheme.borderLight),
-                      _buildInfoRow(
-                        'Loại tài khoản',
-                        user.role == 'owner' ? '👑 Chủ sân' : 'Người chơi',
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Hành động nhanh',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildQuickActionButton(
-                        icon: Icons.edit_rounded,
-                        label: 'Chỉnh sửa thông tin',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => EditProfileScreen(user: user),
-                          ),
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1200),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Thông tin tài khoản',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppTheme.borderLight),
+                              ),
+                              child: Column(
+                                children: [
+                                  _buildInfoRow('Họ tên', user.fullName),
+                                  const Divider(height: 20, color: AppTheme.borderLight),
+                                  _buildInfoRow('Email', user.email),
+                                  const Divider(height: 20, color: AppTheme.borderLight),
+                                  _buildInfoRow('Số điện thoại', user.phone),
+                                  const Divider(height: 20, color: AppTheme.borderLight),
+                                  _buildInfoRow(
+                                    'Loại tài khoản',
+                                    user.role == 'owner' ? '👑 Chủ sân' : 'Người chơi',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'Hành động nhanh',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildQuickActionButton(
+                                    icon: Icons.edit_rounded,
+                                    label: 'Chỉnh sửa thông tin',
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => EditProfileScreen(user: user),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _buildQuickActionButton(
+                                    icon: Icons.logout_rounded,
+                                    label: 'Đăng xuất',
+                                    color: AppTheme.error,
+                                    onTap: () => _confirmLogout(authService),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildQuickActionButton(
-                        icon: Icons.logout_rounded,
-                        label: 'Đăng xuất',
-                        color: AppTheme.error,
-                        onTap: () => _confirmLogout(authService),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
+                WebFooter(onNavTap: _onNavTap),
               ],
             ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildBookingsTab() {
@@ -471,28 +488,42 @@ class _WebProfilePageState extends State<WebProfilePage>
           );
         }
 
-        return SingleChildScrollView(
-          child: Center(
+        return LayoutBuilder(builder: (context, constraints) {
+          return SingleChildScrollView(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 24,
-                ),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
                 child: Column(
-                  children: List.generate(
-                    bookings.length,
-                    (index) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildBookingCard(bookings[index]),
+                  children: [
+                    Expanded(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1200),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 24,
+                            ),
+                            child: Column(
+                              children: List.generate(
+                                bookings.length,
+                                (index) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: _buildBookingCard(bookings[index]),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    WebFooter(onNavTap: _onNavTap),
+                  ],
                 ),
               ),
             ),
-          ),
-        );
+          );
+        });
       },
     );
   }
@@ -540,126 +571,154 @@ class _WebProfilePageState extends State<WebProfilePage>
           );
         }
 
-        return SingleChildScrollView(
-          child: Center(
+        return LayoutBuilder(builder: (context, constraints) {
+          return SingleChildScrollView(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 24,
-                ),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
                 child: Column(
-                  children: List.generate(
-                    matches.length,
-                    (index) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildMatchCard(matches[index]),
+                  children: [
+                    Expanded(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1200),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 24,
+                            ),
+                            child: Column(
+                              children: List.generate(
+                                matches.length,
+                                (index) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: _buildMatchCard(matches[index]),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    WebFooter(onNavTap: _onNavTap),
+                  ],
                 ),
               ),
             ),
-          ),
-        );
+          );
+        });
       },
     );
   }
 
   Widget _buildSettingsTab(dynamic user, AuthService authService) {
-    return SingleChildScrollView(
-      child: Center(
+    return LayoutBuilder(builder: (context, constraints) {
+      return SingleChildScrollView(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(
             child: Column(
               children: [
-                if (user.role == 'owner')
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildSettingsTile(
-                      icon: Icons.dashboard_customize_rounded,
-                      title: 'Bảng điều khiển',
-                      subtitle: 'Quản lý sân, đặt phòng, sản phẩm',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const OwnerDashboardScreen(),
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1200),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                        child: Column(
+                          children: [
+                            if (user.role == 'owner')
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _buildSettingsTile(
+                                  icon: Icons.dashboard_customize_rounded,
+                                  title: 'Bảng điều khiển',
+                                  subtitle: 'Quản lý sân, đặt phòng, sản phẩm',
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const OwnerDashboardScreen(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildSettingsTile(
+                                icon: Icons.person_outline_rounded,
+                                title: 'Chỉnh sửa thông tin',
+                                subtitle: 'Cập nhật tên, email, số điện thoại',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EditProfileScreen(user: user),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildSettingsTile(
+                                icon: Icons.shield_outlined,
+                                title: 'Bảo mật & Mật khẩu',
+                                subtitle: 'Quản lý mật khẩu và xác thực',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const SecurityScreen()),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildSettingsTile(
+                                icon: Icons.notifications_none_rounded,
+                                title: 'Thông báo',
+                                subtitle: 'Cài đặt thông báo và email',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const NotificationSettingsScreen(),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildSettingsTile(
+                                icon: Icons.language_rounded,
+                                title: 'Ngôn ngữ',
+                                subtitle: 'Chọn ngôn ngữ hiển thị',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const LanguageSettingsScreen(),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: _buildSettingsTile(
+                                icon: Icons.logout_rounded,
+                                title: 'Đăng xuất',
+                                subtitle: 'Thoát khỏi tài khoản của bạn',
+                                color: AppTheme.error,
+                                onTap: () => _confirmLogout(authService),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildSettingsTile(
-                    icon: Icons.person_outline_rounded,
-                    title: 'Chỉnh sửa thông tin',
-                    subtitle: 'Cập nhật tên, email, số điện thoại',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EditProfileScreen(user: user),
-                      ),
-                    ),
-                  ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildSettingsTile(
-                    icon: Icons.shield_outlined,
-                    title: 'Bảo mật & Mật khẩu',
-                    subtitle: 'Quản lý mật khẩu và xác thực',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SecurityScreen()),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildSettingsTile(
-                    icon: Icons.notifications_none_rounded,
-                    title: 'Thông báo',
-                    subtitle: 'Cài đặt thông báo và email',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const NotificationSettingsScreen(),
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildSettingsTile(
-                    icon: Icons.language_rounded,
-                    title: 'Ngôn ngữ',
-                    subtitle: 'Chọn ngôn ngữ hiển thị',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const LanguageSettingsScreen(),
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: _buildSettingsTile(
-                    icon: Icons.logout_rounded,
-                    title: 'Đăng xuất',
-                    subtitle: 'Thoát khỏi tài khoản của bạn',
-                    color: AppTheme.error,
-                    onTap: () => _confirmLogout(authService),
-                  ),
-                ),
+                WebFooter(onNavTap: _onNavTap),
               ],
             ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildInfoRow(String label, String value) {
