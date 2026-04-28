@@ -17,10 +17,7 @@ class WebMapPage extends StatelessWidget {
           onNavTap: (index) => onTabChange?.call(index),
         ),
         Expanded(
-          child: MapScreen(
-            searchQuery: searchQuery,
-            isGlobalSearch: false,
-          ),
+          child: MapScreen(searchQuery: searchQuery, isGlobalSearch: false),
         ),
       ],
     );

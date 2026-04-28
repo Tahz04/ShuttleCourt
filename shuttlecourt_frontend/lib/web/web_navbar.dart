@@ -5,8 +5,8 @@ import 'package:shuttlecourt/auth/auth_service.dart';
 import 'package:shuttlecourt/auth/login_screen.dart';
 import 'package:shuttlecourt/auth/register_screen.dart';
 import 'package:shuttlecourt/auth/profile_screen.dart';
-import 'package:shuttlecourt/features/notifications/notification_screen.dart';
 import 'package:shuttlecourt/services/notification_service.dart';
+import 'package:shuttlecourt/web/web_notification_page.dart';
 
 /// Modern sticky top navigation bar — web only
 class WebNavbar extends StatefulWidget {
@@ -50,7 +50,8 @@ class _WebNavbarState extends State<WebNavbar> {
     _NavItem('Bản đồ', Icons.map_rounded, 2),
     _NavItem('Đặt lịch', Icons.calendar_month_rounded, 3),
     _NavItem('Ghép sân', Icons.people_rounded, 4),
-    _NavItem('Tài khoản', Icons.person_rounded, 5),
+    _NavItem('Cửa hàng', Icons.shopping_bag_rounded, 5),
+    _NavItem('Tài khoản', Icons.person_rounded, 6),
   ];
 
   @override
@@ -86,6 +87,10 @@ class _WebNavbarState extends State<WebNavbar> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: _navItems
+                        .where((item) {
+                          // Show all items for everyone (owner features now in profile settings)
+                          return true;
+                        })
                         .map(
                           (item) => _NavLink(
                             item: item,
@@ -113,7 +118,9 @@ class _WebNavbarState extends State<WebNavbar> {
                         final nav = Navigator.of(context);
                         await nav.push(
                           MaterialPageRoute(
-                            builder: (_) => const NotificationScreen(),
+                            builder: (_) => WebNotificationPage(
+                              onTabChange: (index) => widget.onNavTap(index),
+                            ),
                           ),
                         );
                         if (mounted) _fetchNotifications();

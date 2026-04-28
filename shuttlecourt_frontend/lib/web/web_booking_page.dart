@@ -326,7 +326,9 @@ class _WebBookingPageState extends State<WebBookingPage> {
         else
           LayoutBuilder(
             builder: (context, constraints) {
-              int crossAxisCount = constraints.maxWidth > 900 ? 3 : (constraints.maxWidth > 500 ? 2 : 1);
+              int crossAxisCount = constraints.maxWidth > 900
+                  ? 3
+                  : (constraints.maxWidth > 500 ? 2 : 1);
               return GridView.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
@@ -339,120 +341,120 @@ class _WebBookingPageState extends State<WebBookingPage> {
                 itemCount: filteredCourts.length,
                 itemBuilder: (context, index) {
                   final court = filteredCourts[index];
-              final isSelected = _selectedCourt?.id == court.id;
-              return GestureDetector(
-                onTap: () => setState(() {
-                  _selectedCourt = court;
-                  _selectedSlot = null;
-                }),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppTheme.primary.withOpacity(0.05)
-                        : AppTheme.cardLight,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppTheme.primary
-                          : AppTheme.borderLight,
-                      width: isSelected ? 2 : 1,
-                    ),
-                    boxShadow: isSelected
-                        ? AppTheme.premiumShadow
-                        : AppTheme.softShadow,
-                  ),
-                  child: Column(
-                    children: [
-                      // Icon Area
-                      Container(
-                        width: double.infinity,
-                        height: 90,
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.primaryGradient,
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(14),
-                          ),
+                  final isSelected = _selectedCourt?.id == court.id;
+                  return GestureDetector(
+                    onTap: () => setState(() {
+                      _selectedCourt = court;
+                      _selectedSlot = null;
+                    }),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppTheme.primary.withOpacity(0.05)
+                            : AppTheme.cardLight,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppTheme.primary
+                              : AppTheme.borderLight,
+                          width: isSelected ? 2 : 1,
                         ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.sports_tennis_rounded,
-                            color: Colors.white,
-                            size: 32,
-                          ),
-                        ),
+                        boxShadow: isSelected
+                            ? AppTheme.premiumShadow
+                            : AppTheme.softShadow,
                       ),
+                      child: Column(
+                        children: [
+                          // Icon Area
+                          Container(
+                            width: double.infinity,
+                            height: 90,
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(14),
+                              ),
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.sports_tennis_rounded,
+                                color: Colors.white,
+                                size: 32,
+                              ),
+                            ),
+                          ),
 
-                      // Info
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                court.name,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppTheme.textPrimary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                court.address,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppTheme.textMuted,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const Spacer(),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                          // Info
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  Text(
+                                    court.name,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    court.address,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.textMuted,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const Spacer(),
                                   Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      const Icon(
-                                        Icons.star_rounded,
-                                        size: 12,
-                                        color: Colors.amber,
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.star_rounded,
+                                            size: 12,
+                                            color: Colors.amber,
+                                          ),
+                                          const SizedBox(width: 2),
+                                          Text(
+                                            '${court.rating}',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(width: 2),
                                       Text(
-                                        '${court.rating}',
+                                        '${(court.pricePerHour / 1000).toStringAsFixed(0)}k/h',
                                         style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppTheme.primary,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  Text(
-                                    '${(court.pricePerHour / 1000).toStringAsFixed(0)}k/h',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppTheme.primary,
-                                    ),
-                                  ),
                                 ],
                               ),
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               );
             },
-          );
-        },
-      ),
+          ),
       ],
     );
   }
@@ -530,7 +532,9 @@ class _WebBookingPageState extends State<WebBookingPage> {
         const SizedBox(height: 16),
         LayoutBuilder(
           builder: (context, constraints) {
-            int crossAxisCount = constraints.maxWidth > 800 ? 4 : (constraints.maxWidth > 500 ? 3 : 2);
+            int crossAxisCount = constraints.maxWidth > 800
+                ? 4
+                : (constraints.maxWidth > 500 ? 3 : 2);
             return GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
@@ -558,4 +562,3 @@ class _WebBookingPageState extends State<WebBookingPage> {
     );
   }
 }
-
