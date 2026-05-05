@@ -5,7 +5,6 @@ import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/auth/auth_service.dart';
 import 'package:shuttlecourt/services/court_service.dart';
 import 'package:shuttlecourt/models/badminton_court.dart';
-import 'package:shuttlecourt/web/responsive_scaffold.dart';
 import 'package:shuttlecourt/web/web_navbar.dart';
 import 'package:shuttlecourt/web/web_dashboard_widgets.dart';
 import 'package:shuttlecourt/web/web_footer.dart';

@@ -51,13 +51,23 @@ class _WebHomePageState extends State<WebHomePage> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  _HeroSection(
-                    searchCtrl: _searchCtrl,
-                    onSearch: _search,
-                    onFindCourts: () => widget.onTabChange?.call(1),
-                    onBookNow: () => widget.onTabChange?.call(3),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      _HeroSection(
+                        searchCtrl: _searchCtrl,
+                        onSearch: _search,
+                        onFindCourts: () => widget.onTabChange?.call(1),
+                        onBookNow: () => widget.onTabChange?.call(3),
+                      ),
+                      const Positioned(
+                        bottom: -40, // Pull it down to overlap
+                        child: _StatsStrip(),
+                      ),
+                    ],
                   ),
-                  const _StatsStrip(),
+                  const SizedBox(height: 100), // Space for the overlapping stats
                   _NearbySection(
                     courtsFuture: _courtsFuture,
                     onViewAll: () => widget.onTabChange?.call(1),
@@ -97,206 +107,241 @@ class _HeroSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
+    final w = MediaQuery.of(context).size.width;
+    final isMobile = w < 900;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 72),
-      decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
+      padding: EdgeInsets.only(
+          left: isMobile ? 24 : 40,
+          right: isMobile ? 24 : 40,
+          top: 72,
+          bottom: 120), // Bottom padding for overlapping stats
+      decoration: const BoxDecoration(
+        gradient: AppTheme.primaryGradient,
+      ),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1200),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Left text
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: isMobile
+              ? Column(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        '🏸  Nền tảng đặt sân #1 Việt Nam',
-                        style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      auth.isAuthenticated
-                          ? 'Xin chào, ${auth.user!.fullName}! 👋'
-                          : 'Tìm & Đặt Sân\nCầu Lông Dễ Dàng',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 44,
-                        fontWeight: FontWeight.w900,
-                        height: 1.15,
-                        letterSpacing: -1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Khám phá hàng trăm sân cầu lông chất lượng gần bạn.\nĐặt sân nhanh chóng, thanh toán an toàn.',
-                      style: TextStyle(
-                          color: Colors.white70, fontSize: 16, height: 1.6),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Search bar
-                    Container(
-                      constraints: const BoxConstraints(maxWidth: 520),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: AppTheme.premiumShadow,
-                      ),
-                      child: TextField(
-                        controller: searchCtrl,
-                        onSubmitted: onSearch,
-                        decoration: InputDecoration(
-                          hintText: 'Tìm sân theo tên hoặc địa chỉ...',
-                          hintStyle: const TextStyle(
-                              color: AppTheme.textMuted, fontSize: 14),
-                          prefixIcon: const Icon(Icons.search_rounded,
-                              color: AppTheme.primary, size: 22),
-                          suffixIcon: GestureDetector(
-                            onTap: () => onSearch(searchCtrl.text),
-                            child: Container(
-                              margin: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                gradient: AppTheme.primaryGradient,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.arrow_forward_rounded,
-                                  color: Colors.white, size: 20),
-                            ),
-                          ),
-                          border: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        style: const TextStyle(
-                            color: AppTheme.textPrimary, fontSize: 14),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // CTAs
-                    Row(
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: onFindCourts,
-                          icon: const Icon(Icons.search_rounded, size: 18),
-                          label: const Text('Tìm sân'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.highlight,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            textStyle: const TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 14),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        OutlinedButton.icon(
-                          onPressed: onBookNow,
-                          icon: const Icon(Icons.calendar_month_rounded,
-                              size: 18),
-                          label: const Text('Đặt ngay'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side:
-                                const BorderSide(color: Colors.white54, width: 1.5),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            textStyle: const TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 14),
-                          ),
-                        ),
-                      ],
-                    ),
+                    _buildLeftContent(context, auth),
+                    const SizedBox(height: 48),
+                    _buildRightContent(context),
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(flex: 11, child: _buildLeftContent(context, auth)),
+                    const SizedBox(width: 64),
+                    Expanded(flex: 8, child: _buildRightContent(context)),
                   ],
                 ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLeftContent(BuildContext context, AuthService auth) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: const Text(
+            '🏸  Nền tảng đặt sân #1 Việt Nam',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          auth.isAuthenticated
+              ? 'Xin chào, ${auth.user!.fullName}! 👋'
+              : 'Tìm & Đặt Sân\nCầu Lông Dễ Dàng',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 48,
+            fontWeight: FontWeight.w900,
+            height: 1.15,
+            letterSpacing: -1.2,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Khám phá hàng trăm sân cầu lông chất lượng gần bạn.\nĐặt sân nhanh chóng, thanh toán an toàn.',
+          style: TextStyle(
+              color: Colors.white70, fontSize: 17, height: 1.6, fontWeight: FontWeight.w400),
+        ),
+        const SizedBox(height: 36),
+
+        // Search bar
+        Container(
+          constraints: const BoxConstraints(maxWidth: 520),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              )
+            ],
+          ),
+          child: TextField(
+            controller: searchCtrl,
+            onSubmitted: onSearch,
+            decoration: InputDecoration(
+              hintText: 'Tìm sân theo tên hoặc địa chỉ...',
+              hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 15),
+              prefixIcon: const Padding(
+                padding: EdgeInsets.only(left: 12, right: 8),
+                child: Icon(Icons.search_rounded, color: AppTheme.primary, size: 24),
               ),
-              const SizedBox(width: 60),
-              // Right decorative card
-              Expanded(
-                flex: 2,
+              suffixIcon: GestureDetector(
+                onTap: () => onSearch(searchCtrl.text),
                 child: Container(
-                  padding: const EdgeInsets.all(24),
+                  margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Đặt nhanh',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 16),
-                      ...[
-                        ('Tìm sân gần tôi', Icons.near_me_rounded),
-                        ('Sân có đèn LED', Icons.lightbulb_rounded),
-                        ('Giá dưới 100k/h', Icons.attach_money_rounded),
-                        ('Sân có HLV', Icons.sports_rounded),
-                      ].map((e) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: GestureDetector(
-                              onTap: () => onSearch(e.$1),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border:
-                                      Border.all(color: Colors.white12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(e.$2,
-                                        color: Colors.white70, size: 16),
-                                    const SizedBox(width: 10),
-                                    Text(e.$1,
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600)),
-                                    const Spacer(),
-                                    const Icon(
-                                        Icons.arrow_forward_ios_rounded,
-                                        size: 12,
-                                        color: Colors.white38),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          )),
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primary.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      )
                     ],
                   ),
+                  child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
                 ),
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 18),
+            ),
+            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15),
+          ),
+        ),
+        const SizedBox(height: 32),
+
+        // CTAs
+        Row(
+          children: [
+            ElevatedButton.icon(
+              onPressed: onFindCourts,
+              icon: const Icon(Icons.search_rounded, size: 20),
+              label: const Text('Tìm sân ngay'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.highlight,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+              ),
+            ),
+            const SizedBox(width: 16),
+            OutlinedButton.icon(
+              onPressed: onBookNow,
+              icon: const Icon(Icons.calendar_month_rounded, size: 20),
+              label: const Text('Hướng dẫn đặt'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white60, width: 1.5),
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRightContent(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 32,
+            offset: const Offset(0, 16),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.highlight.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.flash_on_rounded, color: AppTheme.highlight, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Gợi ý tìm kiếm',
+                style: TextStyle(
+                    color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 24),
+          ...[
+            ('Tìm sân gần tôi', Icons.near_me_rounded),
+            ('Sân có đèn LED', Icons.lightbulb_rounded),
+            ('Giá dưới 100k/h', Icons.attach_money_rounded),
+            ('Sân có HLV', Icons.sports_rounded),
+          ].map((e) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: InkWell(
+                  onTap: () => onSearch(e.$1),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(e.$2, color: Colors.white70, size: 18),
+                        const SizedBox(width: 12),
+                        Text(e.$1,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        const Icon(Icons.arrow_forward_ios_rounded,
+                            size: 14, color: Colors.white38),
+                      ],
+                    ),
+                  ),
+                ),
+              )),
+        ],
       ),
     );
   }
@@ -309,30 +354,52 @@ class _StatsStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    final isMobile = w < 800;
+
     return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 28),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
-              _StatItem('1,200+', 'Sân hoạt động', Icons.sports_tennis_rounded,
-                  AppTheme.primary),
-              _Divider(),
-              _StatItem('5,000+', 'Người dùng', Icons.people_rounded,
-                  Color(0xFF3B82F6)),
-              _Divider(),
-              _StatItem('20k+', 'Lượt đặt sân', Icons.check_circle_rounded,
-                  Color(0xFF10B981)),
-              _Divider(),
-              _StatItem('50+', 'Thành phố', Icons.location_city_rounded,
-                  Color(0xFFF59E0B)),
-            ],
-          ),
-        ),
+      width: w > 1280 ? 1200 : w - 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 32,
+            offset: const Offset(0, 16),
+          )
+        ],
       ),
+      padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 24 : 48, vertical: isMobile ? 24 : 36),
+      child: isMobile
+          ? Column(
+              children: const [
+                _StatItem('1,200+', 'Sân hoạt động', Icons.sports_tennis_rounded, AppTheme.primary),
+                SizedBox(height: 24),
+                _StatItem('5,000+', 'Người dùng', Icons.people_rounded, Color(0xFF3B82F6)),
+                SizedBox(height: 24),
+                _StatItem('20k+', 'Lượt đặt sân', Icons.check_circle_rounded, Color(0xFF10B981)),
+                SizedBox(height: 24),
+                _StatItem('50+', 'Thành phố', Icons.location_city_rounded, Color(0xFFF59E0B)),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: const [
+                _StatItem('1,200+', 'Sân hoạt động', Icons.sports_tennis_rounded,
+                    AppTheme.primary),
+                _Divider(),
+                _StatItem('5,000+', 'Người dùng', Icons.people_rounded,
+                    Color(0xFF3B82F6)),
+                _Divider(),
+                _StatItem('20k+', 'Lượt đặt sân', Icons.check_circle_rounded,
+                    Color(0xFF10B981)),
+                _Divider(),
+                _StatItem('50+', 'Thành phố', Icons.location_city_rounded,
+                    Color(0xFFF59E0B)),
+              ],
+            ),
     );
   }
 }
@@ -350,27 +417,29 @@ class _StatItem extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(14),
           ),
-          child: Icon(icon, color: color, size: 22),
+          child: Icon(icon, color: color, size: 26),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 16),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(value,
                 style: const TextStyle(
-                    fontSize: 22,
+                    fontSize: 26,
                     fontWeight: FontWeight.w900,
                     color: AppTheme.textPrimary,
                     letterSpacing: -0.5)),
+            const SizedBox(height: 2),
             Text(label,
                 style: const TextStyle(
-                    fontSize: 12, color: AppTheme.textMuted,
-                    fontWeight: FontWeight.w500)),
+                    fontSize: 13, color: AppTheme.textMuted,
+                    fontWeight: FontWeight.w600)),
           ],
         ),
       ],
@@ -382,7 +451,7 @@ class _Divider extends StatelessWidget {
   const _Divider();
   @override
   Widget build(BuildContext context) =>
-      Container(width: 1, height: 40, color: AppTheme.borderLight);
+      Container(width: 1, height: 48, color: AppTheme.borderLight);
 }
 
 // ── Nearby Courts ─────────────────────────────────────────────────────────────
@@ -413,17 +482,39 @@ class _NearbySection extends StatelessWidget {
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Sân cầu lông gần bạn',
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 32,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'KHÁM PHÁ NGAY',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.primary,
+                                letterSpacing: 1.2),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Text('Sân cầu lông gần bạn',
                           style: TextStyle(
-                              fontSize: 28,
+                              fontSize: 36,
                               fontWeight: FontWeight.w900,
                               color: AppTheme.textPrimary,
-                              letterSpacing: -0.8)),
-                      SizedBox(height: 4),
-                      Text('Những sân tốt nhất trong khu vực của bạn',
+                              letterSpacing: -1.2)),
+                      const SizedBox(height: 8),
+                      const Text('Những sân tốt nhất trong khu vực của bạn với dịch vụ hàng đầu',
                           style:
-                              TextStyle(fontSize: 14, color: AppTheme.textMuted)),
+                              TextStyle(fontSize: 16, color: AppTheme.textMuted, fontWeight: FontWeight.w400)),
                     ],
                   ),
                   Row(
@@ -585,14 +676,14 @@ class _FeaturesSection extends StatelessWidget {
             children: [
               const Text('Tại sao chọn ShuttleCourt?',
                   style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 36,
                       fontWeight: FontWeight.w900,
                       color: AppTheme.textPrimary,
-                      letterSpacing: -0.8)),
-              const SizedBox(height: 8),
-              const Text('Giải pháp đặt sân thông minh và tiện lợi nhất',
+                      letterSpacing: -1.2)),
+              const SizedBox(height: 12),
+              const Text('Giải pháp đặt sân thông minh, hiện đại và tiện lợi nhất cho lông thủ',
                   style:
-                      TextStyle(fontSize: 14, color: AppTheme.textMuted)),
+                      TextStyle(fontSize: 16, color: AppTheme.textMuted, fontWeight: FontWeight.w400)),
               const SizedBox(height: 40),
               LayoutBuilder(builder: (context, bc) {
                 int cols = bc.maxWidth > 900 ? 4 : (bc.maxWidth > 600 ? 2 : 1);
@@ -645,11 +736,18 @@ class _FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: AppTheme.scaffoldLight,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderLight),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.borderLight.withOpacity(0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -689,55 +787,77 @@ class _CtaBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
-      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
+      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 64),
+      padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 64),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF2D3250), Color(0xFF424769)],
+          colors: [Color(0xFF1B2038), Color(0xFF2D3250)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppTheme.premiumShadow,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2D3250).withOpacity(0.2),
+            blurRadius: 40,
+            offset: const Offset(0, 20),
+          )
+        ],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Chưa có tài khoản?',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.8)),
-                SizedBox(height: 8),
-                Text(
-                    'Tham gia cộng đồng ShuttleCourt ngay hôm nay để nhận nhiều ưu đãi.',
-                    style:
-                        TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
-              ],
+          // Decorative background icon
+          Positioned(
+            right: -40,
+            top: -40,
+            child: Icon(
+              Icons.sports_tennis_rounded,
+              size: 240,
+              color: Colors.white.withOpacity(0.05),
             ),
           ),
-          const SizedBox(width: 40),
-          ElevatedButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const RegisterScreen()),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.highlight,
-              foregroundColor: Colors.white,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              textStyle: const TextStyle(
-                  fontWeight: FontWeight.w800, fontSize: 15),
-            ),
-            child: const Text('Đăng kí ngay'),
+          Row(
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Chưa có tài khoản?',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1.2)),
+                    SizedBox(height: 12),
+                    Text(
+                        'Tham gia cộng đồng ShuttleCourt ngay hôm nay để nhận nhiều ưu đãi độc quyền và kết nối với hàng ngàn lông thủ khác.',
+                        style:
+                            TextStyle(color: Colors.white70, fontSize: 16, height: 1.6)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 60),
+              ElevatedButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.highlight,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  textStyle: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 16),
+                ).copyWith(
+                  overlayColor: MaterialStateProperty.all(Colors.white.withOpacity(0.1)),
+                ),
+                child: const Text('Đăng kí ngay'),
+              ),
+            ],
           ),
         ],
       ),

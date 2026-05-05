@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shuttlecourt/features/notifications/notification_screen.dart';
+import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/web/web_navbar.dart';
 
-/// Web-optimized notifications page wrapper
 class WebNotificationPage extends StatelessWidget {
   final Function(int)? onTabChange;
 
@@ -10,17 +10,27 @@ class WebNotificationPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        WebNavbar(
-          selectedIndex: -1, // No highlight since this is a modal-like page
-          onNavTap: (index) {
-            Navigator.pop(context);
-            onTabChange?.call(index);
-          },
-        ),
-        Expanded(child: const NotificationScreen()),
-      ],
+    return Material(
+      color: AppTheme.scaffoldLight,
+      child: Column(
+        children: [
+          WebNavbar(
+            selectedIndex: -1,
+            onNavTap: (index) {
+              Navigator.pop(context);
+              onTabChange?.call(index);
+            },
+          ),
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: const NotificationScreen(showAppBar: false),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

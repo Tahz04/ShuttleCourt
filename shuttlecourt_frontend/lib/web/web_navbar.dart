@@ -58,7 +58,7 @@ class _WebNavbarState extends State<WebNavbar> {
     final auth = Provider.of<AuthService>(context);
 
     return Container(
-      height: 64,
+      height: 72, // Slightly taller for more air
       decoration: BoxDecoration(
         color: Colors.white,
         border: const Border(
@@ -66,15 +66,17 @@ class _WebNavbarState extends State<WebNavbar> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withOpacity(0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 2),
+            color: const Color(0xFF0F172A).withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ClipRect(
-        child: Row(
-          children: [
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1280),
+          child: Row(
+            children: [
             // ── Logo ──────────────────────────────────────────
             _buildLogo(),
 
@@ -139,8 +141,9 @@ class _WebNavbarState extends State<WebNavbar> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLogo() {
     return InkWell(
@@ -394,12 +397,12 @@ class _NavLinkState extends State<_NavLink> {
           child: Text(
             widget.item.label,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: widget.isActive ? FontWeight.w800 : FontWeight.w600,
               color: widget.isActive
                   ? AppTheme.primary
                   : (_hovered ? AppTheme.primary : AppTheme.textSecondary),
-              letterSpacing: -0.2,
+              letterSpacing: -0.3,
             ),
           ),
         ),

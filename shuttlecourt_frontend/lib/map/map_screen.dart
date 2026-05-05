@@ -35,6 +35,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   double? routeDistanceKm;
   int? routeDurationMin;
   bool isLoadingRoute = false;
+  bool _isPickingLocation = false;
   static const LatLng defaultCenter = LatLng(21.0285, 105.8542);
 
   late AnimationController _pulseController;
@@ -232,7 +233,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.scaffoldDark,
-      body: Stack(
+      body: MouseRegion(
+      cursor: _isPickingLocation ? SystemMouseCursors.precise : MouseCursor.defer,
+      child: Stack(
         children: [
           // Map
           FlutterMap(
@@ -242,8 +245,29 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   ? LatLng(userLat!, userLng!)
                   : defaultCenter,
               initialZoom: 13,
-              onTap: (_, __) {
-                if (routePoints.isNotEmpty) {
+              onTap: (_, latlng) {
+                if (_isPickingLocation) {
+                  setState(() {
+                    userLat = latlng.latitude;
+                    userLng = latlng.longitude;
+                    _isPickingLocation = false;
+                    routePoints = [];
+                    routeDistanceKm = null;
+                    routeDurationMin = null;
+                  });
+                  _filterNearbyCourts();
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: const Row(children: [
+                      Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                      SizedBox(width: 10),
+                      Expanded(child: Text('Đã đặt vị trí của bạn trên bản đồ')),
+                    ]),
+                    backgroundColor: AppTheme.success,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    duration: const Duration(seconds: 2),
+                  ));
+                } else if (routePoints.isNotEmpty) {
                   _clearRoute();
                 }
               },
@@ -554,6 +578,16 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             bottom: 160,
             child: Column(
               children: [
+                // Pick location button (manual location setting)
+                _buildMapFab(
+                  icon: _isPickingLocation
+                      ? Icons.location_on_rounded
+                      : Icons.edit_location_alt_rounded,
+                  color: _isPickingLocation ? AppTheme.highlight : AppTheme.primary,
+                  onTap: () => setState(() => _isPickingLocation = !_isPickingLocation),
+                  tooltip: 'Đặt vị trí thủ công',
+                  marginBottom: 12,
+                ),
                 // Clear route button
                 if (routePoints.isNotEmpty)
                   _buildMapFab(
@@ -717,6 +751,71 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         color: Color(0xFF1A1A1A),
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Manual location picking mode banner
+          if (_isPickingLocation)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 80,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppTheme.highlight, Color(0xFFD68A5E)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.highlight.withOpacity(0.35),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.touch_app_rounded, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Chế độ chọn vị trí thủ công',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Nhấn vào bản đồ để đặt vị trí của bạn',
+                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => setState(() => _isPickingLocation = false),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
                       ),
                     ),
                   ],
@@ -963,7 +1062,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildMapFab({
@@ -1553,21 +1653,22 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   void _showRouteToCourt(BadmintonCourt court) async {
     if (userLat == null || userLng == null) {
       if (mounted) {
+        setState(() => _isPickingLocation = true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Row(
               children: [
-                Icon(Icons.location_off_rounded, color: Colors.white, size: 18),
+                Icon(Icons.edit_location_alt_rounded, color: Colors.white, size: 18),
                 SizedBox(width: 10),
-                Text('Không xác định được vị trí của bạn.'),
+                Expanded(child: Text('Nhấn vào bản đồ để đặt vị trí của bạn trước.')),
               ],
             ),
-            backgroundColor: AppTheme.error,
+            backgroundColor: AppTheme.primary,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
-            duration: const Duration(seconds: 2),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
