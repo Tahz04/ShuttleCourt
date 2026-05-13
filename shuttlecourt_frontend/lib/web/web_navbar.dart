@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
+import 'package:shuttlecourt/web/web_styles.dart';
 import 'package:shuttlecourt/auth/auth_service.dart';
 import 'package:shuttlecourt/auth/login_screen.dart';
 import 'package:shuttlecourt/auth/register_screen.dart';
@@ -8,7 +9,7 @@ import 'package:shuttlecourt/web/web_profile_page.dart';
 import 'package:shuttlecourt/services/notification_service.dart';
 import 'package:shuttlecourt/web/web_notification_page.dart';
 
-/// Modern sticky top navigation bar — web only
+/// Dark glassmorphism sticky top navigation bar — web only
 class WebNavbar extends StatefulWidget {
   final int selectedIndex;
   final Function(int) onNavTap;
@@ -40,8 +41,9 @@ class _WebNavbarState extends State<WebNavbar> {
     final list = await NotificationService.getNotifications(
       auth.user!.id.toString(),
     );
-    if (mounted)
+    if (mounted) {
       setState(() => _unreadCount = list.where((n) => !n.isRead).length);
+    }
   }
 
   static const List<_NavItem> _navItems = [
@@ -58,16 +60,18 @@ class _WebNavbarState extends State<WebNavbar> {
     final auth = Provider.of<AuthService>(context);
 
     return Container(
-      height: 72, // Slightly taller for more air
+      height: 68,
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: const Border(
-          bottom: BorderSide(color: AppTheme.borderLight, width: 1),
+        color: WebStyles.dark900,
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.white.withValues(alpha: 0.06),
+          ),
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withOpacity(0.04),
-            blurRadius: 20,
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 30,
             offset: const Offset(0, 4),
           ),
         ],
@@ -77,77 +81,61 @@ class _WebNavbarState extends State<WebNavbar> {
           constraints: const BoxConstraints(maxWidth: 1280),
           child: Row(
             children: [
-            // ── Logo ──────────────────────────────────────────
-            _buildLogo(),
-
-            // ── Nav Links (center) ────────────────────────────
-            Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: _navItems
-                        .where((item) {
-                          // Show all items for everyone (owner features now in profile settings)
-                          return true;
-                        })
-                        .map(
-                          (item) => _NavLink(
-                            item: item,
-                            isActive: widget.selectedIndex == item.index,
-                            onTap: () => widget.onNavTap(item.index),
-                          ),
-                        )
-                        .toList(),
+              _buildLogo(),
+              Expanded(
+                child: Center(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: _navItems
+                          .map((item) => _NavLink(
+                                item: item,
+                                isActive: widget.selectedIndex == item.index,
+                                onTap: () => widget.onNavTap(item.index),
+                              ))
+                          .toList(),
+                    ),
                   ),
                 ),
               ),
-            ),
-
-            // ── Right Actions ─────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Notifications bell
-                  if (auth.isAuthenticated) ...[
-                    _NotificationBell(
-                      unreadCount: _unreadCount,
-                      onTap: () async {
-                        final nav = Navigator.of(context);
-                        await nav.push(
-                          MaterialPageRoute(
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (auth.isAuthenticated) ...[
+                      _NotificationBell(
+                        unreadCount: _unreadCount,
+                        onTap: () async {
+                          final nav = Navigator.of(context);
+                          await nav.push(MaterialPageRoute(
                             builder: (_) => WebNotificationPage(
-                              onTabChange: (index) => widget.onNavTap(index),
+                              onTabChange: (i) => widget.onNavTap(i),
                             ),
-                          ),
-                        );
-                        if (mounted) _fetchNotifications();
-                      },
-                    ),
-                    const SizedBox(width: 12),
+                          ));
+                          if (mounted) _fetchNotifications();
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    if (!auth.isAuthenticated)
+                      _buildGuestActions()
+                    else
+                      _buildUserMenu(auth),
                   ],
-
-                  // Auth area
-                  if (!auth.isAuthenticated)
-                    _buildGuestActions()
-                  else
-                    _buildUserMenu(auth),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildLogo() {
     return InkWell(
-      onTap: onLogoTap ?? () => widget.onNavTap(0),
+      onTap: widget.onLogoTap ?? () => widget.onNavTap(0),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -158,7 +146,7 @@ class _WebNavbarState extends State<WebNavbar> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
+                gradient: WebStyles.brandGrad,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -168,29 +156,29 @@ class _WebNavbarState extends State<WebNavbar> {
               ),
             ),
             const SizedBox(width: 10),
-            const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'ShuttleCourt',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: AppTheme.primary,
-                    letterSpacing: -0.5,
+            RichText(
+              text: TextSpan(
+                children: [
+                  const TextSpan(
+                    text: 'Shuttle',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-                Text(
-                  'Court Booking',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.textMuted,
-                    letterSpacing: 0.5,
+                  TextSpan(
+                    text: 'Court',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: WebStyles.brandLight,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -208,7 +196,7 @@ class _WebNavbarState extends State<WebNavbar> {
             MaterialPageRoute(builder: (_) => const LoginScreen()),
           ),
           style: TextButton.styleFrom(
-            foregroundColor: AppTheme.textSecondary,
+            foregroundColor: Colors.white.withValues(alpha: 0.8),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           ),
           child: const Text(
@@ -223,12 +211,12 @@ class _WebNavbarState extends State<WebNavbar> {
             MaterialPageRoute(builder: (_) => const RegisterScreen()),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.highlight,
+            backgroundColor: WebStyles.brand,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(20),
             ),
           ),
           child: const Text(
@@ -240,7 +228,12 @@ class _WebNavbarState extends State<WebNavbar> {
     );
   }
 
-  PopupMenuItem<String> _buildProfileMenuItem(BuildContext context, String label, IconData icon, int tabIndex) {
+  PopupMenuItem<String> _buildProfileMenuItem(
+    BuildContext context,
+    String label,
+    IconData icon,
+    int tabIndex,
+  ) {
     return PopupMenuItem(
       value: 'tab_$tabIndex',
       onTap: () => Future.delayed(
@@ -292,20 +285,20 @@ class _WebNavbarState extends State<WebNavbar> {
         ),
       ],
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: AppTheme.scaffoldLight,
+          color: Colors.white.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppTheme.borderLight),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 30,
-              height: 30,
+              width: 28,
+              height: 28,
               decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
+                gradient: WebStyles.brandGrad,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.person, color: Colors.white, size: 16),
@@ -320,22 +313,22 @@ class _WebNavbarState extends State<WebNavbar> {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
+                    color: Colors.white,
                   ),
                 ),
                 Text(
                   auth.user?.role == 'owner' ? 'Chủ sân' : 'Người dùng',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
-                    color: AppTheme.textMuted,
+                    color: Colors.white.withValues(alpha: 0.5),
                   ),
                 ),
               ],
             ),
             const SizedBox(width: 6),
-            const Icon(
+            Icon(
               Icons.keyboard_arrow_down,
-              color: AppTheme.textMuted,
+              color: Colors.white.withValues(alpha: 0.5),
               size: 18,
             ),
           ],
@@ -343,9 +336,9 @@ class _WebNavbarState extends State<WebNavbar> {
       ),
     );
   }
-
-  VoidCallback? get onLogoTap => widget.onLogoTap;
 }
+
+// ── Nav Item ──────────────────────────────────────────────────────────────────
 
 class _NavItem {
   final String label;
@@ -353,6 +346,8 @@ class _NavItem {
   final int index;
   const _NavItem(this.label, this.icon, this.index);
 }
+
+// ── Nav Link ──────────────────────────────────────────────────────────────────
 
 class _NavLink extends StatefulWidget {
   final _NavItem item;
@@ -379,30 +374,31 @@ class _NavLinkState extends State<_NavLink> {
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
         onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: widget.isActive
-                    ? AppTheme.primary
-                    : (_hovered
-                          ? AppTheme.primary.withOpacity(0.3)
-                          : Colors.transparent),
-                width: 2.5,
-              ),
-            ),
-          ),
-          child: Text(
-            widget.item.label,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: widget.isActive ? FontWeight.w800 : FontWeight.w600,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
               color: widget.isActive
-                  ? AppTheme.primary
-                  : (_hovered ? AppTheme.primary : AppTheme.textSecondary),
-              letterSpacing: -0.3,
+                  ? WebStyles.brand
+                  : (_hovered
+                      ? WebStyles.brand.withValues(alpha: 0.15)
+                      : Colors.transparent),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              widget.item.label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: widget.isActive ? FontWeight.w700 : FontWeight.w500,
+                color: widget.isActive
+                    ? Colors.white
+                    : (_hovered
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.75)),
+                letterSpacing: -0.2,
+              ),
             ),
           ),
         ),
@@ -410,6 +406,8 @@ class _NavLinkState extends State<_NavLink> {
     );
   }
 }
+
+// ── Notification Bell ─────────────────────────────────────────────────────────
 
 class _NotificationBell extends StatelessWidget {
   final int unreadCount;
@@ -427,13 +425,13 @@ class _NotificationBell extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.scaffoldLight,
+                color: Colors.white.withValues(alpha: 0.07),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.borderLight),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.notifications_outlined,
-                color: AppTheme.primary,
+                color: Colors.white.withValues(alpha: 0.8),
                 size: 20,
               ),
             ),

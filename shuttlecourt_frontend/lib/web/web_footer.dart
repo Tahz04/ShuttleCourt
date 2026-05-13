@@ -10,7 +10,7 @@ class WebFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: AppTheme.primary,
+      color: const Color(0xFF0F172A),
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
       child: Center(
         child: ConstrainedBox(
