@@ -2,11 +2,13 @@ const db = require('../config/database');
 
 exports.getAllCourts = async (req, res) => {
     try {
+        console.log('📍 GET /api/courts/all - Request received');
         const sql = "SELECT * FROM courts ORDER BY name ASC";
         const [result] = await db.query(sql);
+        console.log(`✅ Courts found: ${result.length} records`);
         res.status(200).json(result);
     } catch (err) {
-        console.error('Database error:', err);
+        console.error('❌ Database error:', err);
         res.status(500).json({ message: "Failed to fetch courts", error: err.message });
     }
 };

@@ -20,7 +20,11 @@ import 'package:shuttlecourt/web/web_home_page.dart';
 import 'package:shuttlecourt/web/web_booking_page.dart';
 import 'package:shuttlecourt/web/web_search_page.dart';
 import 'package:shuttlecourt/web/web_map_page.dart';
+import 'package:shuttlecourt/web/web_matchmaking_page.dart';
 import 'package:shuttlecourt/web/web_profile_page.dart';
+import 'package:shuttlecourt/web/web_booking_history_page.dart';
+import 'package:shuttlecourt/web/web_owner_dashboard_page.dart';
+import 'package:shuttlecourt/web/web_shop_page.dart';
 
 void main() {
   debugPrint('--- APP STARTING ---');
@@ -117,15 +121,11 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     // For web, render the appropriate web page based on selected index
     List<Widget> webScreens = [
       WebHomePage(onTabChange: _onItemTapped),
-      WebSearchPage(
-        initialQuery: _mapSearchQuery,
-        onTabChange: _onItemTapped,
-      ),
-      WebMapPage(
-        searchQuery: _mapSearchQuery,
-        onTabChange: _onItemTapped,
-      ),
+      WebSearchPage(initialQuery: _mapSearchQuery, onTabChange: _onItemTapped),
+      WebMapPage(searchQuery: _mapSearchQuery, onTabChange: _onItemTapped),
       WebBookingPage(onTabChange: _onItemTapped),
+      WebMatchmakingPage(onTabChange: _onItemTapped),
+      WebShopPage(onTabChange: _onItemTapped),
       WebProfilePage(onTabChange: _onItemTapped),
     ];
 
@@ -136,7 +136,9 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           parent: _fadeController,
           curve: Curves.easeOut,
         ),
-        child: webScreens[_selectedIndex],
+        child: _selectedIndex < webScreens.length
+            ? webScreens[_selectedIndex]
+            : webScreens[0],
       ),
     );
   }

@@ -80,7 +80,7 @@ class _WebCourtCardState extends State<WebCourtCard>
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: _hovered ? AppTheme.primary.withOpacity(0.3) : AppTheme.borderLight,
+              color: _hovered ? AppTheme.primary.withValues(alpha:0.3) : AppTheme.borderLight,
               width: _hovered ? 1.5 : 1,
             ),
             boxShadow: _hovered ? AppTheme.premiumShadow : AppTheme.softShadow,
@@ -147,7 +147,7 @@ class _WebCourtCardState extends State<WebCourtCard>
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 7, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppTheme.primary.withOpacity(0.08),
+                                color: AppTheme.primary.withValues(alpha:0.08),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -162,46 +162,18 @@ class _WebCourtCardState extends State<WebCourtCard>
                           ],
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
 
-                      // Rating + price
+                      // Reviews count
                       Row(
                         children: [
-                          // Stars
-                          const Icon(
-                            Icons.star_rounded,
-                            size: 15,
-                            color: Color(0xFFFBBF24),
-                          ),
-                          const SizedBox(width: 3),
+                          const Icon(Icons.reviews_outlined,
+                              size: 13, color: AppTheme.textMuted),
+                          const SizedBox(width: 4),
                           Text(
-                            court.rating.toStringAsFixed(1),
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            ' (${court.reviews})',
+                            '${court.reviews} đánh giá',
                             style: const TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textMuted,
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            '${(court.pricePerHour / 1000).toStringAsFixed(0)}k',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: AppTheme.primary,
-                            ),
-                          ),
-                          const Text(
-                            '/giờ',
-                            style: TextStyle(
-                              fontSize: 11,
                               color: AppTheme.textMuted,
                             ),
                           ),
@@ -296,7 +268,7 @@ class _WebCourtCardState extends State<WebCourtCard>
       String imageUrl, bool isMaintenance, BadmintonCourt court) {
     return SizedBox(
       width: double.infinity,
-      height: 140,
+      height: 160,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -306,23 +278,51 @@ class _WebCourtCardState extends State<WebCourtCard>
             loadingBuilder: (c, child, p) => p == null
                 ? child
                 : Container(
-                    color: AppTheme.primary.withOpacity(0.06),
+                    color: AppTheme.primary.withValues(alpha:0.06),
                     child: const Center(
                       child: SizedBox(
                         width: 24,
                         height: 24,
-                        child:
-                            CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppTheme.primary),
                       ),
                     ),
                   ),
             errorBuilder: (c, e, s) => Container(
-              color: AppTheme.primary.withOpacity(0.08),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.primary.withValues(alpha:0.12),
+                    AppTheme.primary.withValues(alpha:0.06),
+                  ],
+                ),
+              ),
               child: const Center(
                 child: Icon(
                   Icons.sports_tennis_rounded,
                   color: AppTheme.primary,
-                  size: 48,
+                  size: 52,
+                ),
+              ),
+            ),
+          ),
+          // Gradient bottom fade (stronger for badge readability)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 80,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha:0.55),
+                  ],
                 ),
               ),
             ),
@@ -330,7 +330,7 @@ class _WebCourtCardState extends State<WebCourtCard>
           // Maintenance overlay
           if (isMaintenance)
             Container(
-              color: Colors.black.withOpacity(0.6),
+              color: Colors.black.withValues(alpha:0.6),
               child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -350,19 +350,80 @@ class _WebCourtCardState extends State<WebCourtCard>
                 ),
               ),
             ),
-          // Gradient bottom fade
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 60,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.25)],
+          // Price badge — bottom-left overlay
+          if (!isMaintenance)
+            Positioned(
+              bottom: 10,
+              left: 12,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.primary, AppTheme.primary.withValues(alpha:0.85)],
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primary.withValues(alpha:0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
+                child: RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text:
+                            '${(court.pricePerHour / 1000).toStringAsFixed(0)}k',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          height: 1,
+                        ),
+                      ),
+                      const TextSpan(
+                        text: '/giờ',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white70,
+                          height: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          // Rating chip — bottom-right overlay
+          Positioned(
+            bottom: 10,
+            right: 12,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha:0.55),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.star_rounded,
+                      size: 13, color: Color(0xFFFBBF24)),
+                  const SizedBox(width: 3),
+                  Text(
+                    court.rating.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -382,8 +443,8 @@ class _StatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: isMaintenance
-            ? AppTheme.error.withOpacity(0.12)
-            : AppTheme.success.withOpacity(0.12),
+            ? AppTheme.error.withValues(alpha:0.12)
+            : AppTheme.success.withValues(alpha:0.12),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
