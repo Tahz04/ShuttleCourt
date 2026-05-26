@@ -40,43 +40,6 @@ class _WebHomePageState extends State<WebHomePage> {
     if (q.trim().isNotEmpty) widget.onTabChange?.call(1, query: q.trim());
   }
 
-  void _handleRegisterClick() {
-    final auth = Provider.of<AuthService>(context, listen: false);
-    if (auth.isAuthenticated) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Thông báo'),
-          content: const Text('Bạn đã có tài khoản bạn có muốn tiếp tục đăng kí?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                widget.onTabChange?.call(1, query: '__focus__');
-              },
-              child: const Text('Tìm sân ngay'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                );
-              },
-              child: const Text('Tiếp tục'),
-            ),
-          ],
-        ),
-      );
-    } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const RegisterScreen()),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,7 +64,7 @@ class _WebHomePageState extends State<WebHomePage> {
                     courtsFuture: _courtsFuture,
                     onViewAll: () => widget.onTabChange?.call(1),
                     onRefresh: () => setState(
-                      () => _courtsFuture =
+                          () => _courtsFuture =
                           LocationService.getNearestCourts(maxResults: 8),
                     ),
                     onTabChange: widget.onTabChange,
@@ -114,7 +77,11 @@ class _WebHomePageState extends State<WebHomePage> {
                   const _FeaturesSection(),
                   const _StepsSection(),
                   _CtaBanner(
-                    onRegister: _handleRegisterClick,
+                    onRegister: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const RegisterScreen()),
+                    ),
                   ),
                   WebFooter(onNavTap: (i) => widget.onTabChange?.call(i)),
                 ],
@@ -127,10 +94,7 @@ class _WebHomePageState extends State<WebHomePage> {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// HERO SECTION
-// ══════════════════════════════════════════════════════════════════════════════
-
+// Hero section stays the same...
 class _HeroSection extends StatefulWidget {
   final TextEditingController searchCtrl;
   final Function(String) onSearch;
@@ -179,7 +143,6 @@ class _HeroSectionState extends State<_HeroSection>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Solid background (always visible)
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -189,7 +152,6 @@ class _HeroSectionState extends State<_HeroSection>
               ),
             ),
           ),
-          // Background image (overlaid on solid bg)
           Image.network(
             'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=1920&q=70',
             fit: BoxFit.cover,
@@ -197,14 +159,12 @@ class _HeroSectionState extends State<_HeroSection>
             colorBlendMode: BlendMode.darken,
             errorBuilder: (_, __, ___) => const SizedBox.shrink(),
           ),
-          // Particles
           AnimatedBuilder(
             animation: _particleCtrl,
             builder: (_, __) => CustomPaint(
               painter: _ParticlePainter(_particleCtrl.value),
             ),
           ),
-          // Content
           Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 900),
@@ -213,7 +173,6 @@ class _HeroSectionState extends State<_HeroSection>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Badge pill
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 8),
@@ -248,7 +207,6 @@ class _HeroSectionState extends State<_HeroSection>
                       ),
                     ),
                     const SizedBox(height: 28),
-                    // Headline — two lines, second line uses ShaderMask for gradient
                     const Text(
                       'Đặt Sân Cầu Lông',
                       textAlign: TextAlign.center,
@@ -279,7 +237,6 @@ class _HeroSectionState extends State<_HeroSection>
                       ),
                     ),
                     const SizedBox(height: 20),
-                    // Subtitle
                     Text(
                       'Tìm và đặt sân cầu lông gần bạn trong vài giây.\nKết nối đồng đội, ghép kèo, mua dụng cụ — tất cả trong một nền tảng.',
                       textAlign: TextAlign.center,
@@ -291,7 +248,6 @@ class _HeroSectionState extends State<_HeroSection>
                       ),
                     ),
                     const SizedBox(height: 36),
-                    // Search bar
                     Container(
                       constraints: const BoxConstraints(maxWidth: 600),
                       height: 56,
@@ -358,7 +314,6 @@ class _HeroSectionState extends State<_HeroSection>
                       ),
                     ),
                     const SizedBox(height: 20),
-                    // Quick tags
                     Wrap(
                       alignment: WrapAlignment.center,
                       spacing: 8,
@@ -375,7 +330,6 @@ class _HeroSectionState extends State<_HeroSection>
                       ],
                     ),
                     const SizedBox(height: 52),
-                    // Stats
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 40, vertical: 20),
@@ -410,8 +364,7 @@ class _HeroSectionState extends State<_HeroSection>
   }
 }
 
-// ── Quick tag pill ────────────────────────────────────────────────────────────
-
+// ... QuickTag and other Hero helpers stay the same ...
 class _QuickTag extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
@@ -435,7 +388,7 @@ class _QuickTagState extends State<_QuickTag> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
             color: _hovered
                 ? Colors.white.withValues(alpha: 0.18)
@@ -458,8 +411,6 @@ class _QuickTagState extends State<_QuickTag> {
     );
   }
 }
-
-// ── Hero stat item ────────────────────────────────────────────────────────────
 
 class _StatItem extends StatelessWidget {
   final String value, label;
@@ -509,14 +460,12 @@ class _StatDivider extends StatelessWidget {
   }
 }
 
-// ── Particle painter ──────────────────────────────────────────────────────────
-
 class _ParticlePainter extends CustomPainter {
   final double progress;
   static final _rng = math.Random(42);
   static final _particles = List.generate(
     15,
-    (i) => _Particle(
+        (i) => _Particle(
       x: _rng.nextDouble(),
       startY: _rng.nextDouble(),
       size: 2 + _rng.nextDouble() * 3,
@@ -535,8 +484,8 @@ class _ParticlePainter extends CustomPainter {
       final opacity = t < 0.2
           ? t / 0.2
           : t > 0.7
-              ? (1.0 - t) / 0.3
-              : 0.6;
+          ? (1.0 - t) / 0.3
+          : 0.6;
       final y = (p.startY - t * p.speed) % 1.0;
       paint.color = WebStyles.brandLight
           .withValues(alpha: (opacity * 0.55).clamp(0, 1));
@@ -563,9 +512,7 @@ class _Particle {
   });
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// COURTS SECTION
-// ══════════════════════════════════════════════════════════════════════════════
+// ... _CourtsSection and _FeaturesSection stay same ...
 
 class _CourtsSection extends StatelessWidget {
   final Future<List<CourtWithDistance>> courtsFuture;
@@ -591,7 +538,6 @@ class _CourtsSection extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 1280),
           child: Column(
             children: [
-              // Section header
               Column(
                 children: [
                   Container(
@@ -653,7 +599,6 @@ class _CourtsSection extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 48),
-              // Grid
               FutureBuilder<List<CourtWithDistance>>(
                 future: courtsFuture,
                 builder: (context, snap) {
@@ -678,7 +623,6 @@ class _CourtsSection extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 40),
-              // View all button
               OutlinedButton.icon(
                 onPressed: onViewAll,
                 style: OutlinedButton.styleFrom(
@@ -754,10 +698,6 @@ class _CourtGrid extends StatelessWidget {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// FEATURES SECTION
-// ══════════════════════════════════════════════════════════════════════════════
-
 class _FeaturesSection extends StatelessWidget {
   const _FeaturesSection();
 
@@ -804,7 +744,7 @@ class _FeaturesSection extends StatelessWidget {
                 title: 'Tất cả trong ',
                 titleAccent: 'một nền tảng',
                 subtitle:
-                    'ShuttleCourt mang đến trải nghiệm toàn diện cho người chơi cầu lông',
+                'ShuttleCourt mang đến trải nghiệm toàn diện cho người chơi cầu lông',
               ),
               const SizedBox(height: 48),
               LayoutBuilder(builder: (context, bc) {
@@ -866,12 +806,12 @@ class _FeatureCardState extends State<_FeatureCard> {
           ),
           boxShadow: _hovered
               ? [
-                  BoxShadow(
-                    color: f.color.withValues(alpha: 0.15),
-                    blurRadius: 30,
-                    offset: const Offset(0, 12),
-                  )
-                ]
+            BoxShadow(
+              color: f.color.withValues(alpha: 0.15),
+              blurRadius: 30,
+              offset: const Offset(0, 12),
+            )
+          ]
               : [],
         ),
         child: Column(
@@ -915,9 +855,7 @@ class _FeatureCardState extends State<_FeatureCard> {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// STEPS SECTION
-// ══════════════════════════════════════════════════════════════════════════════
+// ... _StepsSection stays same ...
 
 class _StepsSection extends StatelessWidget {
   const _StepsSection();
@@ -958,31 +896,31 @@ class _StepsSection extends StatelessWidget {
                         .asMap()
                         .entries
                         .map((e) => Expanded(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(child: _StepCard(step: e.value)),
-                                  if (e.key < steps.length - 1)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 40),
-                                      child: Icon(
-                                        Icons.arrow_forward_rounded,
-                                        color: WebStyles.dark300,
-                                        size: 24,
-                                      ),
-                                    ),
-                                ],
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _StepCard(step: e.value)),
+                          if (e.key < steps.length - 1)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 40),
+                              child: Icon(
+                                Icons.arrow_forward_rounded,
+                                color: WebStyles.dark300,
+                                size: 24,
                               ),
-                            ))
+                            ),
+                        ],
+                      ),
+                    ))
                         .toList(),
                   );
                 }
                 return Column(
                   children: steps
                       .map((s) => Padding(
-                            padding: const EdgeInsets.only(bottom: 20),
-                            child: _StepCard(step: s),
-                          ))
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: _StepCard(step: s),
+                  ))
                       .toList(),
                 );
               }),
@@ -1072,10 +1010,7 @@ class _StepCard extends StatelessWidget {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// CTA BANNER
-// ══════════════════════════════════════════════════════════════════════════════
-
+// CTA Banner
 class _CtaBanner extends StatelessWidget {
   final VoidCallback onRegister;
   const _CtaBanner({required this.onRegister});
@@ -1105,7 +1040,6 @@ class _CtaBanner extends StatelessWidget {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // Decorative circles
                 Positioned(
                   top: -40,
                   right: -40,
@@ -1183,10 +1117,6 @@ class _CtaBanner extends StatelessWidget {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// SHARED HELPERS
-// ══════════════════════════════════════════════════════════════════════════════
-
 class _SectionHeader extends StatelessWidget {
   final String badge, title, titleAccent, subtitle;
   const _SectionHeader({
@@ -1202,7 +1132,7 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Container(
           padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
             color: WebStyles.brandPale,
             borderRadius: BorderRadius.circular(999),
@@ -1252,7 +1182,7 @@ class _SectionHeader extends StatelessWidget {
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 15,
-            color: WebStyles.dark50,
+            color: WebStyles.dark500,
             height: 1.6,
           ),
         ),
@@ -1261,10 +1191,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// MAP EXPLORE SECTION  (PlayGroundX style — dark panel + vertical court list)
-// ══════════════════════════════════════════════════════════════════════════════
-
+// MAP EXPLORE SECTION (FIXED BLOCK CLICK)
 class _MapExploreSection extends StatelessWidget {
   final Future<List<CourtWithDistance>> courtsFuture;
   final VoidCallback onOpenMap;
@@ -1285,18 +1212,18 @@ class _MapExploreSection extends StatelessWidget {
       color: WebStyles.dark900,
       child: isWide
           ? IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(flex: 5, child: _buildLeftPanel(context)),
-                  Expanded(flex: 4, child: _buildMapPanel()),
-                ],
-              ),
-            )
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(flex: 5, child: _buildLeftPanel(context)),
+            Expanded(flex: 4, child: _buildMapPanel()),
+          ],
+        ),
+      )
           : Column(children: [
-              _buildLeftPanel(context),
-              SizedBox(height: 320, child: _buildMapPanel()),
-            ]),
+        _buildLeftPanel(context),
+        SizedBox(height: 320, child: _buildMapPanel()),
+      ]),
     );
   }
 
@@ -1306,10 +1233,9 @@ class _MapExploreSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Badge
           Container(
             padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               color: WebStyles.brand.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(999),
@@ -1327,7 +1253,6 @@ class _MapExploreSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          // Title
           const Text(
             'Tìm sân\ngần bạn nhất',
             style: TextStyle(
@@ -1348,7 +1273,6 @@ class _MapExploreSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
-          // Stats row
           Row(
             children: [
               _MapStat('50+', 'Sân được đánh dấu'),
@@ -1359,7 +1283,6 @@ class _MapExploreSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 36),
-          // CTA buttons
           Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -1399,7 +1322,6 @@ class _MapExploreSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 48),
-          // Vertical court list (PlayGroundX style)
           const Text(
             'SÂN NỔI BẬT',
             style: TextStyle(
@@ -1427,7 +1349,7 @@ class _MapExploreSection extends StatelessWidget {
                 children: courts
                     .take(4)
                     .map((item) =>
-                        _VerticalCourtItem(item: item, onOpenMap: onOpenMap))
+                    _VerticalCourtItem(item: item, onOpenMap: onOpenMap))
                     .toList(),
               );
             },
@@ -1438,81 +1360,90 @@ class _MapExploreSection extends StatelessWidget {
   }
 
   Widget _buildMapPanel() {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // Map satellite image background
-        Image.network(
-          'https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=900&q=70',
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(color: WebStyles.dark800),
-        ),
-        // Dark overlay
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                WebStyles.dark900.withValues(alpha: 0.7),
-                WebStyles.dark900.withValues(alpha: 0.1),
-              ],
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onOpenMap,
+        behavior: HitTestBehavior.opaque,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Map satellite image background
+            Image.network(
+              'https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=900&q=70',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(color: WebStyles.dark800),
             ),
-          ),
-        ),
-        // Floating pin cards
-        Positioned(
-          top: 80,
-          right: 40,
-          child: _MapPinCard(
-              '⭐ 4.8', 'Mỹ Đình Indoor', '90k/giờ', WebStyles.brand),
-        ),
-        Positioned(
-          top: 200,
-          right: 120,
-          child: _MapPinCard(
-              '⭐ 4.6', 'Quốc Việt Cầu Lông', '70k/giờ', Colors.blue),
-        ),
-        Positioned(
-          bottom: 120,
-          right: 60,
-          child: _MapPinCard(
-              '⭐ 4.5', 'Sân Đại học BK', '60k/giờ', const Color(0xFF8B5CF6)),
-        ),
-        // Open map overlay button
-        Positioned(
-          bottom: 32,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2)),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.touch_app_rounded,
-                      color: Colors.white, size: 16),
-                  SizedBox(width: 8),
-                  Text(
-                    'Nhấn để mở bản đồ tương tác',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600),
+            // Dark overlay (FIX: Wrapped in IgnorePointer to allow clicks to pass through)
+            IgnorePointer(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      WebStyles.dark900.withValues(alpha: 0.7),
+                      WebStyles.dark900.withValues(alpha: 0.1),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
+            // Floating pin cards (These will now be clickable as part of the GestureDetector)
+            Positioned(
+              top: 80,
+              right: 40,
+              child: _MapPinCard(
+                  '⭐ 4.8', 'Mỹ Đình Indoor', '90k/giờ', WebStyles.brand),
+            ),
+            Positioned(
+              top: 200,
+              right: 120,
+              child: _MapPinCard(
+                  '⭐ 4.6', 'Quốc Việt Cầu Lông', '70k/giờ', Colors.blue),
+            ),
+            Positioned(
+              bottom: 120,
+              right: 60,
+              child: _MapPinCard(
+                  '⭐ 4.5', 'Sân Đại học BK', '60k/giờ', const Color(0xFF8B5CF6)),
+            ),
+            // Open map overlay button
+            Positioned(
+              bottom: 32,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.touch_app_rounded,
+                          color: Colors.white, size: 16),
+                      SizedBox(width: 8),
+                      Text(
+                        'Nhấn để mở bản đồ tương tác',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -1592,7 +1523,6 @@ class _VerticalCourtItemState extends State<_VerticalCourtItem> {
           ),
           child: Row(
             children: [
-              // Thumbnail
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
@@ -1610,7 +1540,6 @@ class _VerticalCourtItemState extends State<_VerticalCourtItem> {
                 ),
               ),
               const SizedBox(width: 14),
-              // Info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1640,7 +1569,6 @@ class _VerticalCourtItemState extends State<_VerticalCourtItem> {
                 ),
               ),
               const SizedBox(width: 10),
-              // Price + pin icon
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -1766,7 +1694,7 @@ class _EmptyState extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child:
-                Icon(icon, size: 36, color: WebStyles.brand.withValues(alpha: 0.4)),
+            Icon(icon, size: 36, color: WebStyles.brand.withValues(alpha: 0.4)),
           ),
           const SizedBox(height: 18),
           Text(msg,
