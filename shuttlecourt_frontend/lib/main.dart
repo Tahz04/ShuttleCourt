@@ -22,13 +22,16 @@ import 'package:shuttlecourt/web/web_search_page.dart';
 import 'package:shuttlecourt/web/web_map_page.dart';
 import 'package:shuttlecourt/web/web_matchmaking_page.dart';
 import 'package:shuttlecourt/web/web_profile_page.dart';
-import 'package:shuttlecourt/web/web_booking_history_page.dart';
-import 'package:shuttlecourt/web/web_owner_dashboard_page.dart';
 import 'package:shuttlecourt/web/web_shop_page.dart';
+import 'package:intl/date_symbol_data_local.dart'; // thêm ở đầu file cùng các import khác
 
-void main() {
+Future<void> main() async {
   debugPrint('--- APP STARTING ---');
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Khởi tạo dữ liệu locale (ví dụ 'vi' cho tiếng Việt).
+  // Nếu bạn dùng nhiều locale, có thể gọi nhiều lần cho các locale cần thiết.
+  await initializeDateFormatting('vi');
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -346,6 +349,42 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _handleRegisterClick(AuthService auth) {
+    if (auth.isAuthenticated) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Thông báo'),
+          content: const Text('Bạn đã có tài khoản bạn có muốn tiếp tục đăng kí?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                widget.onTabChange?.call(1, query: '__focus__');
+              },
+              child: const Text('Tìm sân ngay'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                );
+              },
+              child: const Text('Tiếp tục'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const RegisterScreen()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
@@ -571,10 +610,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Đăng kí ngay',
                   'Tham gia ngay',
                   AppTheme.primaryGradient,
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                  ),
+                  () => _handleRegisterClick(auth),
                 ),
                 _FeatureCard(
                   Icons.shopping_bag_rounded,

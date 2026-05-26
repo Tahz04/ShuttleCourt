@@ -107,11 +107,11 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             name: json['name'] ?? 'Sân Cầu Lông',
             address: json['address'] ?? 'Đang cập nhật địa chỉ',
             latitude:
-                double.tryParse(json['latitude']?.toString() ?? '0') ?? 0.0,
+            double.tryParse(json['latitude']?.toString() ?? '0') ?? 0.0,
             longitude:
-                double.tryParse(json['longitude']?.toString() ?? '0') ?? 0.0,
+            double.tryParse(json['longitude']?.toString() ?? '0') ?? 0.0,
             pricePerHour:
-                double.tryParse(json['price_per_hour']?.toString() ?? '0') ??
+            double.tryParse(json['price_per_hour']?.toString() ?? '0') ??
                 0.0,
             phone: json['phone'] ?? 'Liên hệ qua App',
             rating: json['rating']?.toDouble() ?? 4.5,
@@ -180,7 +180,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             .where((c) => c.distanceTo(userLat!, userLng!) <= 10)
             .toList();
         filteredCourts.sort(
-          (a, b) => a
+              (a, b) => a
               .distanceTo(userLat!, userLng!)
               .compareTo(b.distanceTo(userLat!, userLng!)),
         );
@@ -195,9 +195,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       filteredCourts = allCourtsFromDB
           .where(
             (court) =>
-                court.name.toLowerCase().contains(query.toLowerCase()) ||
-                court.address.toLowerCase().contains(query.toLowerCase()),
-          )
+        court.name.toLowerCase().contains(query.toLowerCase()) ||
+            court.address.toLowerCase().contains(query.toLowerCase()),
+      )
           .toList();
     });
 
@@ -234,588 +234,337 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     return Scaffold(
       backgroundColor: AppTheme.scaffoldDark,
       body: MouseRegion(
-      cursor: _isPickingLocation ? SystemMouseCursors.precise : MouseCursor.defer,
-      child: Stack(
-        children: [
-          // Map
-          FlutterMap(
-            mapController: mapController,
-            options: MapOptions(
-              initialCenter: userLat != null
-                  ? LatLng(userLat!, userLng!)
-                  : defaultCenter,
-              initialZoom: 13,
-              onTap: (_, latlng) {
-                if (_isPickingLocation) {
-                  setState(() {
-                    userLat = latlng.latitude;
-                    userLng = latlng.longitude;
-                    _isPickingLocation = false;
-                    routePoints = [];
-                    routeDistanceKm = null;
-                    routeDurationMin = null;
-                  });
-                  _filterNearbyCourts();
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: const Row(children: [
-                      Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-                      SizedBox(width: 10),
-                      Expanded(child: Text('Đã đặt vị trí của bạn trên bản đồ')),
-                    ]),
-                    backgroundColor: AppTheme.success,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    duration: const Duration(seconds: 2),
-                  ));
-                } else if (routePoints.isNotEmpty) {
-                  _clearRoute();
-                }
-              },
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                userAgentPackageName: 'com.shuttlecourt.app',
+        cursor: _isPickingLocation ? SystemMouseCursors.precise : MouseCursor.defer,
+        child: Stack(
+          children: [
+            // Map
+            FlutterMap(
+              mapController: mapController,
+              options: MapOptions(
+                initialCenter: userLat != null
+                    ? LatLng(userLat!, userLng!)
+                    : defaultCenter,
+                initialZoom: 13,
+                onTap: (_, latlng) {
+                  if (_isPickingLocation) {
+                    setState(() {
+                      userLat = latlng.latitude;
+                      userLng = latlng.longitude;
+                      _isPickingLocation = false;
+                      routePoints = [];
+                      routeDistanceKm = null;
+                      routeDurationMin = null;
+                    });
+                    _filterNearbyCourts();
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: const Row(children: [
+                        Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                        SizedBox(width: 10),
+                        Expanded(child: Text('Đã đặt vị trí của bạn trên bản đồ')),
+                      ]),
+                      backgroundColor: AppTheme.success,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      duration: const Duration(seconds: 2),
+                    ));
+                  } else if (routePoints.isNotEmpty) {
+                    _clearRoute();
+                  }
+                },
               ),
-              // Route Polyline with border effect
-              if (routePoints.isNotEmpty) ...[
-                // Shadow/border polyline
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: routePoints,
-                      color: const Color(0xFF1565C0).withOpacity(0.3),
-                      strokeWidth: 10,
-                    ),
-                  ],
+              children: [
+                TileLayer(
+                  urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                  userAgentPackageName: 'com.shuttlecourt.app',
                 ),
-                // Main route polyline
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: routePoints,
-                      color: const Color(0xFF2196F3),
-                      strokeWidth: 5,
-                      borderColor: Colors.white,
-                      borderStrokeWidth: 1.5,
-                    ),
-                  ],
-                ),
-              ],
-              // Markers
-              MarkerLayer(
-                markers: [
-                  // User location marker with pulse animation
-                  if (userLat != null && userLng != null)
-                    Marker(
-                      point: LatLng(userLat!, userLng!),
-                      width: 60,
-                      height: 60,
-                      child: AnimatedBuilder(
-                        animation: _pulseAnimation,
-                        builder: (context, child) {
-                          return Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              // Outer pulse ring
-                              Container(
-                                width: 60 * _pulseAnimation.value,
-                                height: 60 * _pulseAnimation.value,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(
-                                    0xFF2196F3,
-                                  ).withOpacity(0.15),
-                                ),
-                              ),
-                              // Middle ring
-                              Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(
-                                    0xFF2196F3,
-                                  ).withOpacity(0.2),
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2,
+                // Route Polyline with border effect
+                if (routePoints.isNotEmpty) ...[
+                  // Shadow/border polyline
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: routePoints,
+                        color: const Color(0xFF1565C0).withOpacity(0.3),
+                        strokeWidth: 10,
+                      ),
+                    ],
+                  ),
+                  // Main route polyline
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: routePoints,
+                        color: const Color(0xFF2196F3),
+                        strokeWidth: 5,
+                        borderColor: Colors.white,
+                        borderStrokeWidth: 1.5,
+                      ),
+                    ],
+                  ),
+                ],
+                // Markers
+                MarkerLayer(
+                  markers: [
+                    // User location marker with pulse animation
+                    if (userLat != null && userLng != null)
+                      Marker(
+                        point: LatLng(userLat!, userLng!),
+                        width: 60,
+                        height: 60,
+                        child: AnimatedBuilder(
+                          animation: _pulseAnimation,
+                          builder: (context, child) {
+                            return Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // Outer pulse ring
+                                Container(
+                                  width: 60 * _pulseAnimation.value,
+                                  height: 60 * _pulseAnimation.value,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: const Color(
+                                      0xFF2196F3,
+                                    ).withOpacity(0.15),
                                   ),
                                 ),
-                              ),
-                              // Inner dot
-                              Container(
-                                width: 14,
-                                height: 14,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color(0xFF2196F3),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Color(0x552196F3),
-                                      blurRadius: 8,
-                                      spreadRadius: 2,
+                                // Middle ring
+                                Container(
+                                  width: 30,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: const Color(
+                                      0xFF2196F3,
+                                    ).withOpacity(0.2),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
                                     ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  // Route start marker
-                  if (routePoints.isNotEmpty && userLat != null)
-                    Marker(
-                      point: LatLng(userLat!, userLng!),
-                      width: 40,
-                      height: 50,
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2196F3),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x552196F3),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
+                                // Inner dot
+                                Container(
+                                  width: 14,
+                                  height: 14,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xFF2196F3),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Color(0x552196F3),
+                                        blurRadius: 8,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
-                            ),
-                            child: const Text(
-                              'Bạn',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  // Court markers (optimized for web with limit)
-                  ..._getVisibleCourts().map((court) {
-                    final isSelected = selectedCourt?.id == court.id;
-                    final isRouteTarget = routePoints.isNotEmpty && isSelected;
-                    return Marker(
-                      point: LatLng(court.latitude, court.longitude),
-                      width: isSelected ? 56 : 44,
-                      height: isSelected ? 64 : 52,
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() => selectedCourt = court);
-                          _moveToCourt(court);
-                          _showCourtDetails(context, court);
-                        },
+                    // Route start marker
+                    if (routePoints.isNotEmpty && userLat != null)
+                      Marker(
+                        point: LatLng(userLat!, userLng!),
+                        width: 40,
+                        height: 50,
                         child: Column(
-                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                gradient: court.status == 'maintenance'
-                                    ? const LinearGradient(
-                                        colors: [
-                                          Color(0xFFFF5252),
-                                          Color(0xFFD32F2F),
-                                        ],
-                                      )
-                                    : isRouteTarget
-                                    ? const LinearGradient(
-                                        colors: [
-                                          Color(0xFF1565C0),
-                                          Color(0xFF0D47A1),
-                                        ],
-                                      )
-                                    : isSelected
-                                    ? const LinearGradient(
-                                        colors: [
-                                          Color(0xFF00C853),
-                                          Color(0xFF009624),
-                                        ],
-                                      )
-                                    : LinearGradient(
-                                        colors: [
-                                          Colors.white,
-                                          Colors.grey.shade100,
-                                        ],
-                                      ),
-                                shape: BoxShape.circle,
-                                boxShadow: [
+                                color: const Color(0xFF2196F3),
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: const [
                                   BoxShadow(
-                                    color: isRouteTarget
-                                        ? const Color(0x55FF5252)
-                                        : isSelected
-                                        ? const Color(0x5500C853)
-                                        : const Color(0x33000000),
-                                    blurRadius: isSelected ? 12 : 6,
-                                    offset: const Offset(0, 3),
+                                    color: Color(0x552196F3),
+                                    blurRadius: 6,
+                                    offset: Offset(0, 2),
                                   ),
                                 ],
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: isSelected ? 2.5 : 2,
-                                ),
                               ),
-                            ),
-                            // Small triangle pointer
-                            CustomPaint(
-                              size: const Size(10, 6),
-                              painter: _TrianglePainter(
-                                color: isRouteTarget
-                                    ? const Color(0xFFD32F2F)
-                                    : isSelected
-                                    ? const Color(0xFF009624)
-                                    : Colors.white,
+                              child: const Text(
+                                'Bạn',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    );
-                  }),
-                ],
-              ),
-            ],
-          ),
-
-          // Top gradient overlay for status bar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: MediaQuery.of(context).padding.top + 60,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.4),
-                    Colors.black.withOpacity(0.1),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Search Bar
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 12,
-            left: 16,
-            right: 16,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 16),
-                  const Icon(
-                    Icons.search_rounded,
-                    color: AppTheme.primary,
-                    size: 22,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      onSubmitted: _search,
-                      style: const TextStyle(
-                        color: Color(0xFF1A1A1A),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Tìm sân cầu lông...',
-                        hintStyle: TextStyle(
-                          color: Colors.grey.shade400,
-                          fontSize: 14,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.tune_rounded,
-                      color: AppTheme.primary,
-                      size: 18,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // My Location FAB
-          Positioned(
-            right: 16,
-            bottom: 160,
-            child: Column(
-              children: [
-                // Pick location button (manual location setting)
-                _buildMapFab(
-                  icon: _isPickingLocation
-                      ? Icons.location_on_rounded
-                      : Icons.edit_location_alt_rounded,
-                  color: _isPickingLocation ? AppTheme.highlight : AppTheme.primary,
-                  onTap: () => setState(() => _isPickingLocation = !_isPickingLocation),
-                  tooltip: 'Đặt vị trí thủ công',
-                  marginBottom: 12,
-                ),
-                // Clear route button
-                if (routePoints.isNotEmpty)
-                  _buildMapFab(
-                    icon: Icons.close_rounded,
-                    color: AppTheme.error,
-                    onTap: _clearRoute,
-                    tooltip: 'Xóa đường đi',
-                    marginBottom: 12,
-                  ),
-                // My location button
-                _buildMapFab(
-                  icon: Icons.my_location_rounded,
-                  color: AppTheme.accent,
-                  onTap: () {
-                    if (userLat != null && userLng != null) {
-                      mapController.move(LatLng(userLat!, userLng!), 15);
-                    }
-                  },
-                  tooltip: 'Vị trí của tôi',
-                ),
-              ],
-            ),
-          ),
-
-          // Route Info Panel
-          if (routeDistanceKm != null && routeDurationMin != null)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 80,
-              left: 16,
-              right: 16,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, -1),
-                  end: Offset.zero,
-                ).animate(_routeInfoSlideAnimation),
-                child: FadeTransition(
-                  opacity: _routeInfoSlideAnimation,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF1565C0).withOpacity(0.3),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.directions_car_rounded,
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
+                    // Court markers (optimized for web with limit)
+                    ..._getVisibleCourts().map((court) {
+                      final isSelected = selectedCourt?.id == court.id;
+                      final isRouteTarget = routePoints.isNotEmpty && isSelected;
+                      return Marker(
+                        point: LatLng(court.latitude, court.longitude),
+                        width: isSelected ? 56 : 44,
+                        height: isSelected ? 64 : 52,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() => selectedCourt = court);
+                            _moveToCourt(court);
+                            _showCourtDetails(context, court);
+                          },
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                selectedCourt?.name ?? 'Điểm đến',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.8),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  gradient: court.status == 'maintenance'
+                                      ? const LinearGradient(
+                                    colors: [
+                                      Color(0xFFFF5252),
+                                      Color(0xFFD32F2F),
+                                    ],
+                                  )
+                                      : isRouteTarget
+                                      ? const LinearGradient(
+                                    colors: [
+                                      Color(0xFF1565C0),
+                                      Color(0xFF0D47A1),
+                                    ],
+                                  )
+                                      : isSelected
+                                      ? const LinearGradient(
+                                    colors: [
+                                      Color(0xFF00C853),
+                                      Color(0xFF009624),
+                                    ],
+                                  )
+                                      : LinearGradient(
+                                    colors: [
+                                      Colors.white,
+                                      Colors.grey.shade100,
+                                    ],
+                                  ),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: isRouteTarget
+                                          ? const Color(0x55FF5252)
+                                          : isSelected
+                                          ? const Color(0x5500C853)
+                                          : const Color(0x33000000),
+                                      blurRadius: isSelected ? 12 : 6,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: isSelected ? 2.5 : 2,
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  _buildRouteInfoChip(
-                                    Icons.straighten_rounded,
-                                    '${routeDistanceKm!.toStringAsFixed(1)} km',
-                                  ),
-                                  const SizedBox(width: 12),
-                                  _buildRouteInfoChip(
-                                    Icons.access_time_rounded,
-                                    '~$routeDurationMin phút',
-                                  ),
-                                ],
+                              // Small triangle pointer
+                              CustomPaint(
+                                size: const Size(10, 6),
+                                painter: _TrianglePainter(
+                                  color: isRouteTarget
+                                      ? const Color(0xFFD32F2F)
+                                      : isSelected
+                                      ? const Color(0xFF009624)
+                                      : Colors.white,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        GestureDetector(
-                          onTap: _clearRoute,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.close_rounded,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    }),
+                  ],
+                ),
+              ],
+            ),
+
+            // Top gradient overlay for status bar
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: MediaQuery.of(context).padding.top + 60,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.4),
+                      Colors.black.withOpacity(0.1),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
               ),
             ),
 
-          // Loading route indicator
-          if (isLoadingRoute)
+            // Search Bar
             Positioned(
-              top: MediaQuery.of(context).padding.top + 80,
+              top: MediaQuery.of(context).padding.top + 12,
               left: 16,
               right: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 20,
-                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Color(0xFF2196F3),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Text(
-                      'Đang tìm đường đi...',
-                      style: TextStyle(
-                        color: Color(0xFF1A1A1A),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          // Manual location picking mode banner
-          if (_isPickingLocation)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 80,
-              left: 16,
-              right: 16,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.highlight, Color(0xFFD68A5E)],
-                  ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.highlight.withOpacity(0.35),
-                      blurRadius: 16,
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 20,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Row(
                   children: [
+                    const SizedBox(width: 16),
+                    const Icon(
+                      Icons.search_rounded,
+                      color: AppTheme.primary,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        onSubmitted: _search,
+                        style: const TextStyle(
+                          color: Color(0xFF1A1A1A),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Tìm sân cầu lông...',
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 14,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                          ),
+                        ),
+                      ),
+                    ),
                     Container(
+                      margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: AppTheme.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.touch_app_rounded, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Chế độ chọn vị trí thủ công',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Nhấn vào bản đồ để đặt vị trí của bạn',
-                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => _isPickingLocation = false),
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                      child: const Icon(
+                        Icons.tune_rounded,
+                        color: AppTheme.primary,
+                        size: 18,
                       ),
                     ),
                   ],
@@ -823,130 +572,392 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               ),
             ),
 
-          // Bottom Court List
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withOpacity(0),
-                    Colors.white.withOpacity(0.8),
-                    Colors.white,
-                  ],
-                  stops: const [0, 0.3, 0.6],
+            // My Location FAB
+            Positioned(
+              right: 16,
+              bottom: 160,
+              child: Column(
+                children: [
+                  // Pick location button (manual location setting)
+                  _buildMapFab(
+                    icon: _isPickingLocation
+                        ? Icons.location_on_rounded
+                        : Icons.edit_location_alt_rounded,
+                    color: _isPickingLocation ? AppTheme.highlight : AppTheme.primary,
+                    onTap: () => setState(() => _isPickingLocation = !_isPickingLocation),
+                    tooltip: 'Đặt vị trí thủ công',
+                    marginBottom: 12,
+                  ),
+                  // Clear route button
+                  if (routePoints.isNotEmpty)
+                    _buildMapFab(
+                      icon: Icons.close_rounded,
+                      color: AppTheme.error,
+                      onTap: _clearRoute,
+                      tooltip: 'Xóa đường đi',
+                      marginBottom: 12,
+                    ),
+                  // My location button
+                  _buildMapFab(
+                    icon: Icons.my_location_rounded,
+                    color: AppTheme.accent,
+                    onTap: () {
+                      if (userLat != null && userLng != null) {
+                        mapController.move(LatLng(userLat!, userLng!), 15);
+                      }
+                    },
+                    tooltip: 'Vị trí của tôi',
+                  ),
+                ],
+              ),
+            ),
+
+            // Route Info Panel
+            if (routeDistanceKm != null && routeDurationMin != null)
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 80,
+                left: 16,
+                right: 16,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, -1),
+                    end: Offset.zero,
+                  ).animate(_routeInfoSlideAnimation),
+                  child: FadeTransition(
+                    opacity: _routeInfoSlideAnimation,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF1565C0).withOpacity(0.3),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.directions_car_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  selectedCourt?.name ?? 'Điểm đến',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.8),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    _buildRouteInfoChip(
+                                      Icons.straighten_rounded,
+                                      '${routeDistanceKm!.toStringAsFixed(1)} km',
+                                    ),
+                                    const SizedBox(width: 12),
+                                    _buildRouteInfoChip(
+                                      Icons.access_time_rounded,
+                                      '~$routeDurationMin phút',
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: _clearRoute,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              padding: const EdgeInsets.only(top: 20, bottom: 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isLoading)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20),
+
+            // Loading route indicator
+            if (isLoadingRoute)
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 80,
+                left: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
                         child: CircularProgressIndicator(
-                          color: AppTheme.primary,
-                          strokeWidth: 2.5,
+                          strokeWidth: 2,
+                          color: Color(0xFF2196F3),
                         ),
                       ),
-                    )
-                  else if (filteredCourts.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(left: 20, bottom: 10),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
+                      SizedBox(width: 12),
+                      Text(
+                        'Đang tìm đường đi...',
+                        style: TextStyle(
+                          color: Color(0xFF1A1A1A),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Manual location picking mode banner
+            if (_isPickingLocation)
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 80,
+                left: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [AppTheme.highlight, Color(0xFFD68A5E)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.highlight.withOpacity(0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Row(
+                        child: const Icon(Icons.touch_app_rounded, color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
-                              Icons.sports_tennis,
-                              color: AppTheme.primary,
-                              size: 14,
-                            ),
-                            const SizedBox(width: 6),
                             Text(
-                              kIsWeb && filteredCourts.length > 20
-                                  ? '${_getVisibleCourts().length}/${filteredCourts.length} sân hiển thị'
-                                  : '${filteredCourts.length} sân gần bạn',
-                              style: const TextStyle(
-                                color: AppTheme.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              'Chế độ chọn vị trí thủ công',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Nhấn vào bản đồ để đặt vị trí của bạn',
+                              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
                       ),
+                      GestureDetector(
+                        onTap: () => setState(() => _isPickingLocation = false),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Bottom Court List
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Fix: Gradient background that doesn't block map clicks
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.white.withOpacity(0),
+                              Colors.white.withOpacity(0.9),
+                              Colors.white,
+                            ],
+                            stops: const [0, 0.25, 0.5],
+                          ),
+                        ),
+                      ),
                     ),
-                    SizedBox(
-                      height: 110,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: _getVisibleCourts().length,
-                        itemBuilder: (context, index) {
-                          final court = _getVisibleCourts()[index];
-                          final isSelected = selectedCourt?.id == court.id;
-                          final distance = userLat != null
-                              ? court
-                                    .distanceTo(userLat!, userLng!)
-                                    .toStringAsFixed(1)
-                              : null;
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() => selectedCourt = court);
-                              _moveToCourt(court);
-                              _showCourtDetails(context, court);
-                            },
-                            child: AnimatedContainer(
-                              duration: kIsWeb
-                                  ? Duration.zero
-                                  : const Duration(milliseconds: 200),
-                              width: 240,
-                              margin: const EdgeInsets.only(right: 12),
-                              padding: const EdgeInsets.all(14),
+                  ),
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20, bottom: 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (isLoading)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(
+                                color: AppTheme.primary,
+                                strokeWidth: 2.5,
+                              ),
+                            ),
+                          )
+                        else if (filteredCourts.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(left: 20, bottom: 10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? AppTheme.primary
-                                      : Colors.grey.shade200,
-                                  width: isSelected ? 2 : 1,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: isSelected
-                                        ? AppTheme.primary.withOpacity(0.15)
-                                        : Colors.black.withOpacity(0.06),
-                                    blurRadius: isSelected ? 16 : 10,
-                                    offset: const Offset(0, 4),
+                                color: AppTheme.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.sports_tennis,
+                                    color: AppTheme.primary,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    kIsWeb && filteredCourts.length > 20
+                                        ? '${_getVisibleCourts().length}/${filteredCourts.length} sân hiển thị'
+                                        : '${filteredCourts.length} sân gần bạn',
+                                    style: const TextStyle(
+                                      color: AppTheme.primary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ],
                               ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 48,
-                                    height: 48,
+                            ),
+                          ),
+                          SizedBox(
+                            height: 110,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: _getVisibleCourts().length,
+                              itemBuilder: (context, index) {
+                                final court = _getVisibleCourts()[index];
+                                final isSelected = selectedCourt?.id == court.id;
+                                final distance = userLat != null
+                                    ? court
+                                    .distanceTo(userLat!, userLng!)
+                                    .toStringAsFixed(1)
+                                    : null;
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() => selectedCourt = court);
+                                    _moveToCourt(court);
+                                    _showCourtDetails(context, court);
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: kIsWeb
+                                        ? Duration.zero
+                                        : const Duration(milliseconds: 200),
+                                    width: 240,
+                                    margin: const EdgeInsets.only(right: 12),
+                                    padding: const EdgeInsets.all(14),
                                     decoration: BoxDecoration(
-                                      gradient: isSelected
-                                          ? AppTheme.primaryGradient
-                                          : LinearGradient(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? AppTheme.primary
+                                            : Colors.grey.shade200,
+                                        width: isSelected ? 2 : 1,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: isSelected
+                                              ? AppTheme.primary.withOpacity(0.15)
+                                              : Colors.black.withOpacity(0.06),
+                                          blurRadius: isSelected ? 16 : 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 48,
+                                          height: 48,
+                                          decoration: BoxDecoration(
+                                            gradient: isSelected
+                                                ? AppTheme.primaryGradient
+                                                : LinearGradient(
                                               colors: [
                                                 AppTheme.primary.withOpacity(
                                                   0.1,
@@ -956,114 +967,116 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                                                 ),
                                               ],
                                             ),
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Icon(
-                                      Icons.sports_tennis,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : AppTheme.primary,
-                                      size: 22,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          court.name,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 13,
-                                            color: isSelected
-                                                ? AppTheme.primary
-                                                : const Color(0xFF1A1A1A),
+                                            borderRadius: BorderRadius.circular(14),
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                          child: Icon(
+                                            Icons.sports_tennis,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : AppTheme.primary,
+                                            size: 22,
+                                          ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.star_rounded,
-                                              color: Color(0xFFFFB300),
-                                              size: 14,
-                                            ),
-                                            const SizedBox(width: 3),
-                                            Text(
-                                              '${court.rating}',
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Color(0xFF666666),
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '(${court.reviews})',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: Colors.grey.shade400,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        if (distance != null) ...[
-                                          const SizedBox(height: 4),
-                                          Row(
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                             children: [
-                                              Icon(
-                                                Icons.near_me_rounded,
-                                                size: 12,
-                                                color: AppTheme.accent
-                                                    .withOpacity(0.7),
-                                              ),
-                                              const SizedBox(width: 4),
                                               Text(
-                                                '${distance}km',
+                                                court.name,
                                                 style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: AppTheme.accent
-                                                      .withOpacity(0.8),
-                                                  fontWeight: FontWeight.w600,
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 13,
+                                                  color: isSelected
+                                                      ? AppTheme.primary
+                                                      : const Color(0xFF1A1A1A),
                                                 ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                              const Spacer(),
-                                              Text(
-                                                '${(court.pricePerHour / 1000).toStringAsFixed(0)}k/h',
-                                                style: const TextStyle(
-                                                  color: AppTheme.primary,
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 12,
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.star_rounded,
+                                                    color: Color(0xFFFFB300),
+                                                    size: 14,
+                                                  ),
+                                                  const SizedBox(width: 3),
+                                                  Text(
+                                                    '${court.rating}',
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: Color(0xFF666666),
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '(${court.reviews})',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.grey.shade400,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              if (distance != null) ...[
+                                                const SizedBox(height: 4),
+                                                Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.near_me_rounded,
+                                                      size: 12,
+                                                      color: AppTheme.accent
+                                                          .withOpacity(0.7),
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      '${distance}km',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: AppTheme.accent
+                                                            .withOpacity(0.8),
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                    const Spacer(),
+                                                    Text(
+                                                      '${(court.pricePerHour / 1000).toStringAsFixed(0)}k/h',
+                                                      style: const TextStyle(
+                                                        color: AppTheme.primary,
+                                                        fontWeight: FontWeight.w800,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                              ),
+                                              ],
                                             ],
                                           ),
-                                        ],
+                                        ),
                                       ],
                                     ),
                                   ),
-                                ],
-                              ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
   }
 
   Widget _buildMapFab({
@@ -1613,11 +1626,11 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildInfoCard(
-    IconData icon,
-    String label,
-    String value,
-    Color color,
-  ) {
+      IconData icon,
+      String label,
+      String value,
+      Color color,
+      ) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
       decoration: BoxDecoration(
@@ -1769,7 +1782,6 @@ class _TrianglePainter extends CustomPainter {
       ..close();
     canvas.drawPath(path, paint);
   }
-
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -19,6 +19,7 @@ class WebSearchPage extends StatefulWidget {
 class _WebSearchPageState extends State<WebSearchPage> {
   late Future<List<CourtWithDistance>> _future;
   final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
 
   double _maxPrice = 300000;
   double _minRating = 0;
@@ -46,6 +47,12 @@ class _WebSearchPageState extends State<WebSearchPage> {
   }
 
   void _applyInitialQuery(String q) {
+    if (q == '__focus__') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) FocusScope.of(context).requestFocus(_searchFocus);
+      });
+      return;
+    }
     if (q == 'Tìm sân gần tôi') { _sortBy = 'distance'; }
     else if (q == 'Giá dưới 100k/h') { _maxPrice = 100000; }
     else if (q == 'Sân có đèn LED') { _selectedAmenities = ['Đèn LED']; }
@@ -56,6 +63,7 @@ class _WebSearchPageState extends State<WebSearchPage> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -193,6 +201,7 @@ class _WebSearchPageState extends State<WebSearchPage> {
                             Expanded(
                               child: TextField(
                                 controller: _searchCtrl,
+                                focusNode: _searchFocus,
                                 onChanged: (_) => setState(() {}),
                                 onSubmitted: (_) => setState(() {}),
                                 decoration: InputDecoration(
@@ -520,15 +529,16 @@ class _FilterPanel extends StatelessWidget {
             ],
           ),
         ),
-        // Rating
+        // Rating - FIX: Thay Row bằng Wrap để tránh lỗi vỡ giao diện (Overflow)
         _FilterSection(
           label: 'Đánh giá tối thiểu',
-          child: Row(
+          child: Wrap(
+            spacing: 4,
+            runSpacing: 8,
             children: [1, 2, 3, 4, 5]
                 .map((r) => GestureDetector(
                       onTap: () => onMinRatingChanged(r.toDouble()),
                       child: Container(
-                        margin: const EdgeInsets.only(right: 6),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
@@ -546,15 +556,15 @@ class _FilterPanel extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.star_rounded,
-                                size: 13,
+                                size: 12,
                                 color: minRating >= r
                                     ? Colors.white
                                     : const Color(0xFFFBBF24)),
-                            const SizedBox(width: 3),
+                            const SizedBox(width: 2),
                             Text(
                               '$r+',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 color: minRating >= r
                                     ? Colors.white
