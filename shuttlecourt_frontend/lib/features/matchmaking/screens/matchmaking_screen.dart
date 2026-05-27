@@ -205,91 +205,103 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> with TickerProvid
     final bool isPro = match.level == 'Pro' || match.level == 'Khá';
     final String dateStr = DateFormat('dd/MM').format(match.matchDate);
     final String timeStr = match.startTime.substring(0, 5);
+    final bool isLocked = match.joinedCount >= match.capacity;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
-        boxShadow: AppTheme.cardShadow,
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: (isPro ? AppTheme.warning : AppTheme.success).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+    return Opacity(
+      opacity: isLocked ? 0.6 : 1.0,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+          boxShadow: isLocked ? [] : AppTheme.cardShadow,
+          border: isLocked ? Border.all(color: Colors.grey.shade300, width: 1.5) : null,
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isLocked 
+                              ? Colors.grey.shade200 
+                              : (isPro ? AppTheme.warning : AppTheme.success).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          isLocked ? 'ĐÃ CHỐT SỔ' : match.level.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10, 
+                            fontWeight: FontWeight.w900, 
+                            color: isLocked ? Colors.grey.shade600 : (isPro ? AppTheme.warning : AppTheme.success),
+                          ),
+                        ),
                       ),
-                      child: Text(
-                        match.level.toUpperCase(),
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isPro ? AppTheme.warning : AppTheme.success),
+                      Text(
+                        '${NumberFormat('#,###').format(match.price)}đ',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isLocked ? Colors.grey : AppTheme.primary),
                       ),
-                    ),
-                    Text(
-                      '${NumberFormat('#,###').format(match.price)}đ',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppTheme.primary),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  match.courtName,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textPrimary),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Icon(Icons.access_time_filled_rounded, size: 14, color: AppTheme.accent),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$dateStr lúc $timeStr',
-                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
-                    ),
-                    const Spacer(),
-                    Text(
-                      'Đã có ${match.joinedCount}/${match.capacity}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            decoration: BoxDecoration(
-              color: AppTheme.scaffoldLight.withValues(alpha: 0.5),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppTheme.radiusXl)),
-              border: Border(top: BorderSide(color: Colors.grey.shade100)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.person_pin_rounded, size: 20, color: AppTheme.accent),
-                const SizedBox(width: 10),
-                Text('Host: ${match.hostName}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                const Spacer(),
-                ElevatedButton(
-                  onPressed: () => _handleJoinMatch(match),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    backgroundColor: AppTheme.accent,
-                    minimumSize: Size.zero,
+                    ],
                   ),
-                  child: const Text('Tham gia', style: TextStyle(fontSize: 12)),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Text(
+                    match.courtName,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: isLocked ? Colors.grey.shade600 : AppTheme.textPrimary),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.access_time_filled_rounded, size: 14, color: isLocked ? Colors.grey : AppTheme.accent),
+                      const SizedBox(width: 6),
+                      Text(
+                        '$dateStr lúc $timeStr',
+                        style: TextStyle(fontSize: 12, color: isLocked ? Colors.grey : AppTheme.textSecondary, fontWeight: FontWeight.w600),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'Đã có ${match.joinedCount}/${match.capacity}',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isLocked ? AppTheme.error : AppTheme.textMuted),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: BoxDecoration(
+                color: isLocked ? Colors.grey.shade100 : AppTheme.scaffoldLight.withValues(alpha: 0.5),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppTheme.radiusXl)),
+                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.person_pin_rounded, size: 20, color: isLocked ? Colors.grey : AppTheme.accent),
+                  const SizedBox(width: 10),
+                  Text('Host: ${match.hostName}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isLocked ? Colors.grey : null)),
+                  const Spacer(),
+                  ElevatedButton(
+                    onPressed: isLocked ? null : () => _handleJoinMatch(match),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      backgroundColor: isLocked ? Colors.grey : AppTheme.accent,
+                      foregroundColor: Colors.white,
+                      minimumSize: Size.zero,
+                    ),
+                    child: Text(isLocked ? 'Đã đầy' : 'Tham gia', style: const TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

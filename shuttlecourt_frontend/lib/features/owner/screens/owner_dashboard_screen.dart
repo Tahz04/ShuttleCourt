@@ -53,7 +53,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     try {
       final results = await Future.wait([
         NotificationService.getNotifications(auth.user!.id.toString()),
-        ApiBookingService.getAllBookings(),
+        ApiBookingService.getOwnerBookings(int.parse(auth.user!.id)),
         ShopService.getOrders(),
       ]);
 
@@ -73,7 +73,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               .fold(0.0, (sum, b) => sum + b.price);
           
           double sRev = shopOrders
-              .where((o) => o['status'] == 'completed' || o['status'] == 'Đã giao')
+              .where((o) => o['status'] == 'Đã duyệt' || o['status'] == 'Đã giao')
               .fold(0.0, (sum, o) => sum + (double.tryParse(o['total_price'].toString()) ?? 0.0));
 
           _monthlyRevenue = bRev + sRev;

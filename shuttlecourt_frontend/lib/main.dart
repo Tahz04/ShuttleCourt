@@ -11,6 +11,7 @@ import 'package:shuttlecourt/auth/profile_screen.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/features/owner/screens/owner_dashboard_screen.dart';
 import 'package:shuttlecourt/features/shop/screens/shop_screen.dart';
+import 'package:shuttlecourt/features/admin/screens/admin_dashboard_screen.dart';
 import 'package:shuttlecourt/features/booking/screens/booking_history_screen.dart';
 import 'package:shuttlecourt/services/notification_service.dart';
 import 'package:shuttlecourt/features/notifications/notification_screen.dart';
@@ -567,13 +568,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 _FeatureCard(
-                  Icons.person_add_rounded,
-                  'Đăng kí ngay',
-                  'Tham gia ngay',
+                  Icons.sports_tennis_rounded,
+                  'Đặt sân ngay',
+                  'Tìm sân phù hợp',
                   AppTheme.primaryGradient,
                   () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                    MaterialPageRoute(builder: (_) => const BookingScreen()),
                   ),
                 ),
                 _FeatureCard(
@@ -587,16 +588,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 _FeatureCard(
-                  auth.user?.role == 'owner'
-                      ? Icons.inventory_2_rounded
-                      : Icons.star_rate_rounded,
-                  auth.user?.role == 'owner' ? 'Quản lý sân' : 'Đánh giá sân',
-                  auth.user?.role == 'owner'
-                      ? 'Bảng điều khiển'
-                      : 'Lịch sử đánh giá',
+                  auth.user?.role == 'admin' 
+                      ? Icons.admin_panel_settings_rounded
+                      : auth.user?.role == 'owner'
+                          ? Icons.inventory_2_rounded
+                          : Icons.star_rate_rounded,
+                  auth.user?.role == 'admin' 
+                      ? 'Quản trị hệ thống'
+                      : auth.user?.role == 'owner' ? 'Quản lý sân' : 'Đánh giá sân',
+                  auth.user?.role == 'admin'
+                      ? 'Duyệt chủ sân & QL'
+                      : auth.user?.role == 'owner'
+                          ? 'Bảng điều khiển'
+                          : 'Lịch sử đánh giá',
                   AppTheme.primaryGradient,
                   () {
-                    if (auth.user?.role == 'owner') {
+                    if (auth.user?.role == 'admin') {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
+                    } else if (auth.user?.role == 'owner') {
                       Navigator.push(
                         context,
                         MaterialPageRoute(

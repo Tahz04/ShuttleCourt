@@ -6,7 +6,8 @@ import 'package:intl/intl.dart';
 import 'dart:convert';
 
 class OwnerShopManagementScreen extends StatefulWidget {
-  const OwnerShopManagementScreen({super.key});
+  final bool isAdmin;
+  const OwnerShopManagementScreen({super.key, this.isAdmin = false});
 
   @override
   State<OwnerShopManagementScreen> createState() => _OwnerShopManagementScreenState();
@@ -39,8 +40,12 @@ class _OwnerShopManagementScreenState extends State<OwnerShopManagementScreen> {
       appBar: AppBar(
         title: const Text('QUẢN LÝ SẢN PHẨM', style: TextStyle(fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: widget.isAdmin ? null : FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const AddProductScreen()));
         },

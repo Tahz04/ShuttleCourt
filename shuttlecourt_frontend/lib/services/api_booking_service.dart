@@ -25,11 +25,46 @@ class ApiBookingService {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Create booking failed: ${response.body}');
+        try {
+          final body = jsonDecode(response.body);
+          throw Exception(body['message'] ?? 'Lỗi không xác định');
+        } catch (e) {
+          throw Exception(response.body);
+        }
       }
 
     } catch (e) {
       throw Exception('Network error: $e');
+    }
+  }
+
+  // ================= GET BOOKED SLOTS =================
+  static Future<List<String>> getBookedSlots(String courtName, DateTime date) async {
+    try {
+      final dateStr = date.toIso8601String().split('T')[0];
+      final res = await http.get(Uri.parse('$baseUrl/booked-slots?court_name=${Uri.encodeComponent(courtName)}&booking_date=$dateStr'));
+      if (res.statusCode == 200) {
+        List<dynamic> data = jsonDecode(res.body);
+        return data.map((e) => e.toString()).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error getting booked slots: $e');
+      return [];
+    }
+  }
+
+  static Future<bool> cancelBooking(String bookingId, int userId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/$bookingId/cancel'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'user_id': userId}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error canceling booking: $e');
+      return false;
     }
   }
 
@@ -60,6 +95,21 @@ class ApiBookingService {
       throw Exception('Network error: $e');
     }
   }
+
+  // ================= OWNER: GET BOOKINGS FOR OWNED COURTS =================
+  static Future<List<Booking>> getOwnerBookings(int ownerId) async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/owner/$ownerId'));
+      if (res.statusCode == 200) {
+        List body = jsonDecode(res.body);
+        return body.map((json) => Booking.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
 
   // ================= OWNER: UPDATE STATUS =================
   static Future<bool> updateBookingStatus(String bookingId, String status) async {

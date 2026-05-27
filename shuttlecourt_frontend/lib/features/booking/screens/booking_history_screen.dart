@@ -106,7 +106,29 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
   }
 
   Widget _buildBookingCard(Booking b) {
-    bool isConfirmed = b.status == 'Đã duyệt' || b.status == 'Đã thanh toán';
+    bool isConfirmed = b.status == 'Đã duyệt' || b.status == 'Đã thanh toán' || b.status == 'Đã hoàn thành';
+    bool isCompleted = b.status == 'Đã hoàn thành';
+    
+    bool canCancel = (b.status == 'Chờ duyệt' || b.status == 'Đã duyệt');
+    bool isTooLateToCancel = false;
+    try {
+      final startTimeStr = b.slot.split(' - ')[0];
+      final timeParts = startTimeStr.split(':');
+      final startDateTime = DateTime(
+        b.date.year,
+        b.date.month,
+        b.date.day,
+        int.parse(timeParts[0]),
+        int.parse(timeParts[1]),
+      );
+      final now = DateTime.now();
+      if (startDateTime.difference(now).inHours < 12) {
+        isTooLateToCancel = true;
+      }
+    } catch (e) {
+      debugPrint('Error parsing time: $e');
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -147,7 +169,28 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
               Text('${b.price.toInt()}đ', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w900, fontSize: 15)),
             ],
           ),
-          if (isConfirmed) ...[
+          if (canCancel) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: OutlinedButton.icon(
+                onPressed: isTooLateToCancel ? null : () => _showCancelBookingDialog(b),
+                icon: const Icon(Icons.cancel_outlined, size: 16),
+                label: Text(
+                  isTooLateToCancel ? 'KHÔNG THỂ HỦY SÁT GIỜ' : 'HỦY LỊCH ĐẶT', 
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.5)
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.error,
+                  disabledForegroundColor: Colors.grey,
+                  side: BorderSide(color: isTooLateToCancel ? Colors.grey : AppTheme.error),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+          if (isCompleted) ...[
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -179,7 +222,43 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
     );
   }
 
+  Future<void> _showCancelBookingDialog(Booking b) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hủy Đặt Sân', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: const Text('Bạn có chắc chắn muốn hủy lịch đặt sân này không? Thao tác này không thể hoàn tác.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Không', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hủy Sân'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final success = await ApiBookingService.cancelBooking(b.id, int.parse(auth.user!.id));
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã hủy sân thành công!'), backgroundColor: AppTheme.success));
+        setState(() { _loadData(); });
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi khi hủy sân. Vui lòng thử lại sau.'), backgroundColor: AppTheme.error));
+      }
+    }
+  }
+
   Widget _buildMatchCard(MatchModel m) {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final bool isParticipant = auth.user != null && m.hostId.toString() != auth.user!.id;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -223,9 +302,62 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
               ),
             ],
           ),
+          if (isParticipant) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: OutlinedButton.icon(
+                onPressed: () => _showLeaveMatchDialog(m),
+                icon: const Icon(Icons.exit_to_app_rounded, size: 16),
+                label: const Text('RỜI KÈO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.error,
+                  side: const BorderSide(color: AppTheme.error),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _showLeaveMatchDialog(MatchModel m) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rời Kèo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: const Text('Bạn có chắc chắn muốn rời khỏi kèo này không? Hành động này không thể hoàn tác.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Rời Kèo'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final success = await MatchmakingService.leaveMatch(
+        userId: int.parse(auth.user!.id),
+        matchId: m.id,
+      );
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã rời kèo thành công!'), backgroundColor: AppTheme.success));
+        setState(() { _loadData(); });
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi khi rời kèo. Vui lòng thử lại.'), backgroundColor: AppTheme.error));
+      }
+    }
   }
 
   Widget _buildEmptyState() {
@@ -259,12 +391,13 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color color = AppTheme.primary;
-    if (status == 'Đã hủy') color = AppTheme.error;
+    if (status == 'Đã hủy' || status == 'Từ chối') color = AppTheme.error;
     if (status == 'Chờ duyệt') color = Colors.orangeAccent;
+    if (status == 'Đã hoàn thành') color = Colors.green;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-      child: Text(status, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800)),
+      child: Text(status.toUpperCase(), style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800)),
     );
   }
 }

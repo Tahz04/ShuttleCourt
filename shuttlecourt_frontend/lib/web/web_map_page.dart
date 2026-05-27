@@ -1,5 +1,4 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import 'package:shuttlecourt/services/location_service.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -131,13 +130,18 @@ class _WebMapPageState extends State<WebMapPage>
   // ── Geolocation ───────────────────────────────────────────────────────────────
 
   Future<void> _autoLocate() async {
-    if (!kIsWeb) return;
     setState(() => _isLocating = true);
     try {
-      final pos = await html.window.navigator.geolocation.getCurrentPosition();
+      final pos = await LocationService.getCurrentLocation();
       if (!mounted) return;
-      final lat = pos.coords!.latitude!.toDouble();
-      final lng = pos.coords!.longitude!.toDouble();
+      if (pos == null) {
+        setState(() => _isLocating = false);
+        _showSnack('Không thể lấy vị trí. Hãy nhập địa chỉ thủ công.',
+            isSuccess: false);
+        return;
+      }
+      final lat = pos.latitude;
+      final lng = pos.longitude;
       setState(() {
         _userLat = lat;
         _userLng = lng;
@@ -607,7 +611,7 @@ class _WebMapPageState extends State<WebMapPage>
             // Markers
             MarkerLayer(markers: [
               // User location
-              if (_userLat != null)
+              if (_userLat != null && _userLng != null)
                 Marker(
                   point: LatLng(_userLat!, _userLng!),
                   width: 60,

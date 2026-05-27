@@ -65,6 +65,26 @@ exports.getOrders = async (req, res) => {
   }
 };
 
+exports.getUserOrders = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const sql = `
+      SELECT o.*, 
+             GROUP_CONCAT(CONCAT(p.name, ' (x', oi.quantity, ')') SEPARATOR ', ') as items
+      FROM product_orders o
+      JOIN product_order_items oi ON o.id = oi.order_id
+      JOIN products p ON oi.product_id = p.id
+      WHERE o.user_id = ?
+      GROUP BY o.id
+      ORDER BY o.created_at DESC
+    `;
+    const [rows] = await db.query(sql, [userId]);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi server', error: err.message });
+  }
+};
+
 exports.updateOrderStatus = async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
@@ -128,15 +148,15 @@ exports.placeOrder = async (req, res) => {
       );
     }
 
-    // 4. THÊM THÔNG BÁO CHO CHỦ SÂN (OWNER)
-    const [owners] = await connection.query("SELECT id FROM users WHERE role = 'owner'");
-    for (const owner of owners) {
+    // 4. THÊM THÔNG BÁO CHO QUẢN TRỊ VIÊN (ADMIN) & CHỦ SÂN
+    const [admins] = await connection.query("SELECT id FROM users WHERE role IN ('admin', 'owner')");
+    for (const admin of admins) {
       await connection.query(
         "INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)",
         [
-          owner.id,
+          admin.id,
           "📦 Đơn hàng mới!",
-          `Bạn nhận được đơn hàng mới giá trị ${totalPrice.toLocaleString()}đ từ khách hàng.`,
+          `Hệ thống nhận được đơn hàng mới giá trị ${totalPrice.toLocaleString()}đ.`,
           "order"
         ]
       );

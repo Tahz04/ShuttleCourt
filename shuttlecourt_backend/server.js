@@ -71,14 +71,15 @@ app.use('/api/matchmaking', matchmakingRoutes);
 
 const productRoutes = require('./routes/productRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const ownerRequestRoutes = require('./routes/ownerRequestRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+
 app.use('/api/products', productRoutes);
 app.use('/api/notifications', notificationRoutes);
-
-const ownerRequestRoutes = require('./routes/ownerRequestRoutes');
 app.use('/api/owner-requests', ownerRequestRoutes);
-
-const reviewRoutes = require('./routes/reviewRoutes');
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/admin', adminRoutes);
 
 const PORT = 3000;
 app.listen(PORT, '0.0.0.0', () => {

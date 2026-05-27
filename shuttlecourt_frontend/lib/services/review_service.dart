@@ -94,6 +94,24 @@ class ReviewService {
     }
   }
 
+  static Future<List<Review>> getAllReviews() async {
+    try {
+      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/reviews/all'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          final List<dynamic> rawReviews = data['reviews'];
+          return rawReviews.map((json) => Review.fromJson(json)).toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      print('=== ReviewService: Error getting all reviews ===');
+      print(e);
+      return [];
+    }
+  }
+
   static Future<bool> replyToReview({
     required int reviewId,
     required String reply,

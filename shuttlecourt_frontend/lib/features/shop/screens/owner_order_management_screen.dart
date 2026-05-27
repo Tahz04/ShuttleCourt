@@ -60,6 +60,10 @@ class _OwnerOrderManagementScreenState extends State<OwnerOrderManagementScreen>
       backgroundColor: AppTheme.scaffoldLight,
       appBar: AppBar(
         title: const Text('QUẢN LÝ ĐƠN HÀNG', style: TextStyle(fontWeight: FontWeight.w900)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _loadOrders,

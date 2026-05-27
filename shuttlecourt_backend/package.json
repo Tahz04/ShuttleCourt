@@ -4,7 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node tests/run_all_tests.js",
+    "test:algorithm": "node tests/algorithm_test.js",
+    "test:api": "node tests/api_test.js",
+    "test:flow": "node tests/flow_test.js",
+    "test:security": "node tests/security_test.js",
+    "test:matchmaking": "node tests/matchmaking_flow_test.js",
+    "test:performance": "node tests/performance_test.js"
   },
   "keywords": [],
   "author": "",
@@ -17,7 +23,8 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.1.1",
-    "mysql2": "^3.20.0"
+    "mysql2": "^3.20.0",
+    "node-cache": "^5.1.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

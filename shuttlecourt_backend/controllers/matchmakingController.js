@@ -1,5 +1,20 @@
 const db = require('../config/database');
 
+async function ensureParticipantsTable(connection = db) {
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS matchmaking_participants (
+      id INT NOT NULL AUTO_INCREMENT,
+      match_id INT NOT NULL,
+      user_id INT NOT NULL,
+      joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY unique_match_user (match_id, user_id),
+      CONSTRAINT matchmaking_participants_match_fk FOREIGN KEY (match_id) REFERENCES matchmaking(id) ON DELETE CASCADE,
+      CONSTRAINT matchmaking_participants_user_fk FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+  `);
+}
+
 exports.createMatch = async (req, res) => {
   try {
     const { hostId, courtName, level, matchDate, startTime, capacity, price, description } = req.body;
@@ -40,6 +55,45 @@ exports.getAllMatches = async (req, res) => {
 };
 
 // User B yêu cầu tham gia kèo của User A
+exports.getUserMatches = async (req, res) => {
+  try {
+    await ensureParticipantsTable();
+    const { userId } = req.params;
+    const sql = `
+      SELECT DISTINCT m.*, u.full_name as host_name
+      FROM matchmaking m
+      JOIN users u ON m.host_id = u.id
+      LEFT JOIN matchmaking_participants mp ON mp.match_id = m.id
+      WHERE m.host_id = ? OR mp.user_id = ?
+      ORDER BY m.match_date DESC, m.start_time DESC
+    `;
+    const [result] = await db.query(sql, [userId, userId]);
+    res.status(200).json(result);
+  } catch (err) {
+    console.error('Error fetching user matches:', err);
+    res.status(500).json({ message: 'Failed to fetch user matches', error: err.message });
+  }
+};
+
+exports.getOwnerMatches = async (req, res) => {
+  try {
+    const { ownerId } = req.params;
+    const sql = `
+      SELECT DISTINCT m.*, u.full_name as host_name
+      FROM matchmaking m
+      JOIN users u ON m.host_id = u.id
+      JOIN courts c ON c.name = m.court_name
+      WHERE c.owner_id = ?
+      ORDER BY m.match_date DESC, m.start_time DESC
+    `;
+    const [result] = await db.query(sql, [ownerId]);
+    res.status(200).json(result);
+  } catch (err) {
+    console.error('Error fetching owner matches:', err);
+    res.status(500).json({ message: 'Failed to fetch owner matches', error: err.message });
+  }
+};
+
 exports.requestJoinMatch = async (req, res) => {
   try {
     const { userId, matchId, hostId, senderName, courtName } = req.body;
@@ -49,6 +103,25 @@ exports.requestJoinMatch = async (req, res) => {
     if (!userId || !matchId || !hostId) {
       console.log('Missing data:', { userId, matchId, hostId });
       return res.status(400).json({ message: 'Thiếu thông tin yêu cầu.' });
+    }
+
+    if (String(userId) === String(hostId)) {
+      return res.status(400).json({ message: 'Bạn không thể ghép kèo do chính mình tạo.' });
+    }
+
+    const [matchInfo] = await db.query('SELECT capacity, joined_count FROM matchmaking WHERE id = ?', [matchId]);
+    if (matchInfo.length > 0 && matchInfo[0].joined_count >= matchInfo[0].capacity) {
+      return res.status(400).json({ message: 'Kèo này đã chốt sổ, không thể xin ghép thêm.' });
+    }
+
+    await ensureParticipantsTable();
+    const [alreadyJoined] = await db.query(
+      'SELECT id FROM matchmaking_participants WHERE match_id = ? AND user_id = ?',
+      [matchId, userId]
+    );
+
+    if (alreadyJoined.length > 0) {
+      return res.status(400).json({ message: 'Bạn đã là thành viên của kèo này rồi.' });
     }
 
     // Kiểm tra xem đã gửi yêu cầu chưa (tránh spam)
@@ -110,12 +183,20 @@ exports.respondToJoinRequest = async (req, res) => {
     `;
 
     if (action === 'accept') {
+      await ensureParticipantsTable();
       // Kiểm tra xem đã đầy chưa
       if (joinedCount >= capacity) {
         return res.status(400).json({ message: 'Kèo đã đầy, không thể chấp nhận thêm.' });
       }
 
       // 1. Cập nhật joined_count
+      const [participantResult] = await db.query(
+        'INSERT IGNORE INTO matchmaking_participants (match_id, user_id) VALUES (?, ?)',
+        [matchId, requesterId]
+      );
+      if (participantResult.affectedRows === 0) {
+        return res.status(400).json({ message: 'Người chơi này đã tham gia kèo.' });
+      }
       await db.query('UPDATE matchmaking SET joined_count = joined_count + 1 WHERE id = ?', [matchId]);
 
       // 2. Gửi thông báo cho Người yêu cầu (User B)
@@ -166,6 +247,41 @@ exports.respondToJoinRequest = async (req, res) => {
     }
   } catch (err) {
     console.error('Error responding to request:', err);
+    res.status(500).json({ message: 'Lỗi server', error: err.message });
+  }
+};
+
+exports.leaveMatch = async (req, res) => {
+  try {
+    const { matchId, userId } = req.body;
+    const [participant] = await db.query('SELECT * FROM matchmaking_participants WHERE match_id = ? AND user_id = ?', [matchId, userId]);
+    
+    if (participant.length === 0) {
+      return res.status(400).json({ message: 'Bạn không nằm trong kèo này.' });
+    }
+
+    await db.query('DELETE FROM matchmaking_participants WHERE match_id = ? AND user_id = ?', [matchId, userId]);
+    await db.query('UPDATE matchmaking SET joined_count = GREATEST(1, joined_count - 1) WHERE id = ?', [matchId]);
+
+    const [match] = await db.query('SELECT host_id, court_name FROM matchmaking WHERE id = ?', [matchId]);
+    const [user] = await db.query('SELECT full_name FROM users WHERE id = ?', [userId]);
+
+    if (match.length > 0 && user.length > 0) {
+      await db.query(
+        'INSERT INTO notifications (user_id, sender_id, title, message, type, related_id) VALUES (?, ?, ?, ?, ?, ?)',
+        [
+          match[0].host_id,
+          userId,
+          'Thành viên rời kèo',
+          `User ${user[0].full_name} đã rời khỏi kèo tại ${match[0].court_name}.`,
+          'general',
+          matchId
+        ]
+      );
+    }
+    
+    res.status(200).json({ message: 'Rời kèo thành công.' });
+  } catch (err) {
     res.status(500).json({ message: 'Lỗi server', error: err.message });
   }
 };

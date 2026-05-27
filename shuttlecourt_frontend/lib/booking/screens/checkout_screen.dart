@@ -267,6 +267,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _processBooking(BuildContext context, String paymentMethod) async {
+    print("====== [DEBUG] _processBooking BẮT ĐẦU ======");
+    print("Payment Method: $paymentMethod");
+    
+    final auth = Provider.of<AuthService>(context, listen: false);
+    if (auth.user == null) {
+      print("====== [DEBUG] LỖI: User bị null ======");
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi: Bạn chưa đăng nhập hoặc phiên đăng nhập hết hạn.'), backgroundColor: Colors.red));
+      return;
+    }
+    
+    int currentUserId;
+    try {
+      currentUserId = int.parse(auth.user!.id);
+      print("====== [DEBUG] User ID parse thành công: $currentUserId ======");
+    } catch (e) {
+      print("====== [DEBUG] LỖI parse ID: $e ======");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi ID người dùng: ${auth.user!.id}'), backgroundColor: Colors.red));
+      return;
+    }
+
     final booking = Booking(
       id: const Uuid().v4(),
       courtName: widget.selectedCourt.name,
@@ -278,10 +298,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       createdAt: DateTime.now(),
     );
 
-    final auth = Provider.of<AuthService>(context, listen: false);
-    if (auth.user == null) return;
-    int currentUserId = int.parse(auth.user!.id);
-
+    print("====== [DEBUG] Hiển thị Loading Dialog ======");
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -289,9 +306,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
 
     try {
+      print("====== [DEBUG] Đang gọi ApiBookingService.createBooking... ======");
       await ApiBookingService.createBooking(currentUserId, booking);
+      print("====== [DEBUG] ApiBookingService thành công! ======");
+      
       if (mounted) {
-        Navigator.pop(context); // Tắt loading
+        Navigator.pop(context); // Tắt loading dialog
+        print("====== [DEBUG] Đã tắt loading, hiển thị dialog THÀNH CÔNG ======");
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -324,8 +345,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       }
     } catch (e) {
+      print("====== [DEBUG] EXCEPTION BẮT ĐƯỢC: $e ======");
       if (mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context); // Tắt loading dialog
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppTheme.error));
       }
     }

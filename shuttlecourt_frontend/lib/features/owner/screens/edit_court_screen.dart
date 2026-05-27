@@ -5,10 +5,12 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shuttlecourt/config/api_config.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
+import 'package:geocoding/geocoding.dart';
 
 class EditCourtScreen extends StatefulWidget {
   final dynamic court;
-  const EditCourtScreen({super.key, required this.court});
+  final bool isAdmin;
+  const EditCourtScreen({super.key, required this.court, this.isAdmin = false});
 
   @override
   State<EditCourtScreen> createState() => _EditCourtScreenState();
@@ -100,6 +102,7 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
       appBar: AppBar(
         title: const Text('Chỉnh Sửa Sân', style: TextStyle(fontWeight: FontWeight.w900, color: AppTheme.primary)),
         backgroundColor: Colors.transparent, elevation: 0, centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppTheme.primary), onPressed: () => Navigator.pop(context)),
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -215,6 +218,17 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
       _formKey.currentState!.save();
       setState(() => _isGlobalBusy = true);
       try {
+        // Tự động tìm vị trí (lat, lng) từ địa chỉ thủ công
+        try {
+          List<Location> locations = await locationFromAddress(_address);
+          if (locations.isNotEmpty) {
+            _latitude = locations.first.latitude;
+            _longitude = locations.first.longitude;
+          }
+        } catch (_) {
+          // Bỏ qua nếu không tìm thấy, giữ nguyên giá trị cũ
+        }
+
         await http.put(
           Uri.parse('${ApiConfig.courtsUrl}/update/${widget.court['id']}'),
           headers: {'Content-Type': 'application/json'},
@@ -222,6 +236,7 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
             'name': _name, 'address': _address, 'latitude': _latitude, 'longitude': _longitude,
             'price': _price, 'description': _description, 'main_image': _mainImageUrl,
             'desc_image1': _descImageUrl1, 'desc_image2': _descImageUrl2, 'status': _status,
+            'isAdmin': widget.isAdmin,
           }),
         );
         Navigator.pop(context, true);

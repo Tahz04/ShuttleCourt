@@ -7,6 +7,7 @@ router.post('/add', productController.addProduct);
 router.put('/:id', productController.updateProduct);
 router.delete('/:id', productController.deleteProduct);
 router.get('/orders', productController.getOrders);
+router.get('/orders/user/:userId', productController.getUserOrders);
 router.put('/orders/:orderId', productController.updateOrderStatus);
 router.post('/order', productController.placeOrder); // NEW
 

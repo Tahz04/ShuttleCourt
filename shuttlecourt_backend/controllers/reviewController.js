@@ -88,6 +88,23 @@ exports.getOwnerReviews = async (req, res) => {
     }
 };
 
+// Get all reviews (for Admin)
+exports.getAllReviews = async (req, res) => {
+    try {
+        const [reviews] = await db.execute(
+            `SELECT r.*, u.full_name as user_name, c.name as court_name 
+             FROM reviews r 
+             JOIN users u ON r.user_id = u.id 
+             JOIN courts c ON r.court_id = c.id 
+             ORDER BY r.created_at DESC`
+        );
+        res.json({ success: true, reviews });
+    } catch (error) {
+        console.error('Error fetching all reviews:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+
 // Owner replies to a review
 exports.replyToReview = async (req, res) => {
     try {

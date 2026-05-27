@@ -8,6 +8,10 @@ import 'edit_profile_screen.dart';
 import 'security_screen.dart';
 import 'notification_settings_screen.dart';
 import 'package:shuttlecourt/features/owner/screens/owner_dashboard_screen.dart';
+import 'package:shuttlecourt/features/owner/screens/owner_registration_screen.dart';
+import 'package:shuttlecourt/features/admin/screens/admin_dashboard_screen.dart';
+import 'package:shuttlecourt/features/shop/screens/user_order_history_screen.dart';
+import 'package:shuttlecourt/features/reviews/screens/user_review_history_screen.dart';
 import 'language_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -182,8 +186,15 @@ class ProfileScreen extends StatelessWidget {
           padding: EdgeInsets.only(left: 8, bottom: 12),
           child: Text('CÀI ĐẶT & HỖ TRỢ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppTheme.textMuted, letterSpacing: 1.2)),
         ),
+        if (user?.role == 'admin')
+          _buildSettingTile(context, Icons.admin_panel_settings_rounded, 'Bảng điều khiển Admin', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()))),
         if (user?.role == 'owner')
           _buildSettingTile(context, Icons.dashboard_customize_rounded, 'Bảng điều khiển Chủ sân', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OwnerDashboardScreen()))),
+        if (user?.role == 'user') ...[
+          _buildSettingTile(context, Icons.shopping_bag_outlined, 'Lịch sử mua hàng', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserOrderHistoryScreen()))),
+          _buildSettingTile(context, Icons.star_border_rounded, 'Lịch sử đánh giá', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserReviewHistoryScreen()))),
+          _buildSettingTile(context, Icons.business_center_rounded, 'Trở thành Chủ Sân', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OwnerRegistrationScreen()))),
+        ],
         _buildSettingTile(context, Icons.shield_outlined, 'Bảo mật & Mật khẩu', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SecurityScreen()))),
         _buildSettingTile(context, Icons.notifications_none_rounded, 'Thông báo', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()))),
         _buildSettingTile(context, Icons.language_rounded, 'Ngôn ngữ', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LanguageSettingsScreen()))),

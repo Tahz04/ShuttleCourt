@@ -5,9 +5,11 @@ import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:shuttlecourt/models/match_model.dart';
 import 'package:shuttlecourt/features/matchmaking/services/matchmaking_service.dart';
+import 'package:provider/provider.dart';
+import 'package:shuttlecourt/auth/auth_service.dart';
 
 class OwnerBookingManagementScreen extends StatefulWidget {
-  const OwnerBookingManagementScreen({super.key});
+  final bool isAdmin; const OwnerBookingManagementScreen({super.key, this.isAdmin = false});
 
   @override
   State<OwnerBookingManagementScreen> createState() => _OwnerBookingManagementScreenState();
@@ -30,9 +32,15 @@ class _OwnerBookingManagementScreenState extends State<OwnerBookingManagementScr
   Future<void> _loadAllData() async {
     setState(() => _isLoading = true);
     try {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final ownerId = int.tryParse(auth.user?.id ?? '');
+      if (ownerId == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
       final results = await Future.wait([
-        ApiBookingService.getAllBookings(),
-        MatchmakingService.getAllMatches(),
+        widget.isAdmin ? ApiBookingService.getAllBookings() : ApiBookingService.getOwnerBookings(ownerId),
+        widget.isAdmin ? MatchmakingService.getAllMatches() : MatchmakingService.getOwnerMatches(ownerId),
       ]);
       
       if (mounted) {
@@ -122,6 +130,10 @@ class _OwnerBookingManagementScreenState extends State<OwnerBookingManagementScr
       floating: false,
       pinned: true,
       backgroundColor: AppTheme.surfaceDark,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+        onPressed: () => Navigator.pop(context),
+      ),
       flexibleSpace: FlexibleSpaceBar(
         title: const Text('QUẢN LÝ LỊCH', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
         centerTitle: true,
@@ -310,9 +322,17 @@ class _BookingItem extends StatelessWidget {
             const SizedBox(height: 20),
             Row(
               children: [
-                Expanded(child: _actionBtn('TỪ CHỐI', AppTheme.error, () => onUpdate('Đã hủy'), false)),
+                Expanded(child: _actionBtn('TỪ CHỐI', AppTheme.error, () => onUpdate('Từ chối'), false)),
                 const SizedBox(width: 12),
                 Expanded(child: _actionBtn('DUYỆT LỊCH', AppTheme.primary, () => onUpdate('Đã duyệt'), true)),
+              ],
+            ),
+          ],
+          if (b.status == 'Đã duyệt' || b.status == 'Đã thanh toán') ...[
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(child: _actionBtn('XÁC NHẬN HOÀN THÀNH', Colors.greenAccent, () => onUpdate('Đã hoàn thành'), true)),
               ],
             ),
           ],
@@ -352,12 +372,14 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color color = AppTheme.primary;
-    if (status == 'Đã hủy') color = AppTheme.error;
+    if (status == 'Đã hủy' || status == 'Từ chối') color = AppTheme.error;
     if (status == 'Chờ duyệt') color = Colors.orangeAccent;
+    if (status == 'Đã hoàn thành') color = Colors.green;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-      child: Text(status, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800)),
+      child: Text(status.toUpperCase(), style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800)),
     );
   }
 }

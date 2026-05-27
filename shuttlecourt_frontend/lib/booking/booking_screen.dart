@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/features/matchmaking/screens/matchmaking_screen.dart';
 import 'package:shuttlecourt/main.dart';
+import 'package:shuttlecourt/services/api_booking_service.dart';
 
 class BookingScreen extends StatefulWidget {
   final BadmintonCourt? initialCourt;
@@ -31,6 +32,7 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
   
   List<BadmintonCourt> _courts = [];
   bool _isLoading = true;
+  List<String> _bookedSlots = [];
 
   @override
   void initState() {
@@ -41,6 +43,26 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
       duration: const Duration(milliseconds: 400),
     )..forward();
     _loadCourts();
+    if (_selectedCourt != null) {
+      _fetchBookedSlots();
+    }
+  }
+
+  Future<void> _fetchBookedSlots() async {
+    if (_selectedCourt == null) return;
+    try {
+      final slots = await ApiBookingService.getBookedSlots(_selectedCourt!.name, _selectedDate);
+      if (mounted) {
+        setState(() {
+          _bookedSlots = slots;
+          if (_bookedSlots.contains(_selectedSlot)) {
+            _selectedSlot = '';
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Lỗi lấy lịch trống: $e');
+    }
   }
 
   Future<void> _loadCourts() async {
@@ -147,7 +169,10 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       child: InkWell(
-        onTap: () => setState(() => _selectedCourt = court),
+        onTap: () {
+          setState(() => _selectedCourt = court);
+          _fetchBookedSlots();
+        },
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -278,7 +303,10 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
                     firstDate: DateTime.now(),
                     lastDate: DateTime.now().add(const Duration(days: 90)),
                   );
-                  if (picked != null) setState(() => _selectedDate = picked);
+                  if (picked != null) {
+                    setState(() => _selectedDate = picked);
+                    _fetchBookedSlots();
+                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -345,25 +373,27 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
             itemCount: _timeSlots.length,
             itemBuilder: (context, index) {
               bool isSelected = _selectedSlot == _timeSlots[index];
+              bool isBooked = _bookedSlots.contains(_timeSlots[index]);
               return InkWell(
-                onTap: () => setState(() => _selectedSlot = _timeSlots[index]),
+                onTap: isBooked ? null : () => setState(() => _selectedSlot = _timeSlots[index]),
                 borderRadius: BorderRadius.circular(10),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
-                    gradient: isSelected ? AppTheme.primaryGradient : null,
-                    color: isSelected ? null : AppTheme.cardDark,
-                    border: Border.all(color: isSelected ? Colors.transparent : Colors.white.withValues(alpha: 0.05)),
+                    gradient: (isSelected && !isBooked) ? AppTheme.primaryGradient : null,
+                    color: isBooked ? Colors.grey.withOpacity(0.1) : (isSelected ? null : AppTheme.cardDark),
+                    border: Border.all(color: (isSelected && !isBooked) ? Colors.transparent : Colors.white.withValues(alpha: 0.05)),
                     borderRadius: BorderRadius.circular(10),
-                    boxShadow: isSelected ? AppTheme.glowShadow : null,
+                    boxShadow: (isSelected && !isBooked) ? AppTheme.glowShadow : null,
                   ),
                   child: Center(
                     child: Text(
                       _timeSlots[index],
                       style: TextStyle(
-                        color: isSelected ? Colors.white : AppTheme.textSecondary,
+                        color: isBooked ? Colors.white30 : (isSelected ? Colors.white : AppTheme.textSecondary),
                         fontSize: 13,
                         fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        decoration: isBooked ? TextDecoration.lineThrough : null,
                       ),
                     ),
                   ),

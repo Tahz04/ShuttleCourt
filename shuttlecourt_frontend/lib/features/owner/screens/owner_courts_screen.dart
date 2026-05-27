@@ -6,9 +6,11 @@ import 'package:shuttlecourt/auth/auth_service.dart';
 import 'package:shuttlecourt/config/api_config.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/features/owner/screens/edit_court_screen.dart';
+import 'package:shuttlecourt/features/owner/screens/add_court_screen.dart';
 
 class OwnerCourtsScreen extends StatefulWidget {
-  const OwnerCourtsScreen({super.key});
+  final bool isAdmin;
+  const OwnerCourtsScreen({super.key, this.isAdmin = false});
 
   @override
   State<OwnerCourtsScreen> createState() => _OwnerCourtsScreenState();
@@ -33,7 +35,11 @@ class _OwnerCourtsScreenState extends State<OwnerCourtsScreen> {
       return;
     }
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.courtsUrl}/owner/${user.id}'));
+      final url = widget.isAdmin 
+          ? '${ApiConfig.courtsUrl}/all' 
+          : '${ApiConfig.courtsUrl}/owner/${user.id}';
+          
+      final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         if(mounted) setState(() { _courts = jsonDecode(response.body); _isLoading = false; });
       } else {
@@ -50,7 +56,7 @@ class _OwnerCourtsScreenState extends State<OwnerCourtsScreen> {
       final response = await http.post(
         Uri.parse('${ApiConfig.courtsUrl}/maintenance/${court['id']}'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'isMaintenance': !isCurrentlyMaintenance}),
+        body: jsonEncode({'isMaintenance': !isCurrentlyMaintenance, 'isAdmin': widget.isAdmin}),
       );
       if (response.statusCode == 200) {
         _fetchCourts();
@@ -75,7 +81,7 @@ class _OwnerCourtsScreenState extends State<OwnerCourtsScreen> {
 
     if (confirm == true) {
       try {
-        final response = await http.delete(Uri.parse('${ApiConfig.courtsUrl}/delete/$id'));
+        final response = await http.delete(Uri.parse('${ApiConfig.courtsUrl}/delete/$id?isAdmin=${widget.isAdmin}'));
         if (response.statusCode == 200) {
           _fetchCourts();
           _showError('Đã xóa sân thành công');
@@ -100,18 +106,35 @@ class _OwnerCourtsScreenState extends State<OwnerCourtsScreen> {
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: AppTheme.primary),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _fetchCourts,
         color: AppTheme.primary,
         child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-            : _errorMessage != null
-                ? _buildErrorState()
-                : _courts.isEmpty
-                    ? _buildEmptyState()
-                    : _buildCourtList(),
+        : _errorMessage != null
+            ? _buildErrorState()
+            : _courts.isEmpty
+                ? _buildEmptyState()
+                : _buildCourtList(),
       ),
+      floatingActionButton: widget.isAdmin
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddCourtScreen()),
+                ).then((_) => _fetchCourts());
+              },
+              backgroundColor: AppTheme.primary,
+              icon: const Icon(Icons.add_rounded, color: Colors.white),
+              label: const Text('Thêm Sân', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
     );
   }
 
@@ -232,6 +255,17 @@ class _OwnerCourtsScreenState extends State<OwnerCourtsScreen> {
                       Expanded(child: Text(court['address'] ?? '', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500))),
                     ],
                   ),
+                  if (widget.isAdmin && court['owner_name'] != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.person_rounded, size: 16, color: AppTheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('Chủ sân: ${court['owner_name']}', style: const TextStyle(color: AppTheme.primary, fontSize: 13, fontWeight: FontWeight.w800))),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -245,7 +279,7 @@ class _OwnerCourtsScreenState extends State<OwnerCourtsScreen> {
                           const SizedBox(width: 8),
                           _actionBtn(Icons.edit_rounded, AppTheme.primary.withOpacity(0.05), AppTheme.primary, 
                                      () async {
-                                       final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => EditCourtScreen(court: court)));
+                                       final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => EditCourtScreen(court: court, isAdmin: widget.isAdmin)));
                                        if (res == true) _fetchCourts();
                                      }),
                           const SizedBox(width: 8),

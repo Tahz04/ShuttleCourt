@@ -7,6 +7,7 @@ import 'package:shuttlecourt/features/matchmaking/screens/matchmaking_screen.dar
 import 'package:shuttlecourt/features/matchmaking/services/matchmaking_service.dart';
 import 'package:shuttlecourt/features/owner/screens/owner_booking_management_screen.dart';
 import 'package:shuttlecourt/features/shop/screens/owner_order_management_screen.dart';
+import 'package:shuttlecourt/features/admin/screens/admin_dashboard_screen.dart';
 import 'package:shuttlecourt/services/notification_service.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
 
@@ -71,7 +72,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
         break;
       case 'match_join_success':
       case 'match_join_rejected':
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const MatchmakingScreen()));
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const BookingHistoryScreen()));
+        break;
+      case 'system':
+        final auth = Provider.of<AuthService>(context, listen: false);
+        if (auth.user?.role == 'admin') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
+        }
         break;
       case 'match_join_request':
       case 'order_status':
@@ -104,6 +111,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ));
         _fetch();
+        if (action == 'accept') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const BookingHistoryScreen()));
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Có lỗi xảy ra, vui lòng thử lại'),
@@ -147,6 +157,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ),
       foregroundColor: Colors.white,
       elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+        onPressed: () => Navigator.pop(context),
+      ),
       title: Row(
         children: [
           const Text(
@@ -333,9 +347,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
           ],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             // Left accent bar for unread
             if (!n.isRead)
               Container(
@@ -475,6 +490,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
           ],
         ),
+        ), // Close IntrinsicHeight
       ),
     );
   }

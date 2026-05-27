@@ -75,6 +75,25 @@ class MatchmakingService {
       return false;
     }
   }
+  static Future<bool> leaveMatch({
+    required int userId,
+    required int matchId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.matchmakingUrl}/leave'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'matchId': matchId,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error leaving match: $e');
+      return false;
+    }
+  }
 
   static Future<bool> respondToRequest({
     required int notificationId,
@@ -112,6 +131,20 @@ class MatchmakingService {
       return [];
     } catch (e) {
       print('Error fetching user matches: $e');
+      return [];
+    }
+  }
+
+  static Future<List<MatchModel>> getOwnerMatches(int ownerId) async {
+    try {
+      final response = await http.get(Uri.parse('${ApiConfig.matchmakingUrl}/owner/$ownerId'));
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => MatchModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching owner matches: $e');
       return [];
     }
   }

@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shuttlecourt/auth/auth_service.dart';
 import 'package:shuttlecourt/config/api_config.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
+import 'package:geocoding/geocoding.dart';
 
 class AddCourtScreen extends StatefulWidget {
   const AddCourtScreen({super.key});
@@ -98,6 +99,7 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
       appBar: AppBar(
         title: const Text('Đăng Ký Sân Mới', style: TextStyle(fontWeight: FontWeight.w900, color: AppTheme.primary)),
         backgroundColor: Colors.transparent, elevation: 0, centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppTheme.primary), onPressed: () => Navigator.pop(context)),
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -242,6 +244,17 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
       setState(() => _isGlobalBusy = true);
       final auth = Provider.of<AuthService>(context, listen: false);
       try {
+        // Tự động tìm vị trí (lat, lng) từ địa chỉ thủ công
+        try {
+          List<Location> locations = await locationFromAddress(_address);
+          if (locations.isNotEmpty) {
+            _latitude = locations.first.latitude;
+            _longitude = locations.first.longitude;
+          }
+        } catch (_) {
+          // Bỏ qua nếu không tìm thấy, giữ nguyên giá trị cũ (0.0 hoặc mặc định)
+        }
+
         final response = await http.post(
           Uri.parse('${ApiConfig.courtsUrl}/add'),
           headers: {'Content-Type': 'application/json'},

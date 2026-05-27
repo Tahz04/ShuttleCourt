@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shuttlecourt/models/badminton_court.dart';
@@ -190,7 +191,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     });
   }
 
-  void _search(String query) {
+  void _search(String query) async {
     setState(() {
       filteredCourts = allCourtsFromDB
           .where(
@@ -204,7 +205,32 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     if (filteredCourts.isNotEmpty) {
       final first = filteredCourts.first;
       mapController.move(LatLng(first.latitude, first.longitude), 14.5);
-      selectedCourt = first;
+      setState(() => selectedCourt = first);
+    } else {
+      // Thử tìm tọa độ từ địa chỉ thủ công
+      try {
+        List<Location> locations = await locationFromAddress(query);
+        if (locations.isNotEmpty) {
+          final loc = locations.first;
+          setState(() {
+            userLat = loc.latitude;
+            userLng = loc.longitude;
+            _filterNearbyCourts();
+          });
+          mapController.move(LatLng(loc.latitude, loc.longitude), 13.5);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Đã cập nhật vị trí theo địa chỉ: $query'), backgroundColor: AppTheme.primary),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Không tìm thấy sân hoặc vị trí nào'), backgroundColor: AppTheme.error),
+          );
+        }
+      }
     }
   }
 
@@ -365,7 +391,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                       ),
                     ),
                   // Route start marker
-                  if (routePoints.isNotEmpty && userLat != null)
+                  if (routePoints.isNotEmpty && userLat != null && userLng != null)
                     Marker(
                       point: LatLng(userLat!, userLng!),
                       width: 40,

@@ -7,7 +7,8 @@ import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 
 class OwnerReviewManagementScreen extends StatefulWidget {
-  const OwnerReviewManagementScreen({super.key});
+  final bool isAdmin;
+  const OwnerReviewManagementScreen({super.key, this.isAdmin = false});
 
   @override
   State<OwnerReviewManagementScreen> createState() => _OwnerReviewManagementScreenState();
@@ -28,7 +29,9 @@ class _OwnerReviewManagementScreenState extends State<OwnerReviewManagementScree
     final auth = Provider.of<AuthService>(context, listen: false);
     if (auth.user == null) return;
     
-    final reviews = await ReviewService.getOwnerReviews(int.parse(auth.user!.id));
+    final reviews = widget.isAdmin 
+        ? await ReviewService.getAllReviews()
+        : await ReviewService.getOwnerReviews(int.parse(auth.user!.id));
     setState(() {
       _reviews = reviews;
       _isLoading = false;
