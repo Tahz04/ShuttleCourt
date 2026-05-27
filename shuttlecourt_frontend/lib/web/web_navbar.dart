@@ -46,6 +46,39 @@ class _WebNavbarState extends State<WebNavbar> {
     }
   }
 
+  void _handleRegisterClick(AuthService auth) {
+    if (auth.isAuthenticated) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Thông báo'),
+          content: const Text('Bạn đã có tài khoản bạn có muốn tiếp tục đăng kí?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                );
+              },
+              child: const Text('Tiếp tục'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const RegisterScreen()),
+      );
+    }
+  }
+
   static const List<_NavItem> _navItems = [
     _NavItem('Trang chủ', Icons.home_rounded, 0),
     _NavItem('Tìm sân', Icons.search_rounded, 1),
@@ -120,7 +153,7 @@ class _WebNavbarState extends State<WebNavbar> {
                       const SizedBox(width: 12),
                     ],
                     if (!auth.isAuthenticated)
-                      _buildGuestActions()
+                      _buildGuestActions(auth)
                     else
                       _buildUserMenu(auth),
                   ],
@@ -186,7 +219,7 @@ class _WebNavbarState extends State<WebNavbar> {
     );
   }
 
-  Widget _buildGuestActions() {
+  Widget _buildGuestActions(AuthService auth) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -206,10 +239,7 @@ class _WebNavbarState extends State<WebNavbar> {
         ),
         const SizedBox(width: 8),
         ElevatedButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const RegisterScreen()),
-          ),
+          onPressed: () => _handleRegisterClick(auth),
           style: ElevatedButton.styleFrom(
             backgroundColor: WebStyles.brand,
             foregroundColor: Colors.white,

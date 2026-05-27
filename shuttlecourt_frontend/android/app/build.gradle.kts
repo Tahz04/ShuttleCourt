@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.yourname.baitap.shuttlecourt"
+    namespace = "com.example.shuttlecourt_frontend"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,16 +21,13 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.yourname.baitap.shuttlecourt"
+        applicationId = "com.example.shuttlecourt_frontend"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        
-        // Google Maps API Key
-        manifestPlaceholders["MAPS_API_KEY"] = "AIzaSyBvqYQzLLhTj7iq5rMfDH9nG0g3x1Z8t0I"
     }
 
     buildTypes {

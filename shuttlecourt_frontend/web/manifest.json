@@ -1,6 +1,6 @@
 {
-    "name": "shuttlecourt",
-    "short_name": "shuttlecourt",
+    "name": "shuttlecourt_frontend",
+    "short_name": "shuttlecourt_frontend",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

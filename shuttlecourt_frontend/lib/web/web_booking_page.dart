@@ -390,67 +390,268 @@ class _WebBookingPageState extends State<WebBookingPage> {
     );
   }
 
-  // ── Step 2: Date selection ────────────────────────────────────────────────
+  // ── Step 2: Date selection (improved) ─────────────────────────────────────
 
   Widget _buildDateStep() {
+    final isToday = DateUtils.isSameDay(DateTime.now(), _selectedDate);
+    final displayDayName = DateFormat('EEEE', 'vi').format(_selectedDate);
+    final displayDate = DateFormat('dd/MM/yyyy', 'vi').format(_selectedDate);
+    final daysFromToday = _selectedDate.difference(DateTime.now()).inDays;
+
+    // Chuỗi mô tả ngày
+    String dateDescription;
+    if (isToday) {
+      dateDescription = 'Hôm nay';
+    } else if (daysFromToday == 1) {
+      dateDescription = 'Ngày mai';
+    } else if (daysFromToday > 1 && daysFromToday <= 7) {
+      dateDescription = 'Trong $daysFromToday ngày';
+    } else {
+      dateDescription = '$daysFromToday ngày kể từ hôm nay';
+    }
+
     return _StepCard(
       step: 2,
       title: 'Chọn ngày',
-      subtitle: DateFormat('EEEE, dd/MM/yyyy', 'vi').format(_selectedDate),
+      subtitle: displayDate,
       isDone: true,
-      child: SizedBox(
-        height: 52,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: 14,
-          itemBuilder: (ctx, i) {
-            final date = DateTime.now().add(Duration(days: i));
-            final isSel = DateUtils.isSameDay(date, _selectedDate);
-            final isToday = i == 0;
-            return GestureDetector(
-              onTap: () => setState(() {
-                _selectedDate = date;
-                _selectedSlot = null;
-              }),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                margin: const EdgeInsets.only(right: 8),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSel ? WebStyles.brand : Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSel ? WebStyles.brand : WebStyles.border,
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      isToday ? 'Hôm nay' : DateFormat('EEE').format(date),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isSel
-                            ? Colors.white.withValues(alpha: 0.8)
-                            : WebStyles.inkFaint,
-                        fontWeight: FontWeight.w600,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Date picker card (tappable)
+          GestureDetector(
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _selectedDate,
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 90)),
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: ColorScheme.light(
+                        primary: WebStyles.brand,
+                        onPrimary: Colors.white,
+                        surface: Colors.white,
+                        onSurface: WebStyles.ink,
                       ),
                     ),
-                    Text(
-                      DateFormat('dd').format(date),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        color: isSel ? Colors.white : WebStyles.ink,
-                      ),
+                    child: child!,
+                  );
+                },
+              );
+
+              if (picked != null) {
+                setState(() {
+                  _selectedDate = picked;
+                  _selectedSlot = null; // Reset time slot khi đổi ngày
+                });
+              }
+            },
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      WebStyles.brand.withValues(alpha: 0.05),
+                      WebStyles.brand.withValues(alpha: 0.02),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: WebStyles.brand.withValues(alpha: 0.2),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: WebStyles.brand.withValues(alpha: 0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top row: Day name + calendar icon
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayDayName.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: WebStyles.brand,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              displayDate,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: WebStyles.ink,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: WebStyles.brand.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.calendar_month_rounded,
+                            color: WebStyles.brand,
+                            size: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(color: WebStyles.border, height: 1),
+                    const SizedBox(height: 12),
+                    // Bottom row: Date description + badge
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          dateDescription,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: WebStyles.inkMid,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (isToday)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 13,
+                                  color: Color(0xFF10B981),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Hôm nay',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF10B981),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: WebStyles.brand.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: WebStyles.brand.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.edit_calendar_rounded,
+                                  size: 13,
+                                  color: WebStyles.brand,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Chọn ngày',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: WebStyles.brand,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Quick date shortcuts (tuỳ chọn - bạn có thể xóa nếu không cần)
+          Text(
+            'Hoặc chọn nhanh:',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: WebStyles.inkFaint,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _QuickDateButton(
+                label: 'Hôm nay',
+                onTap: () => setState(() {
+                  _selectedDate = DateTime.now();
+                  _selectedSlot = null;
+                }),
+              ),
+              _QuickDateButton(
+                label: 'Ngày mai',
+                onTap: () => setState(() {
+                  _selectedDate = DateTime.now().add(const Duration(days: 1));
+                  _selectedSlot = null;
+                }),
+              ),
+              _QuickDateButton(
+                label: '3 ngày tới',
+                onTap: () => setState(() {
+                  _selectedDate = DateTime.now().add(const Duration(days: 3));
+                  _selectedSlot = null;
+                }),
+              ),
+              _QuickDateButton(
+                label: '1 tuần tới',
+                onTap: () => setState(() {
+                  _selectedDate = DateTime.now().add(const Duration(days: 7));
+                  _selectedSlot = null;
+                }),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -854,6 +1055,43 @@ class _SummaryRow extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+// ── Quick date button ─────────────────────────────────────────────────────────
+
+class _QuickDateButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickDateButton({
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            color: WebStyles.bg,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: WebStyles.border),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: WebStyles.inkMid,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
