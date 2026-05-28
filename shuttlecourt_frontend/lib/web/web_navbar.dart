@@ -8,6 +8,8 @@ import 'package:shuttlecourt/auth/register_screen.dart';
 import 'package:shuttlecourt/web/web_profile_page.dart';
 import 'package:shuttlecourt/services/notification_service.dart';
 import 'package:shuttlecourt/web/web_notification_page.dart';
+import 'package:shuttlecourt/services/socket_service.dart';
+import 'dart:async';
 import 'package:shuttlecourt/web/web_owner_dashboard_page.dart';
 import 'package:shuttlecourt/web/web_admin_dashboard_page.dart';
 import 'package:shuttlecourt/main.dart';
@@ -31,11 +33,21 @@ class WebNavbar extends StatefulWidget {
 
 class _WebNavbarState extends State<WebNavbar> {
   int _unreadCount = 0;
+  StreamSubscription? _notificationSubscription;
 
   @override
   void initState() {
     super.initState();
     _fetchNotifications();
+    _notificationSubscription = SocketService().notificationStream.listen((_) {
+      _fetchNotifications();
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchNotifications() async {

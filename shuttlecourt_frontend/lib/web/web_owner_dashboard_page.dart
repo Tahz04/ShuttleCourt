@@ -28,7 +28,9 @@ class WebOwnerDashboardPage extends StatefulWidget {
 class _WebOwnerDashboardPageState extends State<WebOwnerDashboardPage> {
   late int _selectedIndex;
   bool _isLoading = true;
+  double _dailyRevenue = 0;
   double _monthlyRevenue = 0;
+  double _yearlyRevenue = 0;
   int _pendingCount = 0;
   Timer? _timer;
 
@@ -72,16 +74,58 @@ class _WebOwnerDashboardPageState extends State<WebOwnerDashboardPage> {
         setState(() {
           _pendingCount = bookings.where((b) => b.status == 'Chờ duyệt').length;
 
-          // Revenue Calc
-          double bRev = bookings
-              .where((b) => b.status == 'Đã duyệt' || b.status == 'Đã thanh toán')
+          final now = DateTime.now();
+
+          // Daily Revenue Calc
+          double bRevDaily = bookings
+              .where((b) => (b.status == 'Đã duyệt' || b.status == 'Đã thanh toán' || b.status == 'Đã hoàn thành') &&
+                  b.date.year == now.year && b.date.month == now.month && b.date.day == now.day)
               .fold(0.0, (sum, b) => sum + b.price);
           
-          double sRev = shopOrders
-              .where((o) => o['status'] == 'Đã duyệt' || o['status'] == 'Đã giao')
+          double sRevDaily = shopOrders
+              .where((o) {
+                if (o['status'] != 'Đã duyệt' && o['status'] != 'Đã giao' && o['status'] != 'completed') return false;
+                if (o['created_at'] == null) return false;
+                final od = DateTime.parse(o['created_at'].toString()).toLocal();
+                return od.year == now.year && od.month == now.month && od.day == now.day;
+              })
               .fold(0.0, (sum, o) => sum + (double.tryParse(o['total_price'].toString()) ?? 0.0));
 
-          _monthlyRevenue = bRev + sRev;
+          _dailyRevenue = bRevDaily + sRevDaily;
+
+          // Monthly Revenue Calc
+          double bRevMonthly = bookings
+              .where((b) => (b.status == 'Đã duyệt' || b.status == 'Đã thanh toán' || b.status == 'Đã hoàn thành') &&
+                  b.date.year == now.year && b.date.month == now.month)
+              .fold(0.0, (sum, b) => sum + b.price);
+          
+          double sRevMonthly = shopOrders
+              .where((o) {
+                if (o['status'] != 'Đã duyệt' && o['status'] != 'Đã giao' && o['status'] != 'completed') return false;
+                if (o['created_at'] == null) return false;
+                final od = DateTime.parse(o['created_at'].toString()).toLocal();
+                return od.year == now.year && od.month == now.month;
+              })
+              .fold(0.0, (sum, o) => sum + (double.tryParse(o['total_price'].toString()) ?? 0.0));
+
+          _monthlyRevenue = bRevMonthly + sRevMonthly;
+
+          // Yearly Revenue Calc
+          double bRevYearly = bookings
+              .where((b) => (b.status == 'Đã duyệt' || b.status == 'Đã thanh toán' || b.status == 'Đã hoàn thành') &&
+                  b.date.year == now.year)
+              .fold(0.0, (sum, b) => sum + b.price);
+          
+          double sRevYearly = shopOrders
+              .where((o) {
+                if (o['status'] != 'Đã duyệt' && o['status'] != 'Đã giao' && o['status'] != 'completed') return false;
+                if (o['created_at'] == null) return false;
+                final od = DateTime.parse(o['created_at'].toString()).toLocal();
+                return od.year == now.year;
+              })
+              .fold(0.0, (sum, o) => sum + (double.tryParse(o['total_price'].toString()) ?? 0.0));
+
+          _yearlyRevenue = bRevYearly + sRevYearly;
           _isLoading = false;
         });
       }
@@ -328,15 +372,15 @@ class _WebOwnerDashboardPageState extends State<WebOwnerDashboardPage> {
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: MediaQuery.of(context).size.width > 768 ? 2 : 1,
+            crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 4 : (MediaQuery.of(context).size.width > 768 ? 2 : 1),
             crossAxisSpacing: 24,
             mainAxisSpacing: 24,
-            childAspectRatio: 2.5,
+            childAspectRatio: 2.2,
             children: [
               _buildStatCard(
-                'TỔNG DOANH THU',
-                '${_monthlyRevenue.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} đ',
-                Icons.account_balance_wallet_rounded,
+                'DOANH THU HÔM NAY',
+                '${_dailyRevenue.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} đ',
+                Icons.today_rounded,
                 WebStyles.brandGrad,
               ),
               _buildStatCard(
@@ -344,6 +388,18 @@ class _WebOwnerDashboardPageState extends State<WebOwnerDashboardPage> {
                 '$_pendingCount',
                 Icons.event_available_rounded,
                 WebStyles.ctaGrad,
+              ),
+              _buildStatCard(
+                'DOANH THU THÁNG NÀY',
+                '${_monthlyRevenue.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} đ',
+                Icons.calendar_month_rounded,
+                WebStyles.brandGrad,
+              ),
+              _buildStatCard(
+                'DOANH THU NĂM NAY',
+                '${_yearlyRevenue.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} đ',
+                Icons.account_balance_wallet_rounded,
+                WebStyles.brandGrad,
               ),
             ],
           ),

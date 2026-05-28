@@ -14,6 +14,7 @@
  */
 
 const http = require('http');
+const db = require('../config/database');
 
 let passCount = 0;
 let failCount = 0;
@@ -212,6 +213,43 @@ async function testRespondToRequest() {
     r1.status === 404,
     `Status: ${r1.status}`
   );
+
+  // Test: Thử join và phản hồi kèo đã hết hạn
+  console.log('\n  📌 Test: Ghép kèo đã hết hạn');
+  const [expiredMatchResult] = await db.query(`
+    INSERT INTO matchmaking (host_id, court_name, level, match_date, start_time, capacity, joined_count, price, description)
+    VALUES (1, 'Duy Hung Badminton Center', 'Mới chơi', '2020-01-01', '08:00:00', 4, 1, 80000, 'Kèo đã hết hạn test')
+  `);
+  const expiredMatchId = expiredMatchResult.insertId;
+
+  const expiredJoinRes = await post('/api/matchmaking/join', {
+    userId: 2,
+    matchId: expiredMatchId,
+    hostId: 1,
+    senderName: 'User B Test',
+    courtName: 'Duy Hung Badminton Center'
+  });
+  
+  assert('MM-JN-EXPIRED', 'Không cho phép ghép kèo đã qua giờ chơi → 400',
+    expiredJoinRes.status === 400,
+    `Status: ${expiredJoinRes.status}`
+  );
+
+  const expiredRespondRes = await post('/api/matchmaking/respond', {
+    notificationId: 999999,
+    requesterId: 2,
+    matchId: expiredMatchId,
+    action: 'accept',
+    hostName: 'Test Host'
+  });
+
+  assert('MM-RS-EXPIRED', 'Chủ kèo không thể chấp nhận yêu cầu của kèo đã hết hạn → 400',
+    expiredRespondRes.status === 400,
+    `Status: ${expiredRespondRes.status}`
+  );
+
+  // Dọn dẹp
+  await db.query('DELETE FROM matchmaking WHERE id = ?', [expiredMatchId]);
 }
 
 // ── FLOW 4: BOOKING APPROVAL (Owner duyệt booking) ─────────
@@ -339,6 +377,12 @@ async function runAllTests() {
   console.log('╚══════════════════════════════════════════════════════════╝');
 
   try {
+    // Clean up test data
+    await db.query("DELETE FROM bookings WHERE court_name = 'Duy Hung Badminton Center' OR court_name = 'Test'");
+    await db.query("DELETE FROM matchmaking WHERE court_name = 'Duy Hung Badminton Center' OR court_name = 'Test'");
+    await db.query("DELETE FROM bookings WHERE booking_date IN ('2026-06-25', '2026-06-26')");
+    await db.query("DELETE FROM matchmaking_participants WHERE match_id NOT IN (SELECT id FROM matchmaking)");
+
     const matchId = await testMatchmakingCreate();
     await testJoinRequest(matchId);
     await testRespondToRequest();

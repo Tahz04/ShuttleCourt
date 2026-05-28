@@ -6,6 +6,8 @@ import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/models/badminton_court.dart';
 import 'package:shuttlecourt/services/court_service.dart';
 import 'package:intl/intl.dart';
+import 'package:shuttlecourt/services/api_booking_service.dart';
+import 'package:shuttlecourt/services/socket_service.dart';
 
 class CreateMatchScreen extends StatefulWidget {
   const CreateMatchScreen({super.key});
@@ -17,8 +19,7 @@ class CreateMatchScreen extends StatefulWidget {
 class _CreateMatchScreenState extends State<CreateMatchScreen> {
   final _formKey = GlobalKey<FormState>();
   String _level = 'Trung bình';
-  DateTime _selectedDate = DateTime.now();
-  TimeOfDay _selectedTime = TimeOfDay.now();
+  final DateTime _selectedDate = DateTime.now();
   int _capacity = 4;
   double _price = 0;
   String _description = '';
@@ -28,45 +29,89 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
   BadmintonCourt? _selectedCourt;
   bool _loadingCourts = true;
 
+  // Dữ liệu Slots
+  String _selectedSlot = '';
+  List<String> _bookedSlots = [];
+  bool _loadingSlots = false;
+
+  final Map<String, List<String>> _timeSlotsByCategory = {
+    'Sáng': [
+      '05:00 - 06:00',
+      '06:00 - 07:00',
+      '07:00 - 08:00',
+      '08:00 - 09:00',
+      '09:00 - 10:00',
+    ],
+    'Chiều': ['14:00 - 15:00', '15:00 - 16:00', '16:00 - 17:00'],
+    'Tối': [
+      '17:00 - 18:00',
+      '18:00 - 19:00',
+      '19:00 - 20:00',
+      '20:00 - 21:00',
+      '21:00 - 22:00',
+    ],
+  };
+
   @override
   void initState() {
     super.initState();
     _loadCourts();
+
+    SocketService().connect();
+    SocketService().onBookingUpdated((data) {
+      if (mounted && _selectedCourt != null) {
+        if (data != null && data['court_name'] == _selectedCourt!.name) {
+          _fetchBookedSlots();
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    SocketService().offBookingUpdated();
+    super.dispose();
+  }
+
+  Future<void> _fetchBookedSlots() async {
+    if (_selectedCourt == null) return;
+    setState(() => _loadingSlots = true);
+    try {
+      final slots = await ApiBookingService.getBookedSlots(
+        _selectedCourt!.name,
+        _selectedDate,
+      );
+      if (mounted) {
+        setState(() {
+          _bookedSlots = slots;
+          _loadingSlots = false;
+          if (_bookedSlots.contains(_selectedSlot)) {
+            _selectedSlot = '';
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Lỗi lấy lịch trống: $e');
+      if (mounted) {
+        setState(() => _loadingSlots = false);
+      }
+    }
   }
 
   Future<void> _loadCourts() async {
     final courts = await CourtService.getAllCourts();
     // Nếu API trả về rỗng, dùng danh sách mẫu
     final finalCourts = courts.isNotEmpty ? courts : sampleBadmintonCourts;
-    setState(() {
-      _courts = finalCourts;
-      _loadingCourts = false;
-      if (_courts.isNotEmpty) {
-        _selectedCourt = _courts[0];
-        _price = _courts[0].pricePerHour;
-      }
-    });
-  }
-
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() => _selectedDate = picked);
-    }
-  }
-
-  Future<void> _selectTime() async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime,
-    );
-    if (picked != null && picked != _selectedTime) {
-      setState(() => _selectedTime = picked);
+    if (mounted) {
+      setState(() {
+        _courts = finalCourts;
+        _loadingCourts = false;
+        if (_courts.isNotEmpty) {
+          _selectedCourt = _courts[0];
+          _price = _courts[0].pricePerHour;
+        }
+      });
+      _fetchBookedSlots();
     }
   }
 
@@ -103,7 +148,9 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                           setState(() {
                             _selectedCourt = court;
                             _price = court.pricePerHour;
+                            _selectedSlot = '';
                           });
+                          _fetchBookedSlots();
                         }
                       },
                       validator: (v) => v == null ? 'Vui lòng chọn sân' : null,
@@ -142,55 +189,46 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Ngày đánh'),
-                              InkWell(
-                                onTap: _selectDate,
-                                child: Container(
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: _boxDecoration(),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.calendar_month_rounded, size: 20, color: AppTheme.accent),
-                                      const SizedBox(width: 10),
-                                      Text(DateFormat('dd/MM/yyyy').format(_selectedDate)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
+                    _buildLabel('Ngày đánh'),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: _boxDecoration().copyWith(
+                        color: Colors.grey.shade100,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_month_rounded, size: 20, color: AppTheme.textMuted),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Hôm nay (${DateFormat('dd/MM/yyyy').format(_selectedDate)})',
+                            style: const TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Giờ bắt đầu'),
-                              InkWell(
-                                onTap: _selectTime,
-                                child: Container(
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: _boxDecoration(),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.access_time_rounded, size: 20, color: AppTheme.accent),
-                                      const SizedBox(width: 10),
-                                      Text(_selectedTime.format(context)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(height: 20),
+
+                    _buildLabel('Chọn khung giờ chơi'),
+                    if (_loadingSlots)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: CircularProgressIndicator(color: AppTheme.accent),
+                        ),
+                      )
+                    else if (_selectedCourt == null)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        child: Text(
+                          'Vui lòng chọn sân trước',
+                          style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                        ),
+                      )
+                    else ...[
+                      ..._timeSlotsByCategory.entries.map(
+                        (entry) => _buildTimeSlotGroup(entry.key, entry.value),
+                      ),
+                    ],
                     const SizedBox(height: 20),
 
                     Row(
@@ -291,29 +329,136 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
   }
 
   void _submit() async {
+    if (_selectedSlot.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng chọn khung giờ chơi!'), backgroundColor: AppTheme.error),
+      );
+      return;
+    }
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       
       final auth = Provider.of<AuthService>(context, listen: false);
       if (!auth.isAuthenticated || _selectedCourt == null) return;
 
+      final startTimeStr = '${_selectedSlot.split(' - ')[0].trim()}:00';
+      final navigator = Navigator.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+
       final success = await MatchmakingService.createMatch(
         hostId: int.parse(auth.user!.id),
         courtName: _selectedCourt!.name,
         level: _level,
         matchDate: DateFormat('yyyy-MM-dd').format(_selectedDate),
-        startTime: '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}:00',
+        startTime: startTimeStr,
         capacity: _capacity,
         price: _price,
         description: _description,
       );
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Đã tạo kèo thành công!'), backgroundColor: AppTheme.success));
-        Navigator.pop(context, true);
+        messenger.showSnackBar(const SnackBar(content: Text('✅ Đã tạo kèo thành công!'), backgroundColor: AppTheme.success));
+        navigator.pop(true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('❌ Lỗi khi tạo kèo. Thử lại sau!'), backgroundColor: AppTheme.error));
+        messenger.showSnackBar(const SnackBar(content: Text('❌ Lỗi khi tạo kèo. Thử lại sau!'), backgroundColor: AppTheme.error));
       }
     }
+  }
+
+  Widget _buildTimeSlotGroup(String category, List<String> slots) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            category,
+            style: TextStyle(
+              color: AppTheme.accent.withValues(alpha: 0.6),
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: 2.4,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+          ),
+          itemCount: slots.length,
+          itemBuilder: (context, index) {
+            bool isSelected = _selectedSlot == slots[index];
+            bool isBooked = _bookedSlots.contains(slots[index]);
+
+            bool isPast = false;
+            final now = DateTime.now();
+            if (_selectedDate.year == now.year &&
+                _selectedDate.month == now.month &&
+                _selectedDate.day == now.day) {
+              String startTimeStr = slots[index].split(' - ')[0];
+              List<String> parts = startTimeStr.split(':');
+              if (parts.length == 2) {
+                int hour = int.tryParse(parts[0]) ?? 0;
+                int minute = int.tryParse(parts[1]) ?? 0;
+                if (hour < now.hour ||
+                    (hour == now.hour && minute <= now.minute)) {
+                  isPast = true;
+                }
+              }
+            }
+
+            bool isDisabled = isBooked || isPast;
+
+            return InkWell(
+              onTap: isDisabled
+                  ? null
+                  : () => setState(() => _selectedSlot = slots[index]),
+              borderRadius: BorderRadius.circular(8),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  gradient: isSelected ? AppTheme.matchmakingGradient : null,
+                  color: isDisabled
+                      ? Colors.grey.shade100
+                      : (isSelected ? null : Colors.grey.shade50),
+                  border: Border.all(
+                    color: isSelected
+                        ? Colors.transparent
+                        : Colors.grey.shade200,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    isDisabled
+                        ? 'Hết'
+                        : slots[index],
+                    style: TextStyle(
+                      color: isDisabled
+                          ? AppTheme.textMuted
+                          : (isSelected
+                                ? Colors.white
+                                : AppTheme.textSecondary),
+                      fontSize: 11,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                      decoration: isDisabled
+                          ? TextDecoration.lineThrough
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 }

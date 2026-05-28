@@ -6,10 +6,10 @@ exports.getDashboardStats = async (req, res) => {
     const [[courtCount]] = await db.query("SELECT COUNT(*) as count FROM courts");
     
     // Tổng doanh thu từ Shop
-    const [[shopRevenue]] = await db.query("SELECT SUM(total_price) as total FROM product_orders WHERE status = 'Đã giao' OR status = 'Đã duyệt'");
+    const [[shopRevenue]] = await db.query("SELECT SUM(total_price) as total FROM product_orders WHERE status = 'Đã giao' OR status = 'Đã duyệt' OR status = 'completed'");
     
     // Tổng doanh thu từ Booking
-    const [[bookingRevenue]] = await db.query("SELECT SUM(price) as total FROM bookings WHERE status = 'approved' OR status = 'paid'");
+    const [[bookingRevenue]] = await db.query("SELECT SUM(price) as total FROM bookings WHERE status = 'approved' OR status = 'paid' OR status = 'Đã duyệt' OR status = 'Đã thanh toán' OR status = 'Đã hoàn thành'");
 
     res.json({
       totalUsers: userCount.count,

@@ -9,6 +9,7 @@ import 'package:shuttlecourt/features/matchmaking/services/matchmaking_service.d
 import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/web/web_navbar.dart';
 import 'package:shuttlecourt/web/web_footer.dart';
+import 'package:shuttlecourt/features/reviews/screens/write_review_screen.dart';
 
 
 /// Web-optimized booking history page with bookings and matches combined
@@ -190,7 +191,7 @@ class _WebBookingHistoryPageState extends State<WebBookingHistoryPage> {
                                 ),
                                 crossAxisSpacing: 24,
                                 mainAxisSpacing: 24,
-                                childAspectRatio: 1.2,
+                                childAspectRatio: 1.35,
                               ),
                           itemCount: filteredItems.length,
                           itemBuilder: (context, index) {
@@ -326,9 +327,42 @@ class _WebBookingHistoryPageState extends State<WebBookingHistoryPage> {
   }
 
   Widget _buildBookingCard(Booking booking) {
-    final isConfirmed =
-        booking.status == 'Đã duyệt' || booking.status == 'Đã thanh toán';
-    final statusColor = isConfirmed ? AppTheme.primary : AppTheme.textMuted;
+    final bool isConfirmed = booking.status == 'Đã duyệt' ||
+        booking.status == 'Đã thanh toán' ||
+        booking.status == 'Đã hoàn thành';
+    final bool isCompleted = booking.status == 'Đã hoàn thành';
+    
+    Color statusColor = AppTheme.primary;
+    if (booking.status == 'Đã hủy' || booking.status == 'Từ chối') {
+      statusColor = AppTheme.error;
+    } else if (booking.status == 'Chờ duyệt') {
+      statusColor = Colors.orangeAccent;
+    } else if (booking.status == 'Đã hoàn thành') {
+      statusColor = Colors.green;
+    }
+
+    bool canCancel = (booking.status == 'Chờ duyệt' || booking.status == 'Đã duyệt');
+    bool isTooLateToCancel = false;
+    try {
+      final startTimeStr = booking.slot.split(' - ')[0];
+      final timeParts = startTimeStr.split(':');
+      final startDateTime = DateTime(
+        booking.date.year,
+        booking.date.month,
+        booking.date.day,
+        int.parse(timeParts[0]),
+        int.parse(timeParts[1]),
+      );
+      final now = DateTime.now();
+      
+      if (booking.paymentMethod == 'Ghép kèo') {
+        if (startDateTime.difference(now).inHours < 1) isTooLateToCancel = true;
+      } else {
+        if (startDateTime.difference(now).inHours < 12) isTooLateToCancel = true;
+      }
+    } catch (e) {
+      debugPrint('Error parsing time: $e');
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -442,6 +476,44 @@ class _WebBookingHistoryPageState extends State<WebBookingHistoryPage> {
                     color: AppTheme.primary,
                   ),
                 ),
+                if (canCancel)
+                  OutlinedButton(
+                    onPressed: isTooLateToCancel ? null : () => _showCancelBookingDialog(booking),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.error,
+                      disabledForegroundColor: Colors.grey,
+                      side: BorderSide(color: isTooLateToCancel ? Colors.grey : AppTheme.error),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: Text(
+                      isTooLateToCancel ? 'Sát giờ' : 'Hủy lịch đặt',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                if (isCompleted)
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => WriteReviewScreen(
+                            courtName: booking.courtName,
+                            bookingId: int.tryParse(booking.id),
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.star_rate_rounded, size: 14, color: AppTheme.accentGold),
+                    label: const Text(
+                      'Đánh giá',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.accentGold,
+                      side: const BorderSide(color: AppTheme.accentGold),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
               ],
             ),
           ],
@@ -451,6 +523,10 @@ class _WebBookingHistoryPageState extends State<WebBookingHistoryPage> {
   }
 
   Widget _buildMatchCard(MatchModel match) {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final bool isHost = auth.user != null && match.hostId.toString() == auth.user!.id;
+    final bool isParticipant = auth.user != null && match.hostId.toString() != auth.user!.id;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -482,9 +558,9 @@ class _WebBookingHistoryPageState extends State<WebBookingHistoryPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Ghép sân',
-                        style: TextStyle(
+                      Text(
+                        isHost ? 'Ghép sân (Chủ kèo)' : 'Ghép sân',
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                           color: AppTheme.textPrimary,
@@ -537,32 +613,258 @@ class _WebBookingHistoryPageState extends State<WebBookingHistoryPage> {
                 Expanded(
                   child: _buildDetailItem(
                     Icons.access_time_rounded,
-                    match.startTime,
+                    match.startTime.substring(0, 5),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(
-                  Icons.people_outline_rounded,
-                  size: 16,
-                  color: AppTheme.textMuted,
+                Row(
+                  children: [
+                    Icon(
+                      Icons.people_outline_rounded,
+                      size: 16,
+                      color: AppTheme.textMuted,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${match.joinedCount}/${match.capacity}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  '${match.joinedCount}/${match.capacity}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textMuted,
+                if (isHost)
+                  OutlinedButton.icon(
+                    onPressed: () => _showParticipantsDialog(match),
+                    icon: const Icon(Icons.group_rounded, size: 14),
+                    label: const Text(
+                      'Thành viên',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primary,
+                      side: const BorderSide(color: AppTheme.primary),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
                   ),
-                ),
+                if (isParticipant)
+                  OutlinedButton.icon(
+                    onPressed: () => _showLeaveMatchDialog(match),
+                    icon: const Icon(Icons.exit_to_app_rounded, size: 14),
+                    label: const Text(
+                      'Rời kèo',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.error,
+                      side: const BorderSide(color: AppTheme.error),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _showCancelBookingDialog(Booking b) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hủy Đặt Sân', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: const Text('Bạn có chắc chắn muốn hủy lịch đặt sân này không? Thao tác này không thể hoàn tác.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Không', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hủy Sân'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final success = await ApiBookingService.cancelBooking(b.id, int.parse(auth.user!.id));
+      if (success && mounted) {
+        _showWebToast('Đã hủy sân thành công!');
+        setState(() { _loadData(); });
+      } else if (mounted) {
+        _showWebToast('Lỗi khi hủy sân. Vui lòng thử lại sau.');
+      }
+    }
+  }
+
+  Future<void> _showLeaveMatchDialog(MatchModel m) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rời Kèo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        content: const Text('Bạn có chắc chắn muốn rời khỏi kèo này không? Hành động này không thể hoàn tác.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Rời Kèo'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final success = await MatchmakingService.leaveMatch(
+        userId: int.parse(auth.user!.id),
+        matchId: m.id,
+      );
+      if (success && mounted) {
+        _showWebToast('Đã rời kèo thành công!');
+        setState(() { _loadData(); });
+      } else if (mounted) {
+        _showWebToast('Lỗi khi rời kèo. Vui lòng thử lại.');
+      }
+    }
+  }
+
+  void _showParticipantsDialog(MatchModel m) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: MatchmakingService.getMatchParticipants(m.id),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
+                  }
+                  final participants = snapshot.data ?? [];
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Danh sách thành viên', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (participants.isEmpty)
+                        const Padding(padding: EdgeInsets.all(20), child: Text('Chưa có ai tham gia kèo này.'))
+                      else
+                        Flexible(
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: participants.length,
+                            itemBuilder: (context, index) {
+                              final p = participants[index];
+                              final date = DateTime.tryParse(p['joined_at'] ?? '');
+                              final dateStr = date != null ? DateFormat('HH:mm dd/MM').format(date) : '';
+                              final isReported = p['reported'] == 1 || p['reported'] == true;
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: AppTheme.accent.withOpacity(0.2),
+                                  child: const Icon(Icons.person, color: AppTheme.accent),
+                                ),
+                                title: Text(p['full_name'] ?? 'Người chơi', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Text('Tham gia lúc: $dateStr', style: const TextStyle(fontSize: 12)),
+                                trailing: isReported 
+                                  ? const Text('Đã báo xấu', style: TextStyle(color: AppTheme.error, fontSize: 12, fontWeight: FontWeight.bold))
+                                  : IconButton(
+                                      icon: const Icon(Icons.report_problem_rounded, color: Colors.orangeAccent),
+                                      tooltip: 'Báo vắng mặt (Trừ 10đ uy tín)',
+                                      onPressed: () {
+                                        Navigator.pop(context); // Close dialog
+                                        _showReportDialog(m.id, p['id'], p['full_name']);
+                                      },
+                                    ),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showReportDialog(int matchId, int participantId, String participantName) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Báo cáo Vắng mặt', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.orange)),
+        content: Text('Bạn xác nhận $participantName đã không đến tham gia kèo này?\n\nNgười này sẽ bị TRỪ 10 ĐIỂM UY TÍN. Nếu điểm dưới 70, tài khoản của họ sẽ bị Admin khóa.\n\nHành động này không thể hoàn tác.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Báo Xấu'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final success = await MatchmakingService.reportNoShow(
+        matchId: matchId,
+        participantId: participantId,
+        hostId: int.parse(auth.user!.id),
+      );
+      if (success && mounted) {
+        _showWebToast('Đã ghi nhận báo cáo thành công!');
+        setState(() { _loadData(); });
+      } else if (mounted) {
+        _showWebToast('Lỗi khi gửi báo cáo. Vui lòng thử lại.');
+      }
+    }
+  }
+
+  void _showWebToast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        width: 360,
+        backgroundColor: AppTheme.textPrimary,
       ),
     );
   }

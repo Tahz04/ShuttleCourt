@@ -9,6 +9,7 @@ import 'package:shuttlecourt/features/shop/screens/owner_order_management_screen
 import 'package:shuttlecourt/features/admin/screens/admin_dashboard_screen.dart';
 import 'package:shuttlecourt/services/notification_service.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
+import 'package:shuttlecourt/features/reviews/screens/user_review_history_screen.dart';
 
 class NotificationScreen extends StatefulWidget {
   final bool showAppBar;
@@ -78,6 +79,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
         if (auth.user?.role == 'admin') {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
         }
+        break;
+      case 'review_reply':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const UserReviewHistoryScreen()));
         break;
       case 'match_join_request':
       case 'order_status':
@@ -546,6 +550,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       case 'match_join_rejected': return AppTheme.error;
       case 'order': return const Color(0xFFF59E0B);
       case 'order_status': return const Color(0xFF8B5CF6);
+      case 'review_reply': return AppTheme.primary;
       default: return AppTheme.accent;
     }
   }
@@ -566,13 +571,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
         return (icon: Icons.shopping_bag_rounded, color: const Color(0xFFF59E0B));
       case 'order_status':
         return (icon: Icons.local_shipping_rounded, color: const Color(0xFF8B5CF6));
+      case 'review_reply':
+        return (icon: Icons.rate_review_rounded, color: AppTheme.primary);
       default:
         return (icon: Icons.notifications_rounded, color: AppTheme.accent);
     }
   }
 
   bool _hasNavigation(String type) {
-    return ['booking', 'booking_status', 'order', 'match_join_success', 'match_join_rejected'].contains(type);
+    return ['booking', 'booking_status', 'order', 'match_join_success', 'match_join_rejected', 'review_reply'].contains(type);
   }
 
   String _formatTime(DateTime dt) {

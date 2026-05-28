@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:shuttlecourt/utils/geocoding_helper.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shuttlecourt/models/badminton_court.dart';
@@ -610,7 +610,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         ? Icons.location_on_rounded
                         : Icons.edit_location_alt_rounded,
                     color: _isPickingLocation ? AppTheme.highlight : AppTheme.primary,
-                    onTap: () => setState(() => _isPickingLocation = !_isPickingLocation),
+                    onTap: () {
+                      if (_isPickingLocation) {
+                        setState(() => _isPickingLocation = false);
+                      } else {
+                        _showSetLocationOptions();
+                      }
+                    },
                     tooltip: 'Đặt vị trí thủ công',
                     marginBottom: 12,
                   ),
@@ -1110,6 +1116,218 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           ],
         ),
       ),
+    );
+  }
+
+  void _showSetLocationOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Cập nhật vị trí của bạn',
+                  style: TextStyle(
+                    color: Color(0xFF1A1A1A),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.location_searching_rounded, color: AppTheme.primary, size: 22),
+                  ),
+                  title: const Text('Nhập địa chỉ bằng chữ', style: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.bold, fontSize: 14)),
+                  subtitle: const Text('Tìm vị trí của bạn qua địa chỉ văn bản', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showAddressInputDialog();
+                  },
+                ),
+                const Divider(height: 24, color: Color(0xFFE2E8F0)),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.map_rounded, color: AppTheme.accent, size: 22),
+                  ),
+                  title: const Text('Chọn trực tiếp trên bản đồ', style: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.bold, fontSize: 14)),
+                  subtitle: const Text('Chạm vào bất kỳ điểm nào trên bản đồ để chọn', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() => _isPickingLocation = true);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Row(
+                          children: [
+                            Icon(Icons.touch_app_rounded, color: Colors.white, size: 18),
+                            SizedBox(width: 10),
+                            Expanded(child: Text('Hãy chạm vào bản đồ để chọn vị trí của bạn')),
+                          ],
+                        ),
+                        backgroundColor: AppTheme.accent,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAddressInputDialog() {
+    final TextEditingController addressCtrl = TextEditingController();
+    bool isSearching = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text(
+                'Nhập địa chỉ của bạn',
+                style: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.w800, fontSize: 18),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Hệ thống sẽ định vị bản đồ và tìm kiếm các sân gần địa chỉ bạn nhập.',
+                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: addressCtrl,
+                    style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 14, fontWeight: FontWeight.w500),
+                    decoration: InputDecoration(
+                      hintText: 'Ví dụ: Cầu Giấy, Hà Nội...',
+                      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+                      ),
+                      prefixIcon: const Icon(Icons.location_on_rounded, color: AppTheme.primary, size: 20),
+                    ),
+                  ),
+                  if (isSearching) ...[
+                    const SizedBox(height: 16),
+                    const LinearProgressIndicator(color: AppTheme.primary),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Hủy', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                ),
+                ElevatedButton(
+                  onPressed: isSearching
+                      ? null
+                      : () async {
+                          final query = addressCtrl.text.trim();
+                          if (query.isEmpty) return;
+
+                          setDialogState(() => isSearching = true);
+                          try {
+                            final locations = await locationFromAddress(query);
+                            if (locations.isNotEmpty) {
+                              final loc = locations.first;
+                              if (mounted) {
+                                setState(() {
+                                  userLat = loc.latitude;
+                                  userLng = loc.longitude;
+                                  _filterNearbyCourts();
+                                });
+                                mapController.move(LatLng(loc.latitude, loc.longitude), 14.5);
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Đã cập nhật vị trí của bạn tới: $query'),
+                                    backgroundColor: AppTheme.success,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                );
+                              }
+                            } else {
+                              throw Exception();
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              setDialogState(() => isSearching = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('Không tìm thấy vị trí. Vui lòng thử lại!'),
+                                  backgroundColor: AppTheme.error,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  ),
+                  child: const Text('Tìm vị trí', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 

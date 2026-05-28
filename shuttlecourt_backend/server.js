@@ -22,6 +22,10 @@ const io = new Server(server, {
     }
 });
 
+// Setup DB Socket.IO hooks
+const db = require('./config/database');
+db.setIo(io);
+
 io.on('connection', (socket) => {
     console.log('🔗 New socket connected:', socket.id);
     
@@ -29,6 +33,12 @@ io.on('connection', (socket) => {
     socket.on('join_court', (courtName) => {
         socket.join(courtName);
         console.log(`Socket ${socket.id} joined room: ${courtName}`);
+    });
+
+    // Join a user-specific room for notifications
+    socket.on('join_user', (userId) => {
+        socket.join(`user_${userId}`);
+        console.log(`Socket ${socket.id} joined user room: user_${userId}`);
     });
 
     socket.on('disconnect', () => {

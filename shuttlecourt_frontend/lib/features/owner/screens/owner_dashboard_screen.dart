@@ -25,7 +25,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   List<SystemNotification> _notifications = [];
   Timer? _timer;
   int _unreadCount = 0;
+  double _dailyRevenue = 0;
   double _monthlyRevenue = 0;
+  double _yearlyRevenue = 0;
   int _pendingCount = 0;
   bool _isLoading = true;
 
@@ -67,16 +69,58 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           _unreadCount = newNotifs.where((n) => !n.isRead).length;
           _pendingCount = bookings.where((b) => b.status == 'Chờ duyệt').length;
 
-          // Revenue Calc
-          double bRev = bookings
-              .where((b) => b.status == 'Đã duyệt' || b.status == 'Đã thanh toán')
+          final now = DateTime.now();
+
+          // Daily Revenue Calc
+          double bRevDaily = bookings
+              .where((b) => (b.status == 'Đã duyệt' || b.status == 'Đã thanh toán' || b.status == 'Đã hoàn thành') &&
+                  b.date.year == now.year && b.date.month == now.month && b.date.day == now.day)
               .fold(0.0, (sum, b) => sum + b.price);
           
-          double sRev = shopOrders
-              .where((o) => o['status'] == 'Đã duyệt' || o['status'] == 'Đã giao')
+          double sRevDaily = shopOrders
+              .where((o) {
+                if (o['status'] != 'Đã duyệt' && o['status'] != 'Đã giao' && o['status'] != 'completed') return false;
+                if (o['created_at'] == null) return false;
+                final od = DateTime.parse(o['created_at'].toString()).toLocal();
+                return od.year == now.year && od.month == now.month && od.day == now.day;
+              })
               .fold(0.0, (sum, o) => sum + (double.tryParse(o['total_price'].toString()) ?? 0.0));
 
-          _monthlyRevenue = bRev + sRev;
+          _dailyRevenue = bRevDaily + sRevDaily;
+
+          // Monthly Revenue Calc
+          double bRevMonthly = bookings
+              .where((b) => (b.status == 'Đã duyệt' || b.status == 'Đã thanh toán' || b.status == 'Đã hoàn thành') &&
+                  b.date.year == now.year && b.date.month == now.month)
+              .fold(0.0, (sum, b) => sum + b.price);
+          
+          double sRevMonthly = shopOrders
+              .where((o) {
+                if (o['status'] != 'Đã duyệt' && o['status'] != 'Đã giao' && o['status'] != 'completed') return false;
+                if (o['created_at'] == null) return false;
+                final od = DateTime.parse(o['created_at'].toString()).toLocal();
+                return od.year == now.year && od.month == now.month;
+              })
+              .fold(0.0, (sum, o) => sum + (double.tryParse(o['total_price'].toString()) ?? 0.0));
+
+          _monthlyRevenue = bRevMonthly + sRevMonthly;
+
+          // Yearly Revenue Calc
+          double bRevYearly = bookings
+              .where((b) => (b.status == 'Đã duyệt' || b.status == 'Đã thanh toán' || b.status == 'Đã hoàn thành') &&
+                  b.date.year == now.year)
+              .fold(0.0, (sum, b) => sum + b.price);
+          
+          double sRevYearly = shopOrders
+              .where((o) {
+                if (o['status'] != 'Đã duyệt' && o['status'] != 'Đã giao' && o['status'] != 'completed') return false;
+                if (o['created_at'] == null) return false;
+                final od = DateTime.parse(o['created_at'].toString()).toLocal();
+                return od.year == now.year;
+              })
+              .fold(0.0, (sum, o) => sum + (double.tryParse(o['total_price'].toString()) ?? 0.0));
+
+          _yearlyRevenue = bRevYearly + sRevYearly;
           _isLoading = false;
         });
       }
@@ -167,46 +211,88 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             gradient: AppTheme.primaryGradient,
             borderRadius: BorderRadius.circular(24),
             boxShadow: AppTheme.premiumShadow,
           ),
-          child: Row(
+          child: Column(
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('TỔNG DOANH THU', style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${_monthlyRevenue.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}đ',
-                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('DOANH THU HÔM NAY', style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_dailyRevenue.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}đ',
+                          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              Container(width: 1, height: 40, color: Colors.white24),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('CHỜ DUYỆT', style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                      const SizedBox(height: 4),
-                      Row(
+                  ),
+                  Container(width: 1, height: 36, color: Colors.white24),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('$_pendingCount', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-                          const SizedBox(width: 8),
-                          if (_pendingCount > 0) const Icon(Icons.emergency_rounded, color: AppTheme.highlight, size: 16),
+                          const Text('LỊCH CHỜ DUYỆT', style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text('$_pendingCount', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                              const SizedBox(width: 6),
+                              if (_pendingCount > 0) const Icon(Icons.emergency_rounded, color: AppTheme.highlight, size: 14),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Divider(color: Colors.white12, height: 1),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('DOANH THU THÁNG', style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_monthlyRevenue.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}đ',
+                          style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w800),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(width: 1, height: 32, color: Colors.white24),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('DOANH THU NĂM', style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_yearlyRevenue.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}đ',
+                            style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w800),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

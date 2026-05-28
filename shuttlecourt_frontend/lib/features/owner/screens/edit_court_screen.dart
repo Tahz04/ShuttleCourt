@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shuttlecourt/config/api_config.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:shuttlecourt/utils/geocoding_helper.dart';
 
 class EditCourtScreen extends StatefulWidget {
   final dynamic court;
@@ -34,6 +35,45 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
   String? _mainImageUrl;
   String? _descImageUrl1;
   String? _descImageUrl2;
+
+  List<dynamic> _addressSuggestions = [];
+  Timer? _debounceTimer;
+
+  void _onAddressChanged(String value) {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 600), () async {
+      final query = value.trim();
+      if (query.length < 3) {
+        setState(() => _addressSuggestions = []);
+        return;
+      }
+      try {
+        final uri = Uri.parse('https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&limit=5&addressdetails=1');
+        final response = await http.get(uri, headers: {
+          'User-Agent': 'ShuttleCourtApp/1.0',
+        });
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (mounted) {
+            setState(() {
+              _addressSuggestions = data;
+            });
+          }
+        }
+      } catch (e) {
+        print('Error fetching address suggestions: $e');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _addressCtrl.dispose();
+    _latCtrl.dispose();
+    _lngCtrl.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
   
   String? _mainLocalPath;
   String? _descLocalPath1;
@@ -139,7 +179,61 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
               _buildSectionHeader('THÔNG TIN CHI TIẾT'),
               const SizedBox(height: 20),
               _buildInput(label: 'Tên sân', initial: _name, onSaved: (v) => _name = v!),
-              _buildModernInput(label: 'Địa chỉ', icon: Icons.location_on_rounded, controller: _addressCtrl, validator: (v) => v!.isEmpty ? 'Vui lòng nhập địa chỉ' : null, onSaved: (v) => _address = v!),
+              _buildModernInput(
+                label: 'Địa chỉ',
+                icon: Icons.location_on_rounded,
+                controller: _addressCtrl,
+                validator: (v) => v!.isEmpty ? 'Vui lòng nhập địa chỉ' : null,
+                onSaved: (v) => _address = v!,
+                onChanged: _onAddressChanged,
+              ),
+              if (_addressSuggestions.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 4, bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _addressSuggestions.length,
+                    separatorBuilder: (context, index) => const Divider(height: 1, color: AppTheme.borderLight),
+                    itemBuilder: (context, index) {
+                      final item = _addressSuggestions[index];
+                      final displayName = item['display_name'] ?? '';
+                      return ListTile(
+                        leading: const Icon(Icons.location_on_rounded, color: AppTheme.primary, size: 20),
+                        title: Text(
+                          displayName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+                        ),
+                        onTap: () {
+                          setState(() {
+                            _addressCtrl.text = displayName;
+                            _address = displayName;
+                            _latCtrl.text = item['lat'] ?? '';
+                            _lngCtrl.text = item['lon'] ?? '';
+                            _latitude = double.tryParse(item['lat']?.toString() ?? '') ?? 0.0;
+                            _longitude = double.tryParse(item['lon']?.toString() ?? '') ?? 0.0;
+                            _addressSuggestions = [];
+                          });
+                          _showStatus('Đã lấy tọa độ từ địa điểm được chọn!');
+                        },
+                      );
+                    },
+                  ),
+                ),
               Row(
                 children: [
                   Expanded(child: _buildModernInput(label: 'Vĩ độ (Lat)', controller: _latCtrl, keyboardType: TextInputType.number, onSaved: (v) => _latitude = double.tryParse(v ?? '') ?? 0)),
@@ -213,13 +307,13 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
     );
   }
 
-  Widget _buildModernInput({required String label, IconData? icon, int maxLines = 1, TextInputType? keyboardType, String? Function(String?)? validator, required void Function(String?) onSaved, TextEditingController? controller}) {
+  Widget _buildModernInput({required String label, IconData? icon, int maxLines = 1, TextInputType? keyboardType, String? Function(String?)? validator, required void Function(String?) onSaved, TextEditingController? controller, ValueChanged<String>? onChanged}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(color: AppTheme.surfaceLight, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppTheme.borderLight)),
       child: TextFormField(
         controller: controller,
-        maxLines: maxLines, keyboardType: keyboardType, validator: validator, onSaved: onSaved,
+        maxLines: maxLines, keyboardType: keyboardType, validator: validator, onSaved: onSaved, onChanged: onChanged,
         style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 15),
         decoration: InputDecoration(labelText: label, labelStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 13), prefixIcon: icon != null ? Icon(icon, color: AppTheme.primary, size: 18) : null, border: InputBorder.none, contentPadding: const EdgeInsets.all(18)),
       ),

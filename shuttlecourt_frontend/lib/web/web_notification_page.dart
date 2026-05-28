@@ -10,6 +10,7 @@ import 'package:shuttlecourt/web/web_navbar.dart';
 import 'package:shuttlecourt/web/web_styles.dart';
 import 'package:shuttlecourt/web/web_owner_dashboard_page.dart';
 import 'package:shuttlecourt/web/web_admin_dashboard_page.dart';
+import 'package:shuttlecourt/features/reviews/screens/user_review_history_screen.dart';
 class WebNotificationPage extends StatefulWidget {
   final Function(int)? onTabChange;
   const WebNotificationPage({super.key, this.onTabChange});
@@ -132,6 +133,9 @@ class _WebNotificationPageState extends State<WebNotificationPage>
         if (auth.user?.role == 'admin') {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const WebAdminDashboardPage()));
         }
+        break;
+      case 'review_reply':
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const UserReviewHistoryScreen()));
         break;
       case 'match_join_request':
       case 'order_status':
@@ -920,6 +924,7 @@ class _WebNotifCardState extends State<_WebNotifCard> {
       case 'match_join_rejected': return AppTheme.error;
       case 'order': return const Color(0xFFF59E0B);
       case 'order_status': return const Color(0xFF8B5CF6);
+      case 'review_reply': return WebStyles.brand;
       default: return WebStyles.brand;
     }
   }
@@ -940,13 +945,15 @@ class _WebNotifCardState extends State<_WebNotifCard> {
         return (icon: Icons.shopping_bag_rounded, color: const Color(0xFFF59E0B));
       case 'order_status':
         return (icon: Icons.local_shipping_rounded, color: const Color(0xFF8B5CF6));
+      case 'review_reply':
+        return (icon: Icons.rate_review_rounded, color: WebStyles.brand);
       default:
         return (icon: Icons.notifications_rounded, color: WebStyles.brand);
     }
   }
 
   bool _hasNavigation(String type) {
-    return ['booking', 'booking_status', 'order', 'match_join_success', 'match_join_rejected'].contains(type);
+    return ['booking', 'booking_status', 'order', 'match_join_success', 'match_join_rejected', 'review_reply'].contains(type);
   }
 
   String _formatTime(DateTime dt) {

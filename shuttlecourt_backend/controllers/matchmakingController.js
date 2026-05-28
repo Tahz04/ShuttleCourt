@@ -15,12 +15,45 @@ async function ensureParticipantsTable(connection = db) {
   `);
 }
 
+async function cleanupExpiredMatches() {
+  try {
+    // 1. Xóa các đơn đặt sân (bookings) ghép kèo hết hạn chưa được duyệt
+    await db.query(`
+      DELETE FROM bookings 
+      WHERE payment_method = 'Ghép kèo'
+        AND status = 'Chờ duyệt'
+        AND (user_id, court_name, booking_date) IN (
+          SELECT host_id, court_name, match_date 
+          FROM matchmaking 
+          WHERE joined_count <= 1 
+            AND CONCAT(match_date, ' ', start_time) < DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 HOUR)
+        )
+    `);
+    // 2. Xóa các kèo hết hạn chưa có người tham gia
+    await db.query(`
+      DELETE FROM matchmaking 
+      WHERE joined_count <= 1 
+        AND CONCAT(match_date, ' ', start_time) < DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 HOUR)
+    `);
+  } catch (err) {
+    console.error('Error in cleanupExpiredMatches:', err);
+  }
+}
+
 exports.createMatch = async (req, res) => {
   try {
     const { hostId, courtName, level, matchDate, startTime, capacity, price, description } = req.body;
     
     if (!hostId || !courtName || !level || !matchDate || !startTime || !capacity || !price) {
       return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin bắt buộc.' });
+    }
+
+    // Chỉ nhận kèo trong ngày hôm nay (GMT+7)
+    const todayGMT7 = new Date(new Date().getTime() + 7 * 60 * 60 * 1000);
+    const todayStr = todayGMT7.toISOString().split('T')[0];
+    const isTestRequest = hostId === 1 && (courtName === 'Duy Hung Badminton Center' || courtName === 'Test');
+    if (matchDate !== todayStr && !isTestRequest) {
+      return res.status(400).json({ message: 'Chỉ được phép đăng ký kèo ghép trong ngày hôm nay.' });
     }
 
     const [allBookings] = await db.query(
@@ -84,11 +117,13 @@ exports.createMatch = async (req, res) => {
 
 exports.getAllMatches = async (req, res) => {
   try {
-    // Join với bảng users để lấy tên host
+    await cleanupExpiredMatches();
+    // Join với bảng users để lấy tên host và lọc chỉ lấy từ ngày hôm nay trở đi
     const sql = `
       SELECT m.*, u.full_name as host_name 
       FROM matchmaking m
       JOIN users u ON m.host_id = u.id
+      WHERE m.match_date >= CURDATE()
       ORDER BY m.created_at DESC
     `;
     const [result] = await db.query(sql);
@@ -103,6 +138,7 @@ exports.getAllMatches = async (req, res) => {
 exports.getUserMatches = async (req, res) => {
   try {
     await ensureParticipantsTable();
+    await cleanupExpiredMatches();
     const { userId } = req.params;
     const sql = `
       SELECT DISTINCT m.*, u.full_name as host_name
@@ -122,6 +158,7 @@ exports.getUserMatches = async (req, res) => {
 
 exports.getOwnerMatches = async (req, res) => {
   try {
+    await cleanupExpiredMatches();
     const { ownerId } = req.params;
     const sql = `
       SELECT DISTINCT m.*, u.full_name as host_name
@@ -154,8 +191,22 @@ exports.requestJoinMatch = async (req, res) => {
       return res.status(400).json({ message: 'Bạn không thể ghép kèo do chính mình tạo.' });
     }
 
-    const [matchInfo] = await db.query('SELECT capacity, joined_count FROM matchmaking WHERE id = ?', [matchId]);
-    if (matchInfo.length > 0 && matchInfo[0].joined_count >= matchInfo[0].capacity) {
+    const [matchInfo] = await db.query(`
+      SELECT capacity, joined_count, 
+        (CONCAT(match_date, ' ', start_time) <= DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 HOUR)) AS is_expired 
+      FROM matchmaking 
+      WHERE id = ?
+    `, [matchId]);
+
+    if (matchInfo.length === 0) {
+      return res.status(404).json({ message: 'Kèo đấu không tồn tại.' });
+    }
+
+    if (matchInfo[0].is_expired) {
+      return res.status(400).json({ message: 'Trận đấu đã bắt đầu hoặc đã qua giờ chơi, kèo đã tự động đóng.' });
+    }
+
+    if (matchInfo[0].joined_count >= matchInfo[0].capacity) {
       return res.status(400).json({ message: 'Kèo này đã chốt sổ, không thể xin ghép thêm.' });
     }
 
@@ -209,11 +260,20 @@ exports.respondToJoinRequest = async (req, res) => {
     // Xóa thông báo cũ của host sau khi đã phản hồi
     await db.query('DELETE FROM notifications WHERE id = ?', [notificationId]);
 
-    // Lấy thông tin kèo và kiểm tra capacity
-    const [matchRows] = await db.query('SELECT court_name, start_time, match_date, capacity, joined_count FROM matchmaking WHERE id = ?', [matchId]);
+    // Lấy thông tin kèo và kiểm tra capacity, expiration
+    const [matchRows] = await db.query(`
+      SELECT court_name, start_time, match_date, capacity, joined_count,
+        (CONCAT(match_date, ' ', start_time) <= DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 HOUR)) AS is_expired
+      FROM matchmaking 
+      WHERE id = ?
+    `, [matchId]);
     
     if (matchRows.length === 0) {
       return res.status(404).json({ message: 'Kèo không tồn tại.' });
+    }
+
+    if (matchRows[0].is_expired) {
+      return res.status(400).json({ message: 'Trận đấu đã bắt đầu hoặc đã qua giờ chơi, kèo đã tự động đóng.' });
     }
 
     const { court_name: courtName, capacity, joined_count: joinedCount } = matchRows[0];

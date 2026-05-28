@@ -16,6 +16,10 @@ import 'package:shuttlecourt/features/admin/screens/admin_dashboard_screen.dart'
 import 'package:shuttlecourt/features/booking/screens/booking_history_screen.dart';
 import 'package:shuttlecourt/services/notification_service.dart';
 import 'package:shuttlecourt/features/notifications/notification_screen.dart';
+import 'package:shuttlecourt/services/socket_service.dart';
+import 'dart:async';
+import 'package:shuttlecourt/services/court_service.dart';
+import 'package:shuttlecourt/models/badminton_court.dart';
 import 'package:shuttlecourt/features/reviews/screens/user_review_history_screen.dart';
 import 'package:shuttlecourt/services/location_service.dart';
 import 'package:shuttlecourt/web/web_home_page.dart';
@@ -85,6 +89,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   int _selectedIndex = 0;
   late final AnimationController _fadeController;
   String? _mapSearchQuery;
+  AuthService? _authService;
+  StreamSubscription? _notificationSubscription;
 
   List<Widget> get _screens => [
     HomeScreen(onTabChange: _onItemTapped),
@@ -103,8 +109,65 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = Provider.of<AuthService>(context);
+    if (auth != _authService) {
+      _authService = auth;
+      _notificationSubscription?.cancel();
+      if (auth.isAuthenticated) {
+        SocketService().connect();
+        SocketService().joinUser(auth.user!.id);
+        _notificationSubscription = SocketService().notificationStream.listen((data) {
+          _handleNewNotification(data);
+        });
+      }
+    }
+  }
+
+  void _handleNewNotification(dynamic data) {
+    if (!mounted) return;
+    final title = data['title'] ?? 'Thông báo mới';
+    final message = data['message'] ?? '';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    message,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.85)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: AppTheme.primary,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  @override
   void dispose() {
     _fadeController.dispose();
+    _notificationSubscription?.cancel();
     super.dispose();
   }
 
@@ -348,11 +411,49 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late Future<List<CourtWithDistance>> _nearestCourtsFuture;
+  List<BadmintonCourt> _allCourts = [];
+  List<BadmintonCourt> _searchSuggestions = [];
+  final TextEditingController _searchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _refresh();
+    _loadAllCourts();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAllCourts() async {
+    try {
+      final list = await CourtService.getAllCourts();
+      if (mounted) {
+        setState(() {
+          _allCourts = list;
+        });
+      }
+    } catch (e) {
+      print('Error loading courts: $e');
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    if (query.trim().isEmpty) {
+      setState(() {
+        _searchSuggestions = [];
+      });
+      return;
+    }
+    final q = query.trim().toLowerCase();
+    setState(() {
+      _searchSuggestions = _allCourts.where((c) {
+        return c.name.toLowerCase().contains(q) || c.address.toLowerCase().contains(q);
+      }).toList();
+    });
   }
 
   void _refresh() {
@@ -474,27 +575,77 @@ class _HomeScreenState extends State<HomeScreen> {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceLight,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: AppTheme.softShadow,
-            border: Border.all(color: AppTheme.borderLight),
-          ),
-          child: TextField(
-            onSubmitted: (value) {
-              if (value.trim().isNotEmpty) {
-                widget.onTabChange?.call(1, query: value.trim());
-              }
-            },
-            decoration: const InputDecoration(
-              hintText: 'Tìm kiếm sân cầu lông...',
-              prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primary),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceLight,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: AppTheme.softShadow,
+                border: Border.all(color: AppTheme.borderLight),
+              ),
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: _onSearchChanged,
+                onSubmitted: (value) {
+                  if (value.trim().isNotEmpty) {
+                    widget.onTabChange?.call(1, query: value.trim());
+                  }
+                },
+                decoration: const InputDecoration(
+                  hintText: 'Tìm kiếm sân cầu lông...',
+                  prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primary),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
             ),
-          ),
+            if (_searchSuggestions.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.borderLight),
+                  boxShadow: AppTheme.softShadow,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _searchSuggestions.length,
+                  separatorBuilder: (context, index) => const Divider(height: 1, color: AppTheme.borderLight),
+                  itemBuilder: (context, index) {
+                    final court = _searchSuggestions[index];
+                    return ListTile(
+                      leading: const Icon(Icons.sports_tennis_rounded, color: AppTheme.primary, size: 20),
+                      title: Text(
+                        court.name,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                      ),
+                      subtitle: Text(
+                        court.address,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                      ),
+                      onTap: () {
+                        setState(() {
+                          _searchCtrl.text = court.name;
+                          _searchSuggestions = [];
+                        });
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BookingScreen(initialCourt: court),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -734,11 +885,21 @@ class UserNotificationBell extends StatefulWidget {
 
 class _UserNotificationBellState extends State<UserNotificationBell> {
   int _unreadCount = 0;
+  StreamSubscription? _notificationSubscription;
 
   @override
   void initState() {
     super.initState();
     _fetch();
+    _notificationSubscription = SocketService().notificationStream.listen((_) {
+      _fetch();
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetch() async {

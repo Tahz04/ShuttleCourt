@@ -19,7 +19,7 @@ exports.createBooking = async (req, res) => {
 
                 // Kiểm tra trùng lịch (Concurrency Check - Overlap logic)
         const [existing] = await db.query(
-            "SELECT slot FROM bookings WHERE court_name = ? AND booking_date = ? AND status != 'Đã hủy' AND status != 'Từ chối' AND status != 'Đã hoàn thành'",
+            "SELECT slot FROM bookings WHERE court_name = ? AND booking_date = ? AND status IN ('Đã duyệt', 'Đã thanh toán', 'Đã hoàn thành')",
             [court_name, booking_date]
         );
 
@@ -169,13 +169,60 @@ exports.updateBookingStatus = async (req, res) => {
             if (req.io) { req.io.to(booking.court_name).emit('booking_updated', { court_name: booking.court_name, booking_date: booking.booking_date, slot: booking.slot, status }); }
             
             if (status === 'Từ chối' || status === 'Đã hủy' || status === 'Đã hoàn thành') {
+                const startTimePrefix = booking.slot.split(' - ')[0].trim();
                 await db.query(
-                    "DELETE FROM matchmaking WHERE court_name = ? AND match_date = ? AND start_time = ?",
-                    [booking.court_name, booking.booking_date, booking.slot]
+                    "DELETE FROM matchmaking WHERE court_name = ? AND match_date = ? AND start_time LIKE ?",
+                    [booking.court_name, booking.booking_date, `${startTimePrefix}%`]
                 );
             }
 
-                        let icon = 'ℹ️';
+            // Tự động từ chối các booking trùng lịch khác đang "Chờ duyệt" nếu trạng thái mới là "Đã duyệt" hoặc "Đã thanh toán"
+            if (status === 'Đã duyệt' || status === 'Đã thanh toán') {
+                const [otherPending] = await db.query(
+                    "SELECT id, user_id, slot FROM bookings WHERE court_name = ? AND booking_date = ? AND status = 'Chờ duyệt' AND id != ?",
+                    [booking.court_name, booking.booking_date, id]
+                );
+
+                const approvedStartMins = parseInt(booking.slot.split(' - ')[0].split(':')[0]) * 60 + parseInt(booking.slot.split(' - ')[0].split(':')[1]);
+                const approvedEndMins = parseInt(booking.slot.split(' - ')[1].split(':')[0]) * 60 + parseInt(booking.slot.split(' - ')[1].split(':')[1]);
+
+                for (const other of otherPending) {
+                    let otherStartMins, otherEndMins;
+                    if (other.slot.includes(' - ')) {
+                        const [s, e] = other.slot.split(' - ');
+                        otherStartMins = parseInt(s.split(':')[0]) * 60 + parseInt(s.split(':')[1]);
+                        otherEndMins = parseInt(e.split(':')[0]) * 60 + parseInt(e.split(':')[1]);
+                    } else {
+                        otherStartMins = parseInt(other.slot.split(':')[0]) * 60 + parseInt(other.slot.split(':')[1]);
+                        otherEndMins = otherStartMins + 60;
+                    }
+
+                    if (approvedStartMins < otherEndMins && approvedEndMins > otherStartMins) {
+                        // Trùng lịch -> cập nhật thành 'Từ chối'
+                        await db.query("UPDATE bookings SET status = 'Từ chối' WHERE id = ?", [other.id]);
+                        
+                        // Gửi thông báo cho user bị từ chối
+                        const title = "❌ Lịch đặt sân bị từ chối";
+                        const message = `Rất tiếc! Lịch đặt tại "${booking.court_name}" vào ngày ${booking.booking_date} (Khung giờ: ${other.slot}) đã bị từ chối do có khách khác đặt trước.`;
+                        await db.query(
+                            "INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)",
+                            [other.user_id, title, message, "booking_status"]
+                        );
+                        
+                        // Gửi qua socket cho user đó
+                        if (req.io) {
+                            req.io.to(booking.court_name).emit('booking_updated', {
+                                court_name: booking.court_name,
+                                booking_date: booking.booking_date,
+                                slot: other.slot,
+                                status: 'Từ chối'
+                            });
+                        }
+                    }
+                }
+            }
+
+            let icon = 'ℹ️';
             let msg = `Lịch đặt tại "${booking.court_name}" của bạn đã được cập nhật thành: ${status}.`;
             
             if (status === 'Đã duyệt') {
@@ -219,7 +266,7 @@ exports.getBookedSlots = async (req, res) => {
         const sql = `
             SELECT slot FROM bookings 
             WHERE court_name = ? AND booking_date = ? 
-            AND status != 'Đã hủy' AND status != 'Từ chối' AND status != 'Đã hoàn thành'
+            AND status IN ('Đã duyệt', 'Đã thanh toán', 'Đã hoàn thành')
         `;
         const [rows] = await db.query(sql, [court_name, booking_date]);
         

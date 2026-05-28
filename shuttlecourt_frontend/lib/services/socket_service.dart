@@ -1,9 +1,13 @@
+import 'dart:async';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:shuttlecourt/config/api_config.dart';
 
 class SocketService {
   static final SocketService _instance = SocketService._internal();
   IO.Socket? _socket;
+  final _notificationStreamController = StreamController<dynamic>.broadcast();
+
+  Stream<dynamic> get notificationStream => _notificationStreamController.stream;
 
   factory SocketService() {
     return _instance;
@@ -31,11 +35,23 @@ class SocketService {
     _socket!.onDisconnect((_) {
       print('🔌 Socket.IO disconnected');
     });
+
+    _socket!.on('new_notification', (data) {
+      print('📡 Socket.IO new_notification received: $data');
+      _notificationStreamController.add(data);
+    });
   }
 
   void joinCourt(String courtName) {
     if (_socket != null && _socket!.connected) {
       _socket!.emit('join_court', courtName);
+    }
+  }
+
+  void joinUser(String userId) {
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit('join_user', userId);
+      print('📡 Socket.IO join_user emitted for: $userId');
     }
   }
 

@@ -232,8 +232,27 @@ class _OwnerBookingManagementScreenState extends State<OwnerBookingManagementScr
     return Column(
       children: [
         if (bookings.isNotEmpty) ...[
-          _SectionHeader(_showPendingOnly ? 'ĐÒN ĐẶT CHỜ DUYỆT' : 'ĐẶT SÂN RIÊNG'),
-          ...bookings.map((b) => _BookingItem(b, (status) => _updateStatus(b.id, status), currencyFormat)),
+          _SectionHeader(_showPendingOnly ? 'ĐƠN ĐẶT CHỜ DUYỆT' : 'ĐẶT SÂN RIÊNG'),
+          ...bookings.map((b) {
+            MatchModel? match;
+            if (b.paymentMethod == 'Ghép kèo') {
+              try {
+                match = _matches.firstWhere(
+                  (m) => m.courtName == b.courtName &&
+                         m.matchDate.year == b.date.year &&
+                         m.matchDate.month == b.date.month &&
+                         m.matchDate.day == b.date.day &&
+                         b.slot.startsWith(m.startTime.substring(0, 5)),
+                );
+              } catch (_) {}
+            }
+            return _BookingItem(
+              b,
+              (status) => _updateStatus(b.id, status),
+              currencyFormat,
+              match: match,
+            );
+          }),
         ],
         if (matches.isNotEmpty) ...[
           const _SectionHeader('KÈO GHÉP THÀNH CÔNG'),
@@ -309,18 +328,25 @@ class _BookingItem extends StatelessWidget {
   final Booking b;
   final Function(String) onUpdate;
   final NumberFormat format;
-  const _BookingItem(this.b, this.onUpdate, this.format);
+  final MatchModel? match;
+  const _BookingItem(this.b, this.onUpdate, this.format, {this.match});
 
   @override
   Widget build(BuildContext context) {
     bool isPending = b.status == 'Chờ duyệt';
+    bool isMatchmaking = b.paymentMethod == 'Ghép kèo';
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppTheme.cardDark,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: isPending ? AppTheme.primary.withValues(alpha: 0.2) : AppTheme.borderDark),
+        border: Border.all(
+          color: isMatchmaking 
+              ? Colors.deepPurpleAccent.withValues(alpha: 0.5)
+              : (isPending ? AppTheme.primary.withValues(alpha: 0.2) : AppTheme.borderDark),
+          width: isMatchmaking ? 1.5 : 1.0,
+        ),
       ),
       child: Column(
         children: [
@@ -336,9 +362,33 @@ class _BookingItem extends StatelessWidget {
                       if (b.paymentMethod == 'Ghép kèo') ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: AppTheme.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
-                          child: const Text('KÈO GHÉP', style: TextStyle(color: AppTheme.accent, fontSize: 9, fontWeight: FontWeight.bold)),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Colors.deepPurple, Colors.purpleAccent],
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.purpleAccent.withValues(alpha: 0.3),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              )
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.people_alt_rounded, size: 10, color: Colors.white),
+                              const SizedBox(width: 4),
+                              Text(
+                                match != null 
+                                  ? 'KÈO GHÉP (${match!.joinedCount}/${match!.capacity})'
+                                  : 'KÈO GHÉP',
+                                style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ],
@@ -354,9 +404,27 @@ class _BookingItem extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _info(Icons.access_time_rounded, b.slot),
-              _info(Icons.payments_outlined, format.format(b.price)),
+              if (match != null)
+                _info(Icons.bolt_rounded, 'Trình độ: ${match!.level}')
+              else
+                _info(Icons.payments_outlined, format.format(b.price)),
             ],
           ),
+          if (match != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _info(Icons.payments_outlined, format.format(b.price)),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: _info(Icons.info_outline_rounded, match!.description.isEmpty ? 'Không mô tả' : match!.description),
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (isPending) ...[
             const SizedBox(height: 20),
             Row(

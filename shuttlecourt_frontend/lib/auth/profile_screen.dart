@@ -13,6 +13,8 @@ import 'package:shuttlecourt/features/admin/screens/admin_dashboard_screen.dart'
 import 'package:shuttlecourt/features/shop/screens/user_order_history_screen.dart';
 import 'package:shuttlecourt/features/reviews/screens/user_review_history_screen.dart';
 import 'language_settings_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -198,7 +200,7 @@ class ProfileScreen extends StatelessWidget {
         _buildSettingTile(context, Icons.shield_outlined, 'Bảo mật & Mật khẩu', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SecurityScreen()))),
         _buildSettingTile(context, Icons.notifications_none_rounded, 'Thông báo', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()))),
         _buildSettingTile(context, Icons.language_rounded, 'Ngôn ngữ', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LanguageSettingsScreen()))),
-        _buildSettingTile(context, Icons.help_outline_rounded, 'Hỗ trợ khách hàng', () => _showComingSoon(context, 'Hỗ trợ')),
+        _buildSettingTile(context, Icons.help_outline_rounded, 'Hỗ trợ khách hàng', () => _showSupportBottomSheet(context)),
       ],
     );
   }
@@ -224,9 +226,199 @@ class ProfileScreen extends StatelessWidget {
     Navigator.push(context, MaterialPageRoute(builder: (_) => EditProfileScreen(user: user)));
   }
 
-  void _showComingSoon(BuildContext context, String feature) {
+  void _showSupportBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withOpacity(0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.headset_mic_rounded,
+                      color: AppTheme.primary,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hỗ trợ khách hàng',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Đội ngũ ShuttleCourt luôn đồng hành cùng bạn',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildSupportActionTile(
+                context,
+                icon: Icons.phone_forwarded_rounded,
+                title: 'Gọi Hotline hỗ trợ',
+                subtitle: '0986049032',
+                color: AppTheme.primary,
+                onTap: () async {
+                  final uri = Uri.parse('tel:0986049032');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri);
+                  } else {
+                    _showToast(context, 'Không thể thực hiện cuộc gọi trực tiếp.');
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSupportActionTile(
+                context,
+                icon: Icons.chat_bubble_outline_rounded,
+                title: 'Liên hệ Zalo chăm sóc khách hàng',
+                subtitle: 'Nhắn tin Zalo trực tiếp',
+                color: const Color(0xFF0068FF),
+                onTap: () async {
+                  final uri = Uri.parse('https://zalo.me/0986049032');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    _showToast(context, 'Không thể kết nối Zalo.');
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildSupportActionTile(
+                context,
+                icon: Icons.copy_all_rounded,
+                title: 'Sao chép số Hotline',
+                subtitle: '0986049032',
+                color: AppTheme.accent,
+                onTap: () {
+                  Clipboard.setData(const ClipboardData(text: '0986049032'));
+                  Navigator.pop(context);
+                  _showToast(context, 'Đã sao chép Hotline: 0986049032');
+                },
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Giờ làm việc: 08:00 - 22:00 hàng ngày\nEmail: support@shuttlecourt.com',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade500,
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSupportActionTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade100),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showToast(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Tính năng $feature đang được phát triển!'), backgroundColor: AppTheme.accent),
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: AppTheme.textPrimary,
+      ),
     );
   }
 

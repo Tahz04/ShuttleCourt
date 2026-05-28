@@ -25,6 +25,7 @@ dependencies:
 
   path: any
   socket_io_client: ^3.1.4
+  url_launcher: ^6.3.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

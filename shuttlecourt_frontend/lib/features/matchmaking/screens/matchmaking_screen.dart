@@ -205,7 +205,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> with TickerProvid
     final bool isPro = match.level == 'Pro' || match.level == 'Khá';
     final String dateStr = DateFormat('dd/MM').format(match.matchDate);
     final String timeStr = match.startTime.substring(0, 5);
-    final bool isLocked = match.joinedCount >= match.capacity;
+    final bool isLocked = match.joinedCount >= match.capacity || match.isExpired;
 
     return Opacity(
       opacity: isLocked ? 0.6 : 1.0,
@@ -230,17 +230,25 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> with TickerProvid
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isLocked 
-                              ? Colors.grey.shade200 
-                              : (isPro ? AppTheme.warning : AppTheme.success).withValues(alpha: 0.1),
+                          color: match.joinedCount >= match.capacity
+                              ? Colors.grey.shade200
+                              : (match.isExpired
+                                  ? AppTheme.error.withValues(alpha: 0.1)
+                                  : (isPro ? AppTheme.warning : AppTheme.success).withValues(alpha: 0.1)),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          isLocked ? 'ĐÃ CHỐT SỔ' : match.level.toUpperCase(),
+                          match.joinedCount >= match.capacity
+                              ? 'ĐÃ CHỐT SỔ'
+                              : (match.isExpired ? 'ĐÃ KHÓA' : match.level.toUpperCase()),
                           style: TextStyle(
-                            fontSize: 10, 
-                            fontWeight: FontWeight.w900, 
-                            color: isLocked ? Colors.grey.shade600 : (isPro ? AppTheme.warning : AppTheme.success),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: match.joinedCount >= match.capacity
+                                ? Colors.grey.shade600
+                                : (match.isExpired
+                                    ? AppTheme.error
+                                    : (isPro ? AppTheme.warning : AppTheme.success)),
                           ),
                         ),
                       ),
@@ -295,7 +303,12 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> with TickerProvid
                       foregroundColor: Colors.white,
                       minimumSize: Size.zero,
                     ),
-                    child: Text(isLocked ? 'Đã đầy' : 'Tham gia', style: const TextStyle(fontSize: 12)),
+                    child: Text(
+                      match.joinedCount >= match.capacity
+                          ? 'Đã đầy'
+                          : (match.isExpired ? 'Đã khóa' : 'Tham gia'),
+                      style: const TextStyle(fontSize: 12),
+                    ),
                   ),
                 ],
               ),

@@ -25,6 +25,25 @@ class MatchModel {
     this.description = '',
   });
 
+  bool get isExpired {
+    try {
+      final timeParts = startTime.split(':');
+      if (timeParts.length >= 2) {
+        final hour = int.parse(timeParts[0]);
+        final minute = int.parse(timeParts[1]);
+        final matchDateTime = DateTime(
+          matchDate.year,
+          matchDate.month,
+          matchDate.day,
+          hour,
+          minute,
+        );
+        return DateTime.now().isAfter(matchDateTime);
+      }
+    } catch (_) {}
+    return false;
+  }
+
   factory MatchModel.fromJson(Map<String, dynamic> json) {
     return MatchModel(
       id: json['id'],

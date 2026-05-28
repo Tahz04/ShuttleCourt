@@ -435,17 +435,18 @@ class _MatchCardState extends State<_MatchCard> {
     final m = widget.match;
     final fill = m.joinedCount / m.capacity;
     final full = fill >= 1.0;
-    final levelC = _levelColor[m.level] ?? WebStyles.brand;
+    final isLocked = full || m.isExpired;
+    final levelC = m.isExpired ? const Color(0xFFDC2626) : (_levelColor[m.level] ?? WebStyles.brand);
     final dateStr = DateFormat('dd/MM/yyyy').format(m.matchDate);
     final timeStr = m.startTime.substring(0, 5);
 
     return MouseRegion(
-      cursor: full ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      cursor: isLocked ? SystemMouseCursors.basic : SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        decoration: _hovered && !full
+        decoration: _hovered && !isLocked
             ? WebStyles.cardActive(levelC)
             : WebStyles.card,
         child: Column(
@@ -468,7 +469,9 @@ class _MatchCardState extends State<_MatchCard> {
                       borderRadius: BorderRadius.circular(WebStyles.rSm),
                     ),
                     child: Text(
-                      m.level.toUpperCase(),
+                      m.joinedCount >= m.capacity
+                          ? 'ĐÃ CHỐT SỔ'
+                          : (m.isExpired ? 'ĐÃ KHÓA' : m.level.toUpperCase()),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
@@ -483,7 +486,7 @@ class _MatchCardState extends State<_MatchCard> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w900,
-                      color: levelC,
+                      color: isLocked ? Colors.grey : levelC,
                     ),
                   ),
                 ],
@@ -571,10 +574,10 @@ class _MatchCardState extends State<_MatchCard> {
                 width: double.infinity,
                 height: 38,
                 child: ElevatedButton(
-                  onPressed: full ? null : widget.onJoin,
+                  onPressed: isLocked ? null : widget.onJoin,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: full ? WebStyles.border : levelC,
-                    foregroundColor: full ? WebStyles.inkFaint : Colors.white,
+                    backgroundColor: isLocked ? WebStyles.border : levelC,
+                    foregroundColor: isLocked ? WebStyles.inkFaint : Colors.white,
                     disabledBackgroundColor: WebStyles.border,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -582,7 +585,9 @@ class _MatchCardState extends State<_MatchCard> {
                     ),
                   ),
                   child: Text(
-                    full ? 'Đã đầy' : 'Tham gia',
+                    m.joinedCount >= m.capacity
+                        ? 'Đã đầy'
+                        : (m.isExpired ? 'Đã khóa' : 'Tham gia'),
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                   ),
                 ),

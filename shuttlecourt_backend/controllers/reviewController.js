@@ -120,6 +120,27 @@ exports.replyToReview = async (req, res) => {
             'UPDATE reviews SET owner_reply = ?, owner_reply_at = CURRENT_TIMESTAMP WHERE id = ?',
             [reply, reviewId]
         );
+
+        // Fetch reviewer ID and court name to send notification
+        const [reviewRows] = await db.execute(
+            'SELECT r.user_id, c.name as court_name FROM reviews r JOIN courts c ON r.court_id = c.id WHERE r.id = ?',
+            [reviewId]
+        );
+
+        if (reviewRows.length > 0) {
+            const reviewerId = reviewRows[0].user_id;
+            const courtName = reviewRows[0].court_name;
+
+            await db.execute(
+                'INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)',
+                [
+                    reviewerId,
+                    '💬 Phản hồi đánh giá',
+                    `Chủ sân "${courtName}" đã phản hồi đánh giá của bạn: "${reply.length > 60 ? reply.substring(0, 57) + '...' : reply}"`,
+                    'review_reply'
+                ]
+            );
+        }
         
         res.json({ success: true, message: 'Reply added successfully' });
     } catch (error) {
