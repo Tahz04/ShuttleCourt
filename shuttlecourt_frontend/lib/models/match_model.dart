@@ -32,12 +32,20 @@ class MatchModel {
       hostName: json['host_name'] ?? 'Ẩn danh',
       courtName: json['court_name'],
       level: json['level'],
-      matchDate: DateTime.parse(json['match_date']),
+      matchDate: _parseDateOnly(json['match_date']),
       startTime: json['start_time'],
       capacity: json['capacity'],
       joinedCount: json['joined_count'] ?? 1,
       price: double.parse(json['price'].toString()),
       description: json['description'] ?? '',
     );
+  }
+
+  static DateTime _parseDateOnly(dynamic raw) {
+    if (raw == null) {
+      return DateTime.now();
+    }
+    final parsed = DateTime.parse(raw.toString()).toLocal();
+    return DateTime(parsed.year, parsed.month, parsed.day);
   }
 }

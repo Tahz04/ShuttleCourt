@@ -20,4 +20,13 @@ router.get('/all', reviewController.getAllReviews);
 // Reply to a review (for owners)
 router.post('/reply/:id', reviewController.replyToReview);
 
+// Owner reports a review
+router.post('/report/:id', reviewController.reportReview);
+
+// Admin: get reported reviews
+router.get('/reports', reviewController.getReviewReports);
+
+// Admin: resolve a report
+router.put('/reports/:reportId/resolve', reviewController.resolveReviewReport);
+
 module.exports = router;

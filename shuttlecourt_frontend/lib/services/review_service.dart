@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shuttlecourt/config/api_config.dart';
 import 'package:shuttlecourt/models/review.dart';
+import 'package:shuttlecourt/models/review_report.dart';
 
 class ReviewService {
   static Future<bool> createReview({
@@ -37,12 +38,16 @@ class ReviewService {
 
   static Future<Map<String, dynamic>> getCourtReviews(int courtId) async {
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/reviews/court/$courtId'));
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/reviews/court/$courtId'),
+      );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
           final List<dynamic> rawReviews = data['reviews'];
-          final reviews = rawReviews.map((json) => Review.fromJson(json)).toList();
+          final reviews = rawReviews
+              .map((json) => Review.fromJson(json))
+              .toList();
           return {
             'reviews': reviews,
             'averageRating': data['averageRating'],
@@ -60,7 +65,9 @@ class ReviewService {
 
   static Future<List<Review>> getUserReviews(int userId) async {
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/reviews/user/$userId'));
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/reviews/user/$userId'),
+      );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
@@ -78,7 +85,9 @@ class ReviewService {
 
   static Future<List<Review>> getOwnerReviews(int ownerId) async {
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/reviews/owner/$ownerId'));
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/reviews/owner/$ownerId'),
+      );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
@@ -96,7 +105,9 @@ class ReviewService {
 
   static Future<List<Review>> getAllReviews() async {
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/reviews/all'));
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/reviews/all'),
+      );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
@@ -120,15 +131,75 @@ class ReviewService {
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/reviews/reply/$reviewId'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'reply': reply,
-        }),
+        body: json.encode({'reply': reply}),
       );
 
       final data = json.decode(response.body);
       return data['success'] == true;
     } catch (e) {
       print('=== ReviewService: Error replying to review ===');
+      print(e);
+      return false;
+    }
+  }
+
+  static Future<bool> reportReview({
+    required int reviewId,
+    required int ownerId,
+    String? reason,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/reviews/report/$reviewId'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'ownerId': ownerId, 'reason': reason}),
+      );
+
+      final data = json.decode(response.body);
+      return data['success'] == true;
+    } catch (e) {
+      print('=== ReviewService: Error reporting review ===');
+      print(e);
+      return false;
+    }
+  }
+
+  static Future<List<ReviewReport>> getReviewReports() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/reviews/reports'),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          final List<dynamic> rawReports = data['reports'];
+          return rawReports.map((json) => ReviewReport.fromJson(json)).toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      print('=== ReviewService: Error getting review reports ===');
+      print(e);
+      return [];
+    }
+  }
+
+  static Future<bool> resolveReviewReport({
+    required int reportId,
+    required String action,
+    int? adminId,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('${ApiConfig.baseUrl}/reviews/reports/$reportId/resolve'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'action': action, 'adminId': adminId}),
+      );
+
+      final data = json.decode(response.body);
+      return data['success'] == true;
+    } catch (e) {
+      print('=== ReviewService: Error resolving review report ===');
       print(e);
       return false;
     }

@@ -9,6 +9,7 @@ class Review {
   final DateTime createdAt;
   final String? userName;
   final String? courtName;
+  final String? ownerName;
 
   final String? ownerReply;
   final DateTime? ownerReplyAt;
@@ -24,6 +25,7 @@ class Review {
     required this.createdAt,
     this.userName,
     this.courtName,
+    this.ownerName,
     this.ownerReply,
     this.ownerReplyAt,
   });
@@ -33,14 +35,21 @@ class Review {
     if (json['photos'] != null) {
       if (json['photos'] is String) {
         try {
-            final parsedString = json['photos'] as String;
-            if (parsedString.startsWith('[') && parsedString.endsWith(']')) {
-              parsedPhotos = parsedString.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-            } else {
-              parsedPhotos = [parsedString];
-            }
+          final parsedString = json['photos'] as String;
+          if (parsedString.startsWith('[') && parsedString.endsWith(']')) {
+            parsedPhotos = parsedString
+                .replaceAll('[', '')
+                .replaceAll(']', '')
+                .replaceAll('"', '')
+                .split(',')
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty)
+                .toList();
+          } else {
+            parsedPhotos = [parsedString];
+          }
         } catch (e) {
-            parsedPhotos = [];
+          parsedPhotos = [];
         }
       } else if (json['photos'] is List) {
         parsedPhotos = List<String>.from(json['photos']);
@@ -58,8 +67,11 @@ class Review {
       createdAt: DateTime.parse(json['created_at']),
       userName: json['user_name'],
       courtName: json['court_name'],
+      ownerName: json['owner_name'],
       ownerReply: json['owner_reply'],
-      ownerReplyAt: json['owner_reply_at'] != null ? DateTime.parse(json['owner_reply_at']) : null,
+      ownerReplyAt: json['owner_reply_at'] != null
+          ? DateTime.parse(json['owner_reply_at'])
+          : null,
     );
   }
 }
