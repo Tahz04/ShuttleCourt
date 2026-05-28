@@ -92,6 +92,23 @@ CREATE TABLE `bookings` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `owner_requests`
+--
+
+CREATE TABLE `owner_requests` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `full_name` varchar(100) NOT NULL,
+  `id_number` varchar(30) NOT NULL,
+  `cccd_front` text NOT NULL,
+  `cccd_back` text NOT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 --
 -- Chỉ mục cho các bảng đã đổ
 --
@@ -118,6 +135,14 @@ ALTER TABLE `bookings`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Chỉ mục cho bảng `owner_requests`
+--
+ALTER TABLE `owner_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `status` (`status`);
+
+--
 -- AUTO_INCREMENT cho các bảng đã đổ
 --
 
@@ -140,6 +165,12 @@ ALTER TABLE `bookings`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT cho bảng `owner_requests`
+--
+ALTER TABLE `owner_requests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- Các ràng buộc cho các bảng đã đổ
 --
 
@@ -154,6 +185,12 @@ ALTER TABLE `courts`
 --
 ALTER TABLE `bookings`
   ADD CONSTRAINT `bookings_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Các ràng buộc cho bảng `owner_requests`
+--
+ALTER TABLE `owner_requests`
+  ADD CONSTRAINT `owner_requests_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 COMMIT;
 
