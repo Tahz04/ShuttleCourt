@@ -5,6 +5,9 @@ import 'package:shuttlecourt/services/court_service.dart';
 import 'package:shuttlecourt/web/web_navbar.dart';
 import 'package:shuttlecourt/web/web_styles.dart';
 import 'package:shuttlecourt/booking/screens/checkout_screen.dart';
+import 'package:shuttlecourt/services/api_booking_service.dart';
+import 'package:shuttlecourt/services/socket_service.dart';
+import 'dart:async';
 
 class WebBookingPage extends StatefulWidget {
   final BadmintonCourt? initialCourt;
@@ -17,10 +20,20 @@ class WebBookingPage extends StatefulWidget {
 }
 
 class _WebBookingPageState extends State<WebBookingPage> {
-  static const List<String> _timeSlots = [
-    '05:00 - 06:00', '06:00 - 07:00', '07:00 - 08:00',
-    '17:00 - 18:00', '18:00 - 19:00', '19:00 - 20:00',
-    '20:00 - 21:00', '21:00 - 22:00',
+  List<String> get _timeSlots => [
+    '05:00 - 06:00',
+    '06:00 - 07:00',
+    '07:00 - 08:00',
+    '08:00 - 09:00',
+    '09:00 - 10:00',
+    '14:00 - 15:00',
+    '15:00 - 16:00',
+    '16:00 - 17:00',
+    '17:00 - 18:00',
+    '18:00 - 19:00',
+    '19:00 - 20:00',
+    '20:00 - 21:00',
+    '21:00 - 22:00',
   ];
 
   List<BadmintonCourt> _courts = [];
@@ -29,36 +42,97 @@ class _WebBookingPageState extends State<WebBookingPage> {
   DateTime _selectedDate = DateTime.now();
   String? _selectedSlot;
   BadmintonCourt? _selectedCourt;
+  List<String> _bookedSlots = [];
+
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _selectedCourt = widget.initialCourt;
     _loadCourts();
+    
+    // Realtime booking check
+    SocketService().connect();
+    SocketService().onBookingUpdated((data) {
+      if (mounted && _selectedCourt != null) {
+        if (data != null && data['court_name'] == _selectedCourt!.name) {
+          _fetchBookedSlots();
+        }
+      }
+    });
+
+    if (_selectedCourt != null) {
+      _fetchBookedSlots();
+      SocketService().joinCourt(_selectedCourt!.name);
+    }
+
+    // Timer cho realtime time update
+    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  Future<void> _fetchBookedSlots() async {
+    if (_selectedCourt == null) return;
+    try {
+      final slots = await ApiBookingService.getBookedSlots(
+        _selectedCourt!.name,
+        _selectedDate,
+      );
+      if (mounted) {
+        setState(() {
+          _bookedSlots = slots;
+          if (_selectedSlot != null && _bookedSlots.contains(_selectedSlot)) {
+            _selectedSlot = null;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Lỗi lấy lịch trống web: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    SocketService().offBookingUpdated();
+    super.dispose();
   }
 
   Future<void> _loadCourts() async {
     final data = await CourtService.getAllCourts();
-    if (mounted) setState(() { _courts = data; _isLoading = false; });
+    if (mounted)
+      setState(() {
+        _courts = data;
+        _isLoading = false;
+      });
   }
 
   List<BadmintonCourt> get _filteredCourts {
     if (_searchQuery.isEmpty) return _courts;
     final q = _searchQuery.toLowerCase();
-    return _courts.where((c) =>
-        c.name.toLowerCase().contains(q) ||
-        c.address.toLowerCase().contains(q)).toList();
+    return _courts
+        .where(
+          (c) =>
+              c.name.toLowerCase().contains(q) ||
+              c.address.toLowerCase().contains(q),
+        )
+        .toList();
   }
 
   void _proceedToCheckout() {
     if (_selectedCourt != null && _selectedSlot != null) {
-      Navigator.push(context, MaterialPageRoute(
-        builder: (_) => CheckoutScreen(
-          selectedSlot: _selectedSlot!,
-          selectedCourt: _selectedCourt!,
-          selectedDate: _selectedDate,
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CheckoutScreen(
+            selectedSlot: _selectedSlot!,
+            selectedCourt: _selectedCourt!,
+            selectedDate: _selectedDate,
+          ),
         ),
-      ));
+      );
     }
   }
 
@@ -97,51 +171,60 @@ class _WebBookingPageState extends State<WebBookingPage> {
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 5),
+                                horizontal: 12,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
                                 color: WebStyles.brand.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                    color: WebStyles.brand
-                                        .withValues(alpha: 0.3)),
+                                  color: WebStyles.brand.withValues(alpha: 0.3),
+                                ),
                               ),
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.calendar_month_rounded,
-                                      size: 13,
-                                      color: WebStyles.brandLight),
+                                  Icon(
+                                    Icons.calendar_month_rounded,
+                                    size: 13,
+                                    color: WebStyles.brandLight,
+                                  ),
                                   SizedBox(width: 6),
-                                  Text('ĐẶT LỊCH SÂN',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w800,
-                                        color: WebStyles.brandLight,
-                                        letterSpacing: 1.2,
-                                      )),
+                                  Text(
+                                    'ĐẶT LỊCH SÂN',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: WebStyles.brandLight,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                             const SizedBox(height: 12),
-                            const Text('Đặt Lịch Sân',
-                                style: TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  letterSpacing: -0.8,
-                                )),
+                            const Text(
+                              'Đặt Lịch Sân',
+                              style: TextStyle(
+                                fontSize: 30,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: -0.8,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text('Chọn sân, ngày và khung giờ phù hợp với bạn',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.white.withValues(alpha: 0.55),
-                                )),
+                            Text(
+                              'Chọn sân, ngày và khung giờ phù hợp với bạn',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.white.withValues(alpha: 0.55),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                       // Step indicators
-                      if (isWide)
-                        _StepIndicator(currentStep: _currentStep),
+                      if (isWide) _StepIndicator(currentStep: _currentStep),
                     ],
                   ),
                 ),
@@ -162,16 +245,16 @@ class _WebBookingPageState extends State<WebBookingPage> {
                             children: [
                               Expanded(flex: 5, child: _buildMain()),
                               const SizedBox(width: 24),
-                              SizedBox(
-                                  width: 320,
-                                  child: _buildSummaryCard()),
+                              SizedBox(width: 320, child: _buildSummaryCard()),
                             ],
                           )
-                        : Column(children: [
-                            _buildMain(),
-                            const SizedBox(height: 24),
-                            _buildSummaryCard(),
-                          ]),
+                        : Column(
+                            children: [
+                              _buildMain(),
+                              const SizedBox(height: 24),
+                              _buildSummaryCard(),
+                            ],
+                          ),
                   ),
                 ),
               ),
@@ -217,16 +300,21 @@ class _WebBookingPageState extends State<WebBookingPage> {
             child: Row(
               children: [
                 const SizedBox(width: 14),
-                const Icon(Icons.search_rounded,
-                    color: WebStyles.inkFaint, size: 18),
+                const Icon(
+                  Icons.search_rounded,
+                  color: WebStyles.inkFaint,
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     onChanged: (v) => setState(() => _searchQuery = v),
                     decoration: const InputDecoration(
                       hintText: 'Tìm tên sân hoặc địa chỉ...',
-                      hintStyle:
-                          TextStyle(color: WebStyles.inkFaint, fontSize: 13),
+                      hintStyle: TextStyle(
+                        color: WebStyles.inkFaint,
+                        fontSize: 13,
+                      ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(vertical: 11),
                     ),
@@ -241,8 +329,11 @@ class _WebBookingPageState extends State<WebBookingPage> {
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Center(
-                  child: CircularProgressIndicator(
-                      color: WebStyles.brand, strokeWidth: 2)),
+                child: CircularProgressIndicator(
+                  color: WebStyles.brand,
+                  strokeWidth: 2,
+                ),
+              ),
             )
           else
             SizedBox(
@@ -256,7 +347,14 @@ class _WebBookingPageState extends State<WebBookingPage> {
                   return GestureDetector(
                     onTap: isMaint
                         ? null
-                        : () => setState(() => _selectedCourt = c),
+                        : () {
+                            setState(() {
+                              _selectedCourt = c;
+                              _selectedSlot = null;
+                            });
+                            SocketService().joinCourt(c.name);
+                            _fetchBookedSlots();
+                          },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
                       margin: const EdgeInsets.only(bottom: 8),
@@ -280,24 +378,30 @@ class _WebBookingPageState extends State<WebBookingPage> {
                               width: 52,
                               height: 52,
                               child: c.mainImage != null
-                                  ? Image.network(c.mainImage!,
+                                  ? Image.network(
+                                      c.mainImage!,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (ctx, err, st) =>
-                                          Container(
-                                            color: WebStyles.brand
-                                                .withValues(alpha: 0.08),
-                                            child: const Icon(
-                                                Icons.sports_tennis_rounded,
-                                                color: WebStyles.brand,
-                                                size: 24),
-                                          ))
-                                  : Container(
-                                      color: WebStyles.brand
-                                          .withValues(alpha: 0.08),
-                                      child: const Icon(
+                                      errorBuilder: (ctx, err, st) => Container(
+                                        color: WebStyles.brand.withValues(
+                                          alpha: 0.08,
+                                        ),
+                                        child: const Icon(
                                           Icons.sports_tennis_rounded,
                                           color: WebStyles.brand,
-                                          size: 24)),
+                                          size: 24,
+                                        ),
+                                      ),
+                                    )
+                                  : Container(
+                                      color: WebStyles.brand.withValues(
+                                        alpha: 0.08,
+                                      ),
+                                      child: const Icon(
+                                        Icons.sports_tennis_rounded,
+                                        color: WebStyles.brand,
+                                        size: 24,
+                                      ),
+                                    ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -308,43 +412,54 @@ class _WebBookingPageState extends State<WebBookingPage> {
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: Text(c.name,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700,
-                                            color: isSel
-                                                ? WebStyles.brand
-                                                : WebStyles.ink,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis),
+                                      child: Text(
+                                        c.name,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: isSel
+                                              ? WebStyles.brand
+                                              : WebStyles.ink,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                     if (isMaint)
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 7, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red
-                                              .withValues(alpha: 0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(6),
+                                          horizontal: 7,
+                                          vertical: 2,
                                         ),
-                                        child: const Text('Bảo trì',
-                                            style: TextStyle(
-                                                fontSize: 10,
-                                                color: Colors.red,
-                                                fontWeight:
-                                                    FontWeight.w700)),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Bảo trì',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.red,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
                                       ),
                                   ],
                                 ),
                                 const SizedBox(height: 3),
-                                Text(c.address,
-                                    style: const TextStyle(
-                                        fontSize: 11,
-                                        color: WebStyles.inkFaint),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis),
+                                Text(
+                                  c.address,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: WebStyles.inkFaint,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ],
                             ),
                           ),
@@ -360,10 +475,13 @@ class _WebBookingPageState extends State<WebBookingPage> {
                                   color: WebStyles.brand,
                                 ),
                               ),
-                              const Text('/giờ',
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      color: WebStyles.inkFaint)),
+                              const Text(
+                                '/giờ',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: WebStyles.inkFaint,
+                                ),
+                              ),
                             ],
                           ),
                           if (isSel) ...[
@@ -374,8 +492,11 @@ class _WebBookingPageState extends State<WebBookingPage> {
                                 color: WebStyles.brand,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.check_rounded,
-                                  size: 14, color: Colors.white),
+                              child: const Icon(
+                                Icons.check_rounded,
+                                size: 14,
+                                color: Colors.white,
+                              ),
                             ),
                           ],
                         ],
@@ -446,6 +567,7 @@ class _WebBookingPageState extends State<WebBookingPage> {
                   _selectedDate = picked;
                   _selectedSlot = null; // Reset time slot khi đổi ngày
                 });
+                _fetchBookedSlots();
               }
             },
             child: MouseRegion(
@@ -540,10 +662,14 @@ class _WebBookingPageState extends State<WebBookingPage> {
                               vertical: 5,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                              color: const Color(
+                                0xFF10B981,
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                                color: const Color(
+                                  0xFF10B981,
+                                ).withValues(alpha: 0.3),
                               ),
                             ),
                             child: const Row(
@@ -658,6 +784,20 @@ class _WebBookingPageState extends State<WebBookingPage> {
 
   // ── Step 3: Time slot selection ───────────────────────────────────────────
 
+  bool _isSlotPast(String slot) {
+    if (!DateUtils.isSameDay(DateTime.now(), _selectedDate)) {
+      return false;
+    }
+    final now = DateTime.now();
+    final startTimeStr = slot.split(' - ')[0]; // "14:00"
+    final parts = startTimeStr.split(':');
+    final hour = int.parse(parts[0]);
+    final minute = int.parse(parts[1]);
+    
+    final slotTime = DateTime(now.year, now.month, now.day, hour, minute);
+    return slotTime.isBefore(now);
+  }
+
   Widget _buildTimeStep() {
     return _StepCard(
       step: 3,
@@ -668,27 +808,30 @@ class _WebBookingPageState extends State<WebBookingPage> {
         spacing: 10,
         runSpacing: 10,
         children: _timeSlots.map((slot) {
+          final isPast = _isSlotPast(slot);
+          final isBooked = _bookedSlots.contains(slot);
+          final isDisabled = isPast || isBooked;
           final isSel = _selectedSlot == slot;
           return GestureDetector(
-            onTap: () => setState(() => _selectedSlot = slot),
+            onTap: isDisabled ? null : () => setState(() => _selectedSlot = slot),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 18, vertical: 11),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
               decoration: BoxDecoration(
-                color: isSel
-                    ? WebStyles.brand
-                    : Colors.white,
+                color: isDisabled
+                    ? Colors.grey.withValues(alpha: 0.2)
+                    : (isSel ? WebStyles.brand : Colors.white),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                    color: isSel ? WebStyles.brand : WebStyles.border),
+                  color: isSel ? WebStyles.brand : (isDisabled ? Colors.transparent : WebStyles.border),
+                ),
                 boxShadow: isSel
                     ? [
                         BoxShadow(
                           color: WebStyles.brand.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
-                        )
+                        ),
                       ]
                     : null,
               ),
@@ -696,19 +839,24 @@ class _WebBookingPageState extends State<WebBookingPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.access_time_rounded,
+                    isDisabled ? Icons.block_rounded : Icons.access_time_rounded,
                     size: 14,
-                    color: isSel
-                        ? Colors.white
-                        : WebStyles.inkFaint,
+                    color: isDisabled
+                        ? Colors.grey.withValues(alpha: 0.5)
+                        : (isSel ? Colors.white : WebStyles.inkFaint),
                   ),
                   const SizedBox(width: 6),
-                  Text(slot,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: isSel ? Colors.white : WebStyles.inkMid,
-                      )),
+                  Text(
+                    isBooked ? 'Hết' : slot,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isDisabled
+                          ? Colors.grey.withValues(alpha: 0.5)
+                          : (isSel ? Colors.white : WebStyles.inkMid),
+                      decoration: isDisabled ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -741,16 +889,21 @@ class _WebBookingPageState extends State<WebBookingPage> {
                   gradient: WebStyles.brandGrad,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.receipt_long_rounded,
-                    color: Colors.white, size: 18),
+                child: const Icon(
+                  Icons.receipt_long_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 12),
-              const Text('Tóm tắt đặt sân',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                    color: WebStyles.ink,
-                  )),
+              const Text(
+                'Tóm tắt đặt sân',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: WebStyles.ink,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -787,8 +940,10 @@ class _WebBookingPageState extends State<WebBookingPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Giá 1 giờ',
-                    style: TextStyle(fontSize: 13, color: WebStyles.inkFaint)),
+                const Text(
+                  'Giá 1 giờ',
+                  style: TextStyle(fontSize: 13, color: WebStyles.inkFaint),
+                ),
                 Text(
                   '${(_selectedCourt!.pricePerHour / 1000).toStringAsFixed(0)}k',
                   style: const TextStyle(
@@ -812,12 +967,15 @@ class _WebBookingPageState extends State<WebBookingPage> {
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: Text(
                 canBook ? 'Tiến hành đặt sân' : 'Chọn sân và giờ',
                 style: const TextStyle(
-                    fontWeight: FontWeight.w800, fontSize: 14),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
               ),
             ),
           ),
@@ -828,8 +986,7 @@ class _WebBookingPageState extends State<WebBookingPage> {
                 _selectedCourt == null
                     ? 'Bước 1: Chọn sân cầu lông'
                     : 'Bước 3: Chọn khung giờ',
-                style: const TextStyle(
-                    fontSize: 11, color: WebStyles.inkFaint),
+                style: const TextStyle(fontSize: 11, color: WebStyles.inkFaint),
               ),
             ),
           ],
@@ -876,46 +1033,51 @@ class _StepCard extends StatelessWidget {
                   width: 30,
                   height: 30,
                   decoration: BoxDecoration(
-                    color:
-                        isDone ? WebStyles.brand : WebStyles.bg,
+                    color: isDone ? WebStyles.brand : WebStyles.bg,
                     shape: BoxShape.circle,
                     border: Border.all(
-                        color: isDone
-                            ? WebStyles.brand
-                            : WebStyles.border),
+                      color: isDone ? WebStyles.brand : WebStyles.border,
+                    ),
                   ),
                   child: Center(
                     child: isDone
-                        ? const Icon(Icons.check_rounded,
-                            size: 16, color: Colors.white)
-                        : Text('$step',
+                        ? const Icon(
+                            Icons.check_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          )
+                        : Text(
+                            '$step',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
                               color: WebStyles.inkFaint,
-                            )),
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          color: WebStyles.ink,
-                        )),
-                    Text(subtitle,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDone
-                              ? WebStyles.brand
-                              : WebStyles.inkFaint,
-                          fontWeight: isDone
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        )),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: WebStyles.ink,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDone ? WebStyles.brand : WebStyles.inkFaint,
+                        fontWeight: isDone
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -923,10 +1085,7 @@ class _StepCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           const Divider(color: WebStyles.border, height: 1),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: child,
-          ),
+          Padding(padding: const EdgeInsets.all(20), child: child),
         ],
       ),
     );
@@ -943,11 +1102,26 @@ class _StepIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _StepDot(n: 1, label: 'Chọn sân', done: currentStep > 0, active: currentStep == 0),
+        _StepDot(
+          n: 1,
+          label: 'Chọn sân',
+          done: currentStep > 0,
+          active: currentStep == 0,
+        ),
         _StepLine(done: currentStep > 0),
-        _StepDot(n: 2, label: 'Chọn ngày', done: currentStep > 1, active: currentStep == 1),
+        _StepDot(
+          n: 2,
+          label: 'Chọn ngày',
+          done: currentStep > 1,
+          active: currentStep == 1,
+        ),
         _StepLine(done: currentStep > 1),
-        _StepDot(n: 3, label: 'Chọn giờ', done: currentStep > 2, active: currentStep == 2),
+        _StepDot(
+          n: 3,
+          label: 'Chọn giờ',
+          done: currentStep > 2,
+          active: currentStep == 2,
+        ),
       ],
     );
   }
@@ -957,7 +1131,12 @@ class _StepDot extends StatelessWidget {
   final int n;
   final String label;
   final bool done, active;
-  const _StepDot({required this.n, required this.label, required this.done, required this.active});
+  const _StepDot({
+    required this.n,
+    required this.label,
+    required this.done,
+    required this.active,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -969,24 +1148,40 @@ class _StepDot extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: filled ? WebStyles.brand : Colors.white.withValues(alpha: 0.1),
+            color: filled
+                ? WebStyles.brand
+                : Colors.white.withValues(alpha: 0.1),
             shape: BoxShape.circle,
             border: Border.all(
-              color: filled ? WebStyles.brand : Colors.white.withValues(alpha: 0.3),
+              color: filled
+                  ? WebStyles.brand
+                  : Colors.white.withValues(alpha: 0.3),
             ),
           ),
           child: Center(
             child: done
                 ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
-                : Text('$n', style: TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w800,
-                    color: active ? Colors.white : Colors.white.withValues(alpha: 0.4))),
+                : Text(
+                    '$n',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: active
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.4),
+                    ),
+                  ),
           ),
         ),
         const SizedBox(height: 4),
-        Text(label, style: TextStyle(
-          fontSize: 11, fontWeight: FontWeight.w600,
-          color: filled ? Colors.white : Colors.white.withValues(alpha: 0.4))),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: filled ? Colors.white : Colors.white.withValues(alpha: 0.4),
+          ),
+        ),
       ],
     );
   }
@@ -1033,17 +1228,20 @@ class _SummaryRow extends StatelessWidget {
                 : WebStyles.brand.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon,
-              size: 16,
-              color: isEmpty ? WebStyles.inkFaint : WebStyles.brand),
+          child: Icon(
+            icon,
+            size: 16,
+            color: isEmpty ? WebStyles.inkFaint : WebStyles.brand,
+          ),
         ),
         const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 10, color: WebStyles.inkFaint)),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 10, color: WebStyles.inkFaint),
+            ),
             Text(
               value,
               style: TextStyle(
@@ -1064,10 +1262,7 @@ class _QuickDateButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _QuickDateButton({
-    required this.label,
-    required this.onTap,
-  });
+  const _QuickDateButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

@@ -9,8 +9,9 @@ class ApiBookingService {
 
   // ================= CREATE BOOKING =================
   static Future<void> createBooking(int userId, Booking booking) async {
+    http.Response response;
     try {
-      final response = await http.post(
+      response = await http.post(
         Uri.parse(baseUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -23,18 +24,19 @@ class ApiBookingService {
           "payment_method": booking.paymentMethod
         }),
       );
-
-      if (response.statusCode != 200) {
-        try {
-          final body = jsonDecode(response.body);
-          throw Exception(body['message'] ?? 'Lỗi không xác định');
-        } catch (e) {
-          throw Exception(response.body);
-        }
-      }
-
     } catch (e) {
-      throw Exception('Network error: $e');
+      throw Exception('Lỗi kết nối mạng: $e');
+    }
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      String errorMessage = 'Lỗi không xác định';
+      try {
+        final body = jsonDecode(response.body);
+        errorMessage = body['message'] ?? body['error'] ?? response.body;
+      } catch (e) {
+        errorMessage = response.body;
+      }
+      throw Exception(errorMessage);
     }
   }
 

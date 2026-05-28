@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shuttlecourt/booking/booking_screen.dart';
+import 'package:shuttlecourt/web/web_booking_page.dart';
 import 'package:shuttlecourt/models/badminton_court.dart';
 import 'package:shuttlecourt/services/location_service.dart';
 import 'package:shuttlecourt/web/web_court_detail_dialog.dart';
@@ -28,7 +28,12 @@ class _WebSearchPageState extends State<WebSearchPage> {
   List<String> _selectedAmenities = [];
 
   static const List<String> _amenityOptions = [
-    'Wifi', 'Gửi xe', 'Nước uống', 'Đèn LED', 'Máy lạnh', 'Huấn luyện viên',
+    'Wifi',
+    'Gửi xe',
+    'Nước uống',
+    'Đèn LED',
+    'Máy lạnh',
+    'Huấn luyện viên',
   ];
 
   @override
@@ -41,7 +46,8 @@ class _WebSearchPageState extends State<WebSearchPage> {
   @override
   void didUpdateWidget(covariant WebSearchPage old) {
     super.didUpdateWidget(old);
-    if (widget.initialQuery != old.initialQuery && widget.initialQuery != null) {
+    if (widget.initialQuery != old.initialQuery &&
+        widget.initialQuery != null) {
       setState(() => _applyInitialQuery(widget.initialQuery!));
     }
   }
@@ -53,11 +59,17 @@ class _WebSearchPageState extends State<WebSearchPage> {
       });
       return;
     }
-    if (q == 'Tìm sân gần tôi') { _sortBy = 'distance'; }
-    else if (q == 'Giá dưới 100k/h') { _maxPrice = 100000; }
-    else if (q == 'Sân có đèn LED') { _selectedAmenities = ['Đèn LED']; }
-    else if (q == 'Sân có HLV') { _selectedAmenities = ['Huấn luyện viên']; }
-    else { _searchCtrl.text = q; }
+    if (q == 'Tìm sân gần tôi') {
+      _sortBy = 'distance';
+    } else if (q == 'Giá dưới 100k/h') {
+      _maxPrice = 100000;
+    } else if (q == 'Sân có đèn LED') {
+      _selectedAmenities = ['Đèn LED'];
+    } else if (q == 'Sân có HLV') {
+      _selectedAmenities = ['Huấn luyện viên'];
+    } else {
+      _searchCtrl.text = q;
+    }
   }
 
   @override
@@ -71,7 +83,8 @@ class _WebSearchPageState extends State<WebSearchPage> {
     final q = _searchCtrl.text.toLowerCase();
     var list = all.where((e) {
       final c = e.court;
-      final matchSearch = q.isEmpty ||
+      final matchSearch =
+          q.isEmpty ||
           c.name.toLowerCase().contains(q) ||
           c.address.toLowerCase().contains(q);
       final matchPrice = c.pricePerHour <= _maxPrice;
@@ -84,12 +97,18 @@ class _WebSearchPageState extends State<WebSearchPage> {
           break;
         }
       }
-      return matchSearch && matchPrice && matchRating && matchStatus && matchAmenities;
+      return matchSearch &&
+          matchPrice &&
+          matchRating &&
+          matchStatus &&
+          matchAmenities;
     }).toList();
 
     switch (_sortBy) {
       case 'price':
-        list.sort((a, b) => a.court.pricePerHour.compareTo(b.court.pricePerHour));
+        list.sort(
+          (a, b) => a.court.pricePerHour.compareTo(b.court.pricePerHour),
+        );
       case 'rating':
         list.sort((a, b) => b.court.rating.compareTo(a.court.rating));
       default:
@@ -132,26 +151,34 @@ class _WebSearchPageState extends State<WebSearchPage> {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 5),
+                              horizontal: 12,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: WebStyles.brand.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                  color: WebStyles.brand.withValues(alpha: 0.3)),
+                                color: WebStyles.brand.withValues(alpha: 0.3),
+                              ),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.search_rounded,
-                                    size: 13, color: WebStyles.brandLight),
+                                Icon(
+                                  Icons.search_rounded,
+                                  size: 13,
+                                  color: WebStyles.brandLight,
+                                ),
                                 SizedBox(width: 6),
-                                Text('TÌM SÂN',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w800,
-                                      color: WebStyles.brandLight,
-                                      letterSpacing: 1.2,
-                                    )),
+                                Text(
+                                  'TÌM SÂN',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: WebStyles.brandLight,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -195,8 +222,11 @@ class _WebSearchPageState extends State<WebSearchPage> {
                         child: Row(
                           children: [
                             const SizedBox(width: 16),
-                            const Icon(Icons.search_rounded,
-                                color: WebStyles.brand, size: 20),
+                            const Icon(
+                              Icons.search_rounded,
+                              color: WebStyles.brand,
+                              size: 20,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: TextField(
@@ -211,11 +241,14 @@ class _WebSearchPageState extends State<WebSearchPage> {
                                     fontSize: 13,
                                   ),
                                   border: InputBorder.none,
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(vertical: 14),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                 ),
                                 style: const TextStyle(
-                                    fontSize: 13, color: WebStyles.dark900),
+                                  fontSize: 13,
+                                  color: WebStyles.dark900,
+                                ),
                               ),
                             ),
                             Padding(
@@ -227,14 +260,20 @@ class _WebSearchPageState extends State<WebSearchPage> {
                                   foregroundColor: Colors.white,
                                   elevation: 0,
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 20, vertical: 12),
+                                    horizontal: 20,
+                                    vertical: 12,
+                                  ),
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8)),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
-                                child: const Text('Tìm',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 13)),
+                                child: const Text(
+                                  'Tìm',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -279,10 +318,8 @@ class _WebSearchPageState extends State<WebSearchPage> {
                                 setState(() => _maxPrice = v),
                             onMinRatingChanged: (v) =>
                                 setState(() => _minRating = v),
-                            onSortByChanged: (v) =>
-                                setState(() => _sortBy = v),
-                            onStatusChanged: (v) =>
-                                setState(() => _status = v),
+                            onSortByChanged: (v) => setState(() => _sortBy = v),
+                            onStatusChanged: (v) => setState(() => _status = v),
                             onAmenitiesChanged: (a, sel) => setState(() {
                               if (sel) {
                                 if (!_selectedAmenities.contains(a)) {
@@ -306,7 +343,9 @@ class _WebSearchPageState extends State<WebSearchPage> {
                             Container(
                               color: Colors.white,
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 28, vertical: 14),
+                                horizontal: 28,
+                                vertical: 14,
+                              ),
                               child: Row(
                                 children: [
                                   if (isLoading)
@@ -314,18 +353,21 @@ class _WebSearchPageState extends State<WebSearchPage> {
                                       width: 16,
                                       height: 16,
                                       child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: WebStyles.brand),
+                                        strokeWidth: 2,
+                                        color: WebStyles.brand,
+                                      ),
                                     )
                                   else ...[
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: WebStyles.brand
-                                            .withValues(alpha: 0.08),
-                                        borderRadius:
-                                            BorderRadius.circular(20),
+                                        color: WebStyles.brand.withValues(
+                                          alpha: 0.08,
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
                                         '${courts.length} sân',
@@ -340,37 +382,42 @@ class _WebSearchPageState extends State<WebSearchPage> {
                                     Text(
                                       'phù hợp với bộ lọc',
                                       style: const TextStyle(
-                                          fontSize: 13,
-                                          color: WebStyles.inkFaint),
+                                        fontSize: 13,
+                                        color: WebStyles.inkFaint,
+                                      ),
                                     ),
                                   ],
                                   const Spacer(),
                                   // Sort dropdown
                                   Row(
                                     children: [
-                                      const Text('Sắp xếp: ',
-                                          style: TextStyle(
-                                              fontSize: 13,
-                                              color: WebStyles.inkFaint)),
+                                      const Text(
+                                        'Sắp xếp: ',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: WebStyles.inkFaint,
+                                        ),
+                                      ),
                                       _SortChip(
                                         label: 'Gần nhất',
                                         active: _sortBy == 'distance',
                                         onTap: () => setState(
-                                            () => _sortBy = 'distance'),
+                                          () => _sortBy = 'distance',
+                                        ),
                                       ),
                                       const SizedBox(width: 6),
                                       _SortChip(
                                         label: 'Giá thấp',
                                         active: _sortBy == 'price',
-                                        onTap: () => setState(
-                                            () => _sortBy = 'price'),
+                                        onTap: () =>
+                                            setState(() => _sortBy = 'price'),
                                       ),
                                       const SizedBox(width: 6),
                                       _SortChip(
                                         label: 'Đánh giá',
                                         active: _sortBy == 'rating',
-                                        onTap: () => setState(
-                                            () => _sortBy = 'rating'),
+                                        onTap: () =>
+                                            setState(() => _sortBy = 'rating'),
                                       ),
                                     ],
                                   ),
@@ -384,7 +431,9 @@ class _WebSearchPageState extends State<WebSearchPage> {
                                 padding: EdgeInsets.symmetric(vertical: 80),
                                 child: Center(
                                   child: CircularProgressIndicator(
-                                      color: WebStyles.brand, strokeWidth: 2),
+                                    color: WebStyles.brand,
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                               )
                             else if (courts.isEmpty)
@@ -392,14 +441,19 @@ class _WebSearchPageState extends State<WebSearchPage> {
                             else
                               _CourtGrid(
                                 courts: courts,
-                                onViewDetails: (c, km) =>
-                                    showCourtDetailDialog(context, c,
-                                        distanceKm: km),
+                                onViewDetails: (c, km) => showCourtDetailDialog(
+                                  context,
+                                  c,
+                                  distanceKm: km,
+                                ),
                                 onBook: (c) => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (_) =>
-                                          BookingScreen(initialCourt: c)),
+                                    builder: (_) => WebBookingPage(
+                                      initialCourt: c,
+                                      onTabChange: widget.onTabChange,
+                                    ),
+                                  ),
                                 ),
                               ),
                           ],
@@ -487,12 +541,15 @@ class _FilterPanel extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('0đ',
-                      style:
-                          TextStyle(fontSize: 11, color: WebStyles.inkFaint)),
+                  const Text(
+                    '0đ',
+                    style: TextStyle(fontSize: 11, color: WebStyles.inkFaint),
+                  ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 3),
+                      horizontal: 10,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: WebStyles.brand.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
@@ -515,8 +572,9 @@ class _FilterPanel extends StatelessWidget {
                   inactiveTrackColor: WebStyles.border,
                   overlayColor: WebStyles.brand.withValues(alpha: 0.1),
                   trackHeight: 3,
-                  thumbShape:
-                      const RoundSliderThumbShape(enabledThumbRadius: 7),
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 7,
+                  ),
                 ),
                 child: Slider(
                   value: maxPrice,
@@ -536,45 +594,49 @@ class _FilterPanel extends StatelessWidget {
             spacing: 4,
             runSpacing: 8,
             children: [1, 2, 3, 4, 5]
-                .map((r) => GestureDetector(
-                      onTap: () => onMinRatingChanged(r.toDouble()),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
+                .map(
+                  (r) => GestureDetector(
+                    onTap: () => onMinRatingChanged(r.toDouble()),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: minRating >= r ? WebStyles.brand : WebStyles.bg,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
                           color: minRating >= r
                               ? WebStyles.brand
-                              : WebStyles.bg,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: minRating >= r
-                                ? WebStyles.brand
-                                : WebStyles.border,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.star_rounded,
-                                size: 12,
-                                color: minRating >= r
-                                    ? Colors.white
-                                    : const Color(0xFFFBBF24)),
-                            const SizedBox(width: 2),
-                            Text(
-                              '$r+',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: minRating >= r
-                                    ? Colors.white
-                                    : WebStyles.inkMid,
-                              ),
-                            ),
-                          ],
+                              : WebStyles.border,
                         ),
                       ),
-                    ))
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.star_rounded,
+                            size: 12,
+                            color: minRating >= r
+                                ? Colors.white
+                                : const Color(0xFFFBBF24),
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            '$r+',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: minRating >= r
+                                  ? Colors.white
+                                  : WebStyles.inkMid,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ),
@@ -610,36 +672,34 @@ class _FilterPanel extends StatelessWidget {
           child: Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: amenityOptions
-                .map((a) {
-                  final active = selectedAmenities.contains(a);
-                  return GestureDetector(
-                    onTap: () => onAmenitiesChanged(a, !active),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: active ? WebStyles.brand : WebStyles.bg,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color:
-                              active ? WebStyles.brand : WebStyles.border,
-                        ),
-                      ),
-                      child: Text(
-                        a,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color:
-                              active ? Colors.white : WebStyles.inkMid,
-                        ),
-                      ),
+            children: amenityOptions.map((a) {
+              final active = selectedAmenities.contains(a);
+              return GestureDetector(
+                onTap: () => onAmenitiesChanged(a, !active),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: active ? WebStyles.brand : WebStyles.bg,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: active ? WebStyles.brand : WebStyles.border,
                     ),
-                  );
-                })
-                .toList(),
+                  ),
+                  child: Text(
+                    a,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: active ? Colors.white : WebStyles.inkMid,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ),
         const SizedBox(height: 16),
@@ -660,13 +720,15 @@ class _FilterSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: WebStyles.inkFaint,
-                letterSpacing: 0.8,
-              )),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: WebStyles.inkFaint,
+              letterSpacing: 0.8,
+            ),
+          ),
           const SizedBox(height: 10),
           child,
           const SizedBox(height: 14),
@@ -680,11 +742,12 @@ class _FilterSection extends StatelessWidget {
 class _RadioTile extends StatelessWidget {
   final String label, value, groupValue;
   final ValueChanged<String> onChanged;
-  const _RadioTile(
-      {required this.label,
-      required this.value,
-      required this.groupValue,
-      required this.onChanged});
+  const _RadioTile({
+    required this.label,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -707,13 +770,14 @@ class _RadioTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            Text(label,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: active ? WebStyles.ink : WebStyles.inkLight,
-                  fontWeight:
-                      active ? FontWeight.w600 : FontWeight.normal,
-                )),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: active ? WebStyles.ink : WebStyles.inkLight,
+                fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
           ],
         ),
       ),
@@ -727,7 +791,11 @@ class _SortChip extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
-  const _SortChip({required this.label, required this.active, required this.onTap});
+  const _SortChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -738,7 +806,9 @@ class _SortChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: active ? WebStyles.brand : WebStyles.bg,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: active ? WebStyles.brand : WebStyles.border),
+          border: Border.all(
+            color: active ? WebStyles.brand : WebStyles.border,
+          ),
         ),
         child: Text(
           label,
@@ -769,7 +839,13 @@ class _CourtGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final cols = w > 1400 ? 4 : w > 1100 ? 3 : w > 700 ? 2 : 1;
+    final cols = w > 1400
+        ? 4
+        : w > 1100
+        ? 3
+        : w > 700
+        ? 2
+        : 1;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -788,8 +864,7 @@ class _CourtGrid extends StatelessWidget {
           return _CourtCard(
             court: item.court,
             distanceKm: item.distanceKm,
-            onViewDetails: () =>
-                onViewDetails(item.court, item.distanceKm),
+            onViewDetails: () => onViewDetails(item.court, item.distanceKm),
             onBook: () => onBook(item.court),
           );
         },
@@ -850,7 +925,7 @@ class _CourtCardState extends State<_CourtCard> {
                     color: WebStyles.brand.withValues(alpha: 0.1),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
-                  )
+                  ),
                 ]
               : WebStyles.shadowSm,
         ),
@@ -865,13 +940,20 @@ class _CourtCardState extends State<_CourtCard> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(img,
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, err, st) => Container(
-                            color: WebStyles.brand.withValues(alpha: 0.08),
-                            child: const Center(
-                                child: Icon(Icons.sports_tennis_rounded,
-                                    size: 48, color: WebStyles.brand)))),
+                    Image.network(
+                      img,
+                      fit: BoxFit.cover,
+                      errorBuilder: (ctx, err, st) => Container(
+                        color: WebStyles.brand.withValues(alpha: 0.08),
+                        child: const Center(
+                          child: Icon(
+                            Icons.sports_tennis_rounded,
+                            size: 48,
+                            color: WebStyles.brand,
+                          ),
+                        ),
+                      ),
+                    ),
                     // Gradient
                     Positioned(
                       bottom: 0,
@@ -896,12 +978,15 @@ class _CourtCardState extends State<_CourtCard> {
                       Container(
                         color: Colors.black.withValues(alpha: 0.55),
                         child: const Center(
-                          child: Text('BẢO TRÌ',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 13,
-                                  letterSpacing: 1)),
+                          child: Text(
+                            'BẢO TRÌ',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              letterSpacing: 1,
+                            ),
+                          ),
                         ),
                       ),
                     // Price badge
@@ -910,7 +995,9 @@ class _CourtCardState extends State<_CourtCard> {
                       left: 12,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: WebStyles.brand,
                           borderRadius: BorderRadius.circular(8),
@@ -918,9 +1005,10 @@ class _CourtCardState extends State<_CourtCard> {
                         child: Text(
                           '${(c.pricePerHour / 1000).toStringAsFixed(0)}k/h',
                           style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12),
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
@@ -930,7 +1018,9 @@ class _CourtCardState extends State<_CourtCard> {
                       right: 12,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.55),
                           borderRadius: BorderRadius.circular(8),
@@ -938,14 +1028,20 @@ class _CourtCardState extends State<_CourtCard> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.star_rounded,
-                                size: 13, color: Color(0xFFFBBF24)),
+                            const Icon(
+                              Icons.star_rounded,
+                              size: 13,
+                              color: Color(0xFFFBBF24),
+                            ),
                             const SizedBox(width: 3),
-                            Text(c.rating.toStringAsFixed(1),
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 12)),
+                            Text(
+                              c.rating.toStringAsFixed(1),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -960,43 +1056,55 @@ class _CourtCardState extends State<_CourtCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(c.name,
-                          style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: WebStyles.ink,
-                              height: 1.2),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis),
+                      Text(
+                        c.name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: WebStyles.ink,
+                          height: 1.2,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const SizedBox(height: 5),
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined,
-                              size: 12, color: WebStyles.inkFaint),
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 12,
+                            color: WebStyles.inkFaint,
+                          ),
                           const SizedBox(width: 3),
                           Expanded(
-                            child: Text(c.address,
-                                style: const TextStyle(
-                                    fontSize: 11, color: WebStyles.inkFaint),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              c.address,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: WebStyles.inkFaint,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                           if (widget.distanceKm > 0) ...[
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: WebStyles.brand
-                                    .withValues(alpha: 0.08),
+                                color: WebStyles.brand.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 '${widget.distanceKm.toStringAsFixed(1)}km',
                                 style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: WebStyles.brand),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: WebStyles.brand,
+                                ),
                               ),
                             ),
                           ],
@@ -1009,21 +1117,26 @@ class _CourtCardState extends State<_CourtCard> {
                           runSpacing: 4,
                           children: c.amenities
                               .take(3)
-                              .map((a) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 7, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: WebStyles.bg,
-                                      borderRadius:
-                                          BorderRadius.circular(4),
-                                      border: Border.all(
-                                          color: WebStyles.border),
+                              .map(
+                                (a) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: WebStyles.bg,
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: WebStyles.border),
+                                  ),
+                                  child: Text(
+                                    a,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: WebStyles.inkLight,
                                     ),
-                                    child: Text(a,
-                                        style: const TextStyle(
-                                            fontSize: 10,
-                                            color: WebStyles.inkLight)),
-                                  ))
+                                  ),
+                                ),
+                              )
                               .toList(),
                         ),
                       ],
@@ -1035,18 +1148,21 @@ class _CourtCardState extends State<_CourtCard> {
                               onPressed: widget.onViewDetails,
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: WebStyles.inkMid,
-                                side: const BorderSide(
-                                    color: WebStyles.border),
+                                side: const BorderSide(color: WebStyles.border),
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: 9),
+                                  vertical: 9,
+                                ),
                                 shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(8)),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                              child: const Text('Chi tiết',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 12)),
+                              child: const Text(
+                                'Chi tiết',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -1059,15 +1175,19 @@ class _CourtCardState extends State<_CourtCard> {
                                 disabledBackgroundColor: WebStyles.border,
                                 elevation: 0,
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: 9),
+                                  vertical: 9,
+                                ),
                                 shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(8)),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                              child: const Text('Đặt ngay',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 12)),
+                              child: const Text(
+                                'Đặt ngay',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -1104,32 +1224,45 @@ class _EmptyState extends StatelessWidget {
                 color: WebStyles.brand.withValues(alpha: 0.06),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.search_off_rounded,
-                  size: 48, color: WebStyles.brand),
+              child: const Icon(
+                Icons.search_off_rounded,
+                size: 48,
+                color: WebStyles.brand,
+              ),
             ),
             const SizedBox(height: 20),
-            const Text('Không tìm thấy sân phù hợp',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: WebStyles.ink)),
+            const Text(
+              'Không tìm thấy sân phù hợp',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: WebStyles.ink,
+              ),
+            ),
             const SizedBox(height: 8),
-            const Text('Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm',
-                style: TextStyle(fontSize: 13, color: WebStyles.inkFaint)),
+            const Text(
+              'Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm',
+              style: TextStyle(fontSize: 13, color: WebStyles.inkFaint),
+            ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: onReset,
               icon: const Icon(Icons.refresh_rounded, size: 16),
-              label: const Text('Đặt lại bộ lọc',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
+              label: const Text(
+                'Đặt lại bộ lọc',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: WebStyles.brand,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ],

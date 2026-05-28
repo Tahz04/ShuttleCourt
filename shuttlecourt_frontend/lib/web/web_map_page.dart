@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
-import 'package:shuttlecourt/booking/booking_screen.dart';
+import 'package:shuttlecourt/web/web_booking_page.dart';
 import 'package:shuttlecourt/config/api_config.dart';
 import 'package:shuttlecourt/models/badminton_court.dart';
 import 'package:shuttlecourt/web/web_court_detail_dialog.dart';
@@ -21,8 +21,7 @@ class WebMapPage extends StatefulWidget {
   State<WebMapPage> createState() => _WebMapPageState();
 }
 
-class _WebMapPageState extends State<WebMapPage>
-    with TickerProviderStateMixin {
+class _WebMapPageState extends State<WebMapPage> with TickerProviderStateMixin {
   // ── Data ─────────────────────────────────────────────────────────────────────
   List<BadmintonCourt> _allCourts = [];
   List<BadmintonCourt> _filteredCourts = [];
@@ -56,17 +55,17 @@ class _WebMapPageState extends State<WebMapPage>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    _pulseAnim = Tween(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
+    _pulseAnim = Tween(
+      begin: 0.4,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
     _fetchCourts();
   }
 
   @override
   void didUpdateWidget(WebMapPage old) {
     super.didUpdateWidget(old);
-    if (widget.searchQuery != old.searchQuery &&
-        widget.searchQuery != null) {
+    if (widget.searchQuery != old.searchQuery && widget.searchQuery != null) {
       _filterBySearch(widget.searchQuery!);
     }
   }
@@ -88,26 +87,29 @@ class _WebMapPageState extends State<WebMapPage>
           .timeout(ApiConfig.connectionTimeout);
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body) as List;
-        final courts = data.map((j) => BadmintonCourt(
-              id: j['id'].toString(),
-              name: j['name'] ?? 'Sân Cầu Lông',
-              address: j['address'] ?? '',
-              latitude:
-                  double.tryParse(j['latitude']?.toString() ?? '0') ?? 0.0,
-              longitude:
-                  double.tryParse(j['longitude']?.toString() ?? '0') ?? 0.0,
-              pricePerHour:
-                  double.tryParse(j['price_per_hour']?.toString() ?? '0') ??
-                      0.0,
-              phone: j['phone'] ?? '',
-              rating: (j['rating'] ?? 4.5).toDouble(),
-              reviews: (j['reviews'] ?? 10).toInt(),
-              amenities: ['Wifi', 'Gửi xe', 'Nước uống'],
-              mainImage: j['main_image'],
-              descImage1: j['desc_image1'],
-              descImage2: j['desc_image2'],
-              status: j['status'] ?? 'active',
-            ))
+        final courts = data
+            .map(
+              (j) => BadmintonCourt(
+                id: j['id'].toString(),
+                name: j['name'] ?? 'Sân Cầu Lông',
+                address: j['address'] ?? '',
+                latitude:
+                    double.tryParse(j['latitude']?.toString() ?? '0') ?? 0.0,
+                longitude:
+                    double.tryParse(j['longitude']?.toString() ?? '0') ?? 0.0,
+                pricePerHour:
+                    double.tryParse(j['price_per_hour']?.toString() ?? '0') ??
+                    0.0,
+                phone: j['phone'] ?? '',
+                rating: (j['rating'] ?? 4.5).toDouble(),
+                reviews: (j['reviews'] ?? 10).toInt(),
+                amenities: ['Wifi', 'Gửi xe', 'Nước uống'],
+                mainImage: j['main_image'],
+                descImage1: j['desc_image1'],
+                descImage2: j['desc_image2'],
+                status: j['status'] ?? 'active',
+              ),
+            )
             .toList();
         if (mounted) {
           setState(() {
@@ -135,8 +137,10 @@ class _WebMapPageState extends State<WebMapPage>
       if (!mounted) return;
       if (pos == null) {
         setState(() => _isLocating = false);
-        _showSnack('Không thể lấy vị trí. Hãy nhập địa chỉ thủ công.',
-            isSuccess: false);
+        _showSnack(
+          'Không thể lấy vị trí. Hãy nhập địa chỉ thủ công.',
+          isSuccess: false,
+        );
         return;
       }
       final lat = pos.latitude;
@@ -152,8 +156,10 @@ class _WebMapPageState extends State<WebMapPage>
     } catch (_) {
       if (mounted) {
         setState(() => _isLocating = false);
-        _showSnack('Không thể lấy vị trí. Hãy nhập địa chỉ thủ công.',
-            isSuccess: false);
+        _showSnack(
+          'Không thể lấy vị trí. Hãy nhập địa chỉ thủ công.',
+          isSuccess: false,
+        );
       }
     }
   }
@@ -193,21 +199,27 @@ class _WebMapPageState extends State<WebMapPage>
 
   void _showSnack(String msg, {required bool isSuccess}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Row(children: [
-        Icon(
-          isSuccess ? Icons.check_circle_rounded : Icons.error_outline_rounded,
-          color: Colors.white,
-          size: 16,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isSuccess
+                  ? Icons.check_circle_rounded
+                  : Icons.error_outline_rounded,
+              color: Colors.white,
+              size: 16,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(msg, style: const TextStyle(fontSize: 13))),
+          ],
         ),
-        const SizedBox(width: 8),
-        Expanded(child: Text(msg, style: const TextStyle(fontSize: 13))),
-      ]),
-      backgroundColor: isSuccess ? WebStyles.brand : WebStyles.cta,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      duration: const Duration(seconds: 3),
-    ));
+        backgroundColor: isSuccess ? WebStyles.brand : WebStyles.cta,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   // ── Filter ────────────────────────────────────────────────────────────────────
@@ -215,9 +227,11 @@ class _WebMapPageState extends State<WebMapPage>
   void _filterCourts() {
     if (_userLat != null && _userLng != null) {
       final sorted = [..._allCourts]
-        ..sort((a, b) => a
-            .distanceTo(_userLat!, _userLng!)
-            .compareTo(b.distanceTo(_userLat!, _userLng!)));
+        ..sort(
+          (a, b) => a
+              .distanceTo(_userLat!, _userLng!)
+              .compareTo(b.distanceTo(_userLat!, _userLng!)),
+        );
       setState(() => _filteredCourts = sorted);
     } else {
       setState(() => _filteredCourts = _allCourts);
@@ -228,9 +242,11 @@ class _WebMapPageState extends State<WebMapPage>
     final lower = q.toLowerCase();
     setState(() {
       _filteredCourts = _allCourts
-          .where((c) =>
-              c.name.toLowerCase().contains(lower) ||
-              c.address.toLowerCase().contains(lower))
+          .where(
+            (c) =>
+                c.name.toLowerCase().contains(lower) ||
+                c.address.toLowerCase().contains(lower),
+          )
           .toList();
     });
     if (_filteredCourts.isNotEmpty) {
@@ -272,10 +288,12 @@ class _WebMapPageState extends State<WebMapPage>
             _routeDurationMin = ((route['duration'] as num) / 60.0).ceil();
             _isLoadingRoute = false;
           });
-          _mapCtrl.fitCamera(CameraFit.bounds(
-            bounds: LatLngBounds.fromPoints(points),
-            padding: const EdgeInsets.all(60),
-          ));
+          _mapCtrl.fitCamera(
+            CameraFit.bounds(
+              bounds: LatLngBounds.fromPoints(points),
+              padding: const EdgeInsets.all(60),
+            ),
+          );
         }
       }
     } catch (_) {
@@ -287,10 +305,10 @@ class _WebMapPageState extends State<WebMapPage>
   }
 
   void _clearRoute() => setState(() {
-        _routePoints = [];
-        _routeDistKm = null;
-        _routeDurationMin = null;
-      });
+    _routePoints = [];
+    _routeDistKm = null;
+    _routeDurationMin = null;
+  });
 
   // ── Build ─────────────────────────────────────────────────────────────────────
 
@@ -342,13 +360,16 @@ class _WebMapPageState extends State<WebMapPage>
                     Container(
                       padding: const EdgeInsets.all(9),
                       decoration: BoxDecoration(
-                        gradient: WebStyles.brandGrad,
+                        color: WebStyles.brand.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.map_rounded,
-                          color: Colors.white, size: 18),
+                      child: const Icon(
+                        Icons.map_rounded,
+                        size: 16,
+                        color: WebStyles.brand,
+                      ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,7 +386,9 @@ class _WebMapPageState extends State<WebMapPage>
                           Text(
                             'Tìm sân cầu lông gần bạn',
                             style: TextStyle(
-                                fontSize: 11, color: WebStyles.inkFaint),
+                              fontSize: 11,
+                              color: WebStyles.inkFaint,
+                            ),
                           ),
                         ],
                       ),
@@ -386,7 +409,9 @@ class _WebMapPageState extends State<WebMapPage>
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: WebStyles.brand),
+                            strokeWidth: 2,
+                            color: WebStyles.brand,
+                          ),
                         )
                       : Row(
                           mainAxisSize: MainAxisSize.min,
@@ -400,8 +425,9 @@ class _WebMapPageState extends State<WebMapPage>
                                   margin: const EdgeInsets.only(right: 4),
                                   padding: const EdgeInsets.all(7),
                                   decoration: BoxDecoration(
-                                    color: WebStyles.brand
-                                        .withValues(alpha: 0.1),
+                                    color: WebStyles.brand.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Icon(
@@ -414,12 +440,13 @@ class _WebMapPageState extends State<WebMapPage>
                             ),
                             // Search button
                             GestureDetector(
-                              onTap: () =>
-                                  _geocodeAddress(_locationCtrl.text),
+                              onTap: () => _geocodeAddress(_locationCtrl.text),
                               child: Container(
                                 margin: const EdgeInsets.only(right: 6),
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 7),
+                                  horizontal: 12,
+                                  vertical: 7,
+                                ),
                                 decoration: BoxDecoration(
                                   gradient: WebStyles.brandGrad,
                                   borderRadius: BorderRadius.circular(8),
@@ -457,19 +484,25 @@ class _WebMapPageState extends State<WebMapPage>
             child: Row(
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: WebStyles.brand.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: WebStyles.brand.withValues(alpha: 0.2)),
+                      color: WebStyles.brand.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.sports_tennis_rounded,
-                          color: WebStyles.brand, size: 13),
+                      const Icon(
+                        Icons.sports_tennis_rounded,
+                        color: WebStyles.brand,
+                        size: 13,
+                      ),
                       const SizedBox(width: 5),
                       Text(
                         _isLoading
@@ -488,12 +521,19 @@ class _WebMapPageState extends State<WebMapPage>
                 if (_userLat != null)
                   Row(
                     children: [
-                      const Icon(Icons.near_me_rounded,
-                          size: 12, color: WebStyles.inkFaint),
+                      const Icon(
+                        Icons.near_me_rounded,
+                        size: 12,
+                        color: WebStyles.inkFaint,
+                      ),
                       const SizedBox(width: 4),
-                      const Text('Gần bạn nhất',
-                          style: TextStyle(
-                              fontSize: 11, color: WebStyles.inkFaint)),
+                      const Text(
+                        'Gần bạn nhất',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: WebStyles.inkFaint,
+                        ),
+                      ),
                     ],
                   ),
               ],
@@ -510,56 +550,63 @@ class _WebMapPageState extends State<WebMapPage>
                     ),
                   )
                 : _filteredCourts.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.search_off_rounded,
-                                size: 48,
-                                color: WebStyles.inkFaint
-                                    .withValues(alpha: 0.3)),
-                            const SizedBox(height: 12),
-                            const Text('Không tìm thấy sân',
-                                style: TextStyle(
-                                    color: WebStyles.inkFaint, fontSize: 13)),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: 48,
+                          color: WebStyles.inkFaint.withValues(alpha: 0.3),
                         ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
-                        itemCount: _filteredCourts.length,
-                        itemBuilder: (ctx, i) {
-                          final court = _filteredCourts[i];
-                          return _CourtSidebarItem(
-                            court: court,
-                            isSelected: _selectedCourt?.id == court.id,
-                            userLat: _userLat,
-                            userLng: _userLng,
-                            onTap: () {
-                              setState(() => _selectedCourt = court);
-                              _mapCtrl.move(
-                                LatLng(court.latitude, court.longitude),
-                                15,
-                              );
-                            },
-                            onRoute: () => _getRoute(court),
-                            onDetail: () => showCourtDetailDialog(
-                              ctx,
-                              court,
-                              distanceKm: _userLat != null
-                                  ? court.distanceTo(_userLat!, _userLng!)
-                                  : 0,
-                            ),
-                            onBook: () => Navigator.push(
-                              ctx,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    BookingScreen(initialCourt: court),
-                              ),
-                            ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Không tìm thấy sân',
+                          style: TextStyle(
+                            color: WebStyles.inkFaint,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
+                    itemCount: _filteredCourts.length,
+                    itemBuilder: (ctx, i) {
+                      final court = _filteredCourts[i];
+                      return _CourtSidebarItem(
+                        court: court,
+                        isSelected: _selectedCourt?.id == court.id,
+                        userLat: _userLat,
+                        userLng: _userLng,
+                        onTap: () {
+                          setState(() => _selectedCourt = court);
+                          _mapCtrl.move(
+                            LatLng(court.latitude, court.longitude),
+                            15,
                           );
                         },
-                      ),
+                        onRoute: () => _getRoute(court),
+                        onDetail: () => showCourtDetailDialog(
+                          ctx,
+                          court,
+                          distanceKm: _userLat != null
+                              ? court.distanceTo(_userLat!, _userLng!)
+                              : 0,
+                        ),
+                        onBook: () => Navigator.push(
+                          ctx,
+                          MaterialPageRoute(
+                            builder: (_) => WebBookingPage(
+                              initialCourt: court,
+                              onTabChange: widget.onTabChange,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -584,127 +631,135 @@ class _WebMapPageState extends State<WebMapPage>
           ),
           children: [
             TileLayer(
-              urlTemplate:
-                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.shuttlecourt.app',
             ),
             // Route polylines
             if (_routePoints.isNotEmpty) ...[
-              PolylineLayer(polylines: [
-                Polyline(
-                  points: _routePoints,
-                  color: const Color(0x331565C0),
-                  strokeWidth: 10,
-                ),
-              ]),
-              PolylineLayer(polylines: [
-                Polyline(
-                  points: _routePoints,
-                  color: const Color(0xFF2196F3),
-                  strokeWidth: 5,
-                  borderColor: Colors.white,
-                  borderStrokeWidth: 1.5,
-                ),
-              ]),
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePoints,
+                    color: const Color(0x331565C0),
+                    strokeWidth: 10,
+                  ),
+                ],
+              ),
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePoints,
+                    color: const Color(0xFF2196F3),
+                    strokeWidth: 5,
+                    borderColor: Colors.white,
+                    borderStrokeWidth: 1.5,
+                  ),
+                ],
+              ),
             ],
             // Markers
-            MarkerLayer(markers: [
-              // User location
-              if (_userLat != null && _userLng != null)
-                Marker(
-                  point: LatLng(_userLat!, _userLng!),
-                  width: 60,
-                  height: 60,
-                  child: AnimatedBuilder(
-                    animation: _pulseAnim,
-                    builder: (_, _) => Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: 60 * _pulseAnim.value,
-                          height: 60 * _pulseAnim.value,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0x222196F3),
+            MarkerLayer(
+              markers: [
+                // User location
+                if (_userLat != null && _userLng != null)
+                  Marker(
+                    point: LatLng(_userLat!, _userLng!),
+                    width: 60,
+                    height: 60,
+                    child: AnimatedBuilder(
+                      animation: _pulseAnim,
+                      builder: (_, _) => Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 60 * _pulseAnim.value,
+                            height: 60 * _pulseAnim.value,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0x222196F3),
+                            ),
                           ),
-                        ),
-                        Container(
-                          width: 26,
-                          height: 26,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0x442196F3),
-                            border: Border.all(
-                                color: Colors.white, width: 2),
+                          Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0x442196F3),
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
                           ),
-                        ),
-                        Container(
-                          width: 14,
-                          height: 14,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFF2196F3),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0x552196F3),
-                                blurRadius: 8,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              // Court markers (max 20)
-              ..._filteredCourts.take(20).map((court) {
-                final isSel = _selectedCourt?.id == court.id;
-                final isMaint = court.status == 'maintenance';
-                return Marker(
-                  point: LatLng(court.latitude, court.longitude),
-                  width: isSel ? 52 : 42,
-                  height: isSel ? 52 : 42,
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() => _selectedCourt = court);
-                      _mapCtrl.move(
-                          LatLng(court.latitude, court.longitude), 15);
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isMaint
-                            ? const Color(0xFFFF5252)
-                            : isSel
-                                ? WebStyles.brand
-                                : Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isMaint
-                              ? const Color(0xFFD32F2F)
-                              : WebStyles.brand,
-                          width: isSel ? 0 : 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isSel
-                                ? WebStyles.brand.withValues(alpha: 0.4)
-                                : Colors.black.withValues(alpha: 0.18),
-                            blurRadius: isSel ? 12 : 6,
-                            offset: const Offset(0, 3),
+                          Container(
+                            width: 14,
+                            height: 14,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF2196F3),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color(0x552196F3),
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                      child: Icon(
-                        Icons.sports_tennis_rounded,
-                        color: (isSel || isMaint) ? Colors.white : WebStyles.brand,
-                        size: isSel ? 22 : 17,
-                      ),
                     ),
                   ),
-                );
-              }),
-            ]),
+                // Court markers (max 20)
+                ..._filteredCourts.take(20).map((court) {
+                  final isSel = _selectedCourt?.id == court.id;
+                  final isMaint = court.status == 'maintenance';
+                  return Marker(
+                    point: LatLng(court.latitude, court.longitude),
+                    width: isSel ? 52 : 42,
+                    height: isSel ? 52 : 42,
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() => _selectedCourt = court);
+                        _mapCtrl.move(
+                          LatLng(court.latitude, court.longitude),
+                          15,
+                        );
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isMaint
+                              ? const Color(0xFFFF5252)
+                              : isSel
+                              ? WebStyles.brand
+                              : Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isMaint
+                                ? const Color(0xFFD32F2F)
+                                : WebStyles.brand,
+                            width: isSel ? 0 : 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isSel
+                                  ? WebStyles.brand.withValues(alpha: 0.4)
+                                  : Colors.black.withValues(alpha: 0.18),
+                              blurRadius: isSel ? 12 : 6,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.sports_tennis_rounded,
+                          color: (isSel || isMaint)
+                              ? Colors.white
+                              : WebStyles.brand,
+                          size: isSel ? 22 : 17,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
           ],
         ),
 
@@ -715,8 +770,7 @@ class _WebMapPageState extends State<WebMapPage>
             left: 16,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 20, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
@@ -732,14 +786,20 @@ class _WebMapPageState extends State<WebMapPage>
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.directions_car_rounded,
-                      color: Colors.white, size: 20),
+                  const Icon(
+                    Icons.directions_car_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Row(
                       children: [
-                        const Icon(Icons.straighten_rounded,
-                            color: Colors.white70, size: 14),
+                        const Icon(
+                          Icons.straighten_rounded,
+                          color: Colors.white70,
+                          size: 14,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           '${_routeDistKm!.toStringAsFixed(1)} km',
@@ -750,8 +810,11 @@ class _WebMapPageState extends State<WebMapPage>
                           ),
                         ),
                         const SizedBox(width: 16),
-                        const Icon(Icons.access_time_rounded,
-                            color: Colors.white70, size: 14),
+                        const Icon(
+                          Icons.access_time_rounded,
+                          color: Colors.white70,
+                          size: 14,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           '~$_routeDurationMin phút',
@@ -772,8 +835,11 @@ class _WebMapPageState extends State<WebMapPage>
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.close_rounded,
-                          color: Colors.white, size: 16),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
                     ),
                   ),
                 ],
@@ -788,8 +854,7 @@ class _WebMapPageState extends State<WebMapPage>
             left: 16,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  vertical: 14, horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
@@ -808,15 +873,19 @@ class _WebMapPageState extends State<WebMapPage>
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Color(0xFF2196F3)),
+                      strokeWidth: 2,
+                      color: Color(0xFF2196F3),
+                    ),
                   ),
                   SizedBox(width: 12),
-                  Text('Đang tìm đường đi...',
-                      style: TextStyle(
-                          color: WebStyles.ink,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    'Đang tìm đường đi...',
+                    style: TextStyle(
+                      color: WebStyles.ink,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -844,8 +913,7 @@ class _WebMapPageState extends State<WebMapPage>
                 color: WebStyles.brand,
                 tooltip: 'Vị trí của tôi',
                 onTap: _userLat != null
-                    ? () => _mapCtrl.move(
-                        LatLng(_userLat!, _userLng!), 15)
+                    ? () => _mapCtrl.move(LatLng(_userLat!, _userLng!), 15)
                     : _autoLocate,
               ),
             ],
@@ -909,15 +977,15 @@ class _CourtSidebarItemState extends State<_CourtSidebarItem> {
             color: widget.isSelected
                 ? WebStyles.brand.withValues(alpha: 0.05)
                 : _hovered
-                    ? WebStyles.bg
-                    : Colors.white,
+                ? WebStyles.bg
+                : Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: widget.isSelected
                   ? WebStyles.brand
                   : _hovered
-                      ? WebStyles.brand.withValues(alpha: 0.3)
-                      : WebStyles.border,
+                  ? WebStyles.brand.withValues(alpha: 0.3)
+                  : WebStyles.border,
               width: widget.isSelected ? 1.5 : 1,
             ),
             boxShadow: _hovered || widget.isSelected
@@ -955,7 +1023,9 @@ class _CourtSidebarItemState extends State<_CourtSidebarItem> {
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: isMaint
                           ? const Color(0xFFFF5252).withValues(alpha: 0.1)
@@ -980,14 +1050,20 @@ class _CourtSidebarItemState extends State<_CourtSidebarItem> {
               // ── Address ────────────────────────────────────────
               Row(
                 children: [
-                  const Icon(Icons.location_on_outlined,
-                      size: 12, color: WebStyles.inkFaint),
+                  const Icon(
+                    Icons.location_on_outlined,
+                    size: 12,
+                    color: WebStyles.inkFaint,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       court.address,
                       style: const TextStyle(
-                          fontSize: 11, color: WebStyles.inkFaint, height: 1.3),
+                        fontSize: 11,
+                        color: WebStyles.inkFaint,
+                        height: 1.3,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -999,32 +1075,42 @@ class _CourtSidebarItemState extends State<_CourtSidebarItem> {
               // ── Rating + distance + price ──────────────────────
               Row(
                 children: [
-                  const Icon(Icons.star_rounded,
-                      size: 13, color: Color(0xFFFBBF24)),
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 13,
+                    color: Color(0xFFFBBF24),
+                  ),
                   const SizedBox(width: 3),
                   Text(
                     court.rating.toStringAsFixed(1),
                     style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: WebStyles.inkMid),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: WebStyles.inkMid,
+                    ),
                   ),
                   Text(
                     ' (${court.reviews})',
                     style: const TextStyle(
-                        fontSize: 11, color: WebStyles.inkFaint),
+                      fontSize: 11,
+                      color: WebStyles.inkFaint,
+                    ),
                   ),
                   if (distance != null) ...[
                     const SizedBox(width: 8),
-                    const Icon(Icons.near_me_rounded,
-                        size: 11, color: WebStyles.inkFaint),
+                    const Icon(
+                      Icons.near_me_rounded,
+                      size: 11,
+                      color: WebStyles.inkFaint,
+                    ),
                     const SizedBox(width: 3),
                     Text(
                       '${distance}km',
                       style: const TextStyle(
-                          fontSize: 11,
-                          color: WebStyles.inkFaint,
-                          fontWeight: FontWeight.w600),
+                        fontSize: 11,
+                        color: WebStyles.inkFaint,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                   const Spacer(),
@@ -1120,8 +1206,7 @@ class _SidebarBtn extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon,
-                size: 13, color: disabled ? WebStyles.inkFaint : color),
+            Icon(icon, size: 13, color: disabled ? WebStyles.inkFaint : color),
             const SizedBox(width: 4),
             Text(
               label,
@@ -1178,11 +1263,12 @@ class _InputBox extends StatelessWidget {
               onSubmitted: onSubmitted,
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle:
-                    const TextStyle(color: WebStyles.inkFaint, fontSize: 13),
+                hintStyle: const TextStyle(
+                  color: WebStyles.inkFaint,
+                  fontSize: 13,
+                ),
                 border: InputBorder.none,
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 11),
+                contentPadding: const EdgeInsets.symmetric(vertical: 11),
               ),
               style: const TextStyle(fontSize: 13, color: WebStyles.ink),
             ),

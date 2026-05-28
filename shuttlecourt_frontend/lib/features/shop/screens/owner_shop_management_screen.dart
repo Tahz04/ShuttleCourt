@@ -7,7 +7,8 @@ import 'dart:convert';
 
 class OwnerShopManagementScreen extends StatefulWidget {
   final bool isAdmin;
-  const OwnerShopManagementScreen({super.key, this.isAdmin = false});
+  final bool isEmbedded;
+  const OwnerShopManagementScreen({super.key, this.isAdmin = false, this.isEmbedded = false});
 
   @override
   State<OwnerShopManagementScreen> createState() => _OwnerShopManagementScreenState();
@@ -37,14 +38,16 @@ class _OwnerShopManagementScreenState extends State<OwnerShopManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.scaffoldLight,
-      appBar: AppBar(
-        title: const Text('QUẢN LÝ SẢN PHẨM', style: TextStyle(fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      appBar: widget.isEmbedded
+          ? null
+          : AppBar(
+              title: const Text('QUẢN LÝ SẢN PHẨM', style: TextStyle(fontWeight: FontWeight.w900, color: AppTheme.textPrimary)),
+              centerTitle: true,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
       floatingActionButton: widget.isAdmin ? null : FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const AddProductScreen()));
@@ -53,95 +56,108 @@ class _OwnerShopManagementScreenState extends State<OwnerShopManagementScreen> {
         icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: const Text('Thêm sản phẩm', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadProducts,
-        child: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-          : _products.isEmpty
-            ? const Center(child: Text('Chưa có sản phẩm nào trong cửa hàng.'))
-            : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _products.length,
-                itemBuilder: (context, index) {
-                  final prod = _products[index];
-                  IconData getIcon() {
-                    switch (prod.category) {
-                      case 'Vợt': return Icons.sports_tennis_rounded;
-                      case 'Quả cầu': return Icons.circle_outlined;
-                      case 'Giày': return Icons.nordic_walking_rounded;
-                      default: return Icons.shopping_bag_outlined;
-                    }
-                  }
+      body: widget.isEmbedded
+          ? _isLoading 
+              ? const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 40), child: CircularProgressIndicator(color: AppTheme.primary)))
+              : _products.isEmpty
+                  ? const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 40), child: Text('Chưa có sản phẩm nào trong cửa hàng.')))
+                  : _buildProductList()
+          : RefreshIndicator(
+              onRefresh: _loadProducts,
+              color: AppTheme.primary,
+              child: _isLoading 
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                : _products.isEmpty
+                  ? const Center(child: Text('Chưa có sản phẩm nào trong cửa hàng.'))
+                  : _buildProductList(),
+            ),
+    );
+  }
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: AppTheme.cardShadow,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: (prod.imageUrl != null && prod.imageUrl!.startsWith('data:image'))
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Builder(
-                                  builder: (context) {
-                                    try {
-                                      String b64 = prod.imageUrl!.split(',').last;
-                                      while (b64.length % 4 != 0) { b64 += '='; }
-                                      return Image.memory(base64Decode(b64), fit: BoxFit.cover);
-                                    } catch (e) {
-                                      return Icon(getIcon(), color: AppTheme.primary, size: 30);
-                                    }
-                                  }
-                                ),
-                              )
-                            : (prod.imageUrl != null && prod.imageUrl!.isNotEmpty)
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.network(prod.imageUrl!, fit: BoxFit.cover),
-                                )
-                              : Icon(getIcon(), color: AppTheme.primary, size: 30),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(prod.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                              const SizedBox(height: 4),
-                              Text('Giá: ${_currencyFormat.format(prod.price)}', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 2),
-                              Text('Kho: ${prod.stock} cái', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, color: AppTheme.accent),
-                          onPressed: () async {
-                            final updated = await Navigator.push(context, MaterialPageRoute(builder: (_) => AddProductScreen(product: prod)));
-                            if (updated == true) _loadProducts();
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error),
-                          onPressed: () => _confirmDelete(prod),
-                        ),
-                      ],
-                    ),
-                  );
+  Widget _buildProductList() {
+    return ListView.builder(
+      shrinkWrap: widget.isEmbedded,
+      physics: widget.isEmbedded ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+      padding: EdgeInsets.all(widget.isEmbedded ? 0 : 16),
+      itemCount: _products.length,
+      itemBuilder: (context, index) {
+        final prod = _products[index];
+        IconData getIcon() {
+          switch (prod.category) {
+            case 'Vợt': return Icons.sports_tennis_rounded;
+            case 'Quả cầu': return Icons.circle_outlined;
+            case 'Giày': return Icons.nordic_walking_rounded;
+            default: return Icons.shopping_bag_outlined;
+          }
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: AppTheme.cardShadow,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: (prod.imageUrl != null && prod.imageUrl!.startsWith('data:image'))
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Builder(
+                        builder: (context) {
+                          try {
+                            String b64 = prod.imageUrl!.split(',').last;
+                            while (b64.length % 4 != 0) { b64 += '='; }
+                            return Image.memory(base64Decode(b64), fit: BoxFit.cover);
+                          } catch (e) {
+                            return Icon(getIcon(), color: AppTheme.primary, size: 30);
+                          }
+                        }
+                      ),
+                    )
+                  : (prod.imageUrl != null && prod.imageUrl!.isNotEmpty)
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(prod.imageUrl!, fit: BoxFit.cover),
+                      )
+                    : Icon(getIcon(), color: AppTheme.primary, size: 30),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(prod.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 4),
+                    Text('Giá: ${_currencyFormat.format(prod.price)}', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    Text('Kho: ${prod.stock} cái', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, color: AppTheme.accent),
+                onPressed: () async {
+                  final updated = await Navigator.push(context, MaterialPageRoute(builder: (_) => AddProductScreen(product: prod)));
+                  if (updated == true) _loadProducts();
                 },
               ),
-      ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error),
+                onPressed: () => _confirmDelete(prod),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

@@ -9,7 +9,8 @@ import 'package:intl/intl.dart';
 
 class OwnerReviewManagementScreen extends StatefulWidget {
   final bool isAdmin;
-  const OwnerReviewManagementScreen({super.key, this.isAdmin = false});
+  final bool isEmbedded;
+  const OwnerReviewManagementScreen({super.key, this.isAdmin = false, this.isEmbedded = false});
 
   @override
   State<OwnerReviewManagementScreen> createState() =>
@@ -64,36 +65,49 @@ class _OwnerReviewManagementScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.scaffoldLight,
-      appBar: AppBar(
-        title: const Text(
-          'Quản lý Đánh giá',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 18,
-            color: AppTheme.primary,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        elevation: 0,
-        backgroundColor: AppTheme.scaffoldLight,
-        centerTitle: true,
-      ),
-      body: RefreshIndicator(
-        onRefresh: widget.isAdmin
-            ? (_showReports ? _loadReports : _loadReviews)
-            : _loadReviews,
-        color: AppTheme.primary,
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppTheme.primary),
-              )
-            : widget.isAdmin
-            ? (_showReports ? _buildReportList() : _buildReviewList())
-            : (_reviews.isEmpty ? _buildEmptyState() : _buildReviewList()),
-      ),
+      appBar: widget.isEmbedded
+          ? null
+          : AppBar(
+              title: const Text(
+                'Quản lý Đánh giá',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  color: AppTheme.primary,
+                ),
+              ),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+              elevation: 0,
+              backgroundColor: AppTheme.scaffoldLight,
+              centerTitle: true,
+            ),
+      body: widget.isEmbedded
+          ? _isLoading
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: CircularProgressIndicator(color: AppTheme.primary),
+                  ),
+                )
+              : widget.isAdmin
+                  ? (_showReports ? _buildReportList() : _buildReviewList())
+                  : (_reviews.isEmpty ? _buildEmptyState() : _buildReviewList())
+          : RefreshIndicator(
+              onRefresh: widget.isAdmin
+                  ? (_showReports ? _loadReports : _loadReviews)
+                  : _loadReviews,
+              color: AppTheme.primary,
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppTheme.primary),
+                    )
+                  : widget.isAdmin
+                  ? (_showReports ? _buildReportList() : _buildReviewList())
+                  : (_reviews.isEmpty ? _buildEmptyState() : _buildReviewList()),
+            ),
     );
   }
 
@@ -229,8 +243,9 @@ class _OwnerReviewManagementScreenState
     final hasHeader = widget.isAdmin;
     if (hasHeader && _reviews.isEmpty) {
       return ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(20),
+        shrinkWrap: widget.isEmbedded,
+        physics: widget.isEmbedded ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+        padding: widget.isEmbedded ? const EdgeInsets.symmetric(vertical: 8) : const EdgeInsets.all(20),
         children: [
           _buildAdminToggle(),
           const SizedBox(height: 80),
@@ -239,8 +254,9 @@ class _OwnerReviewManagementScreenState
       );
     }
     return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(20),
+      shrinkWrap: widget.isEmbedded,
+      physics: widget.isEmbedded ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+      padding: widget.isEmbedded ? const EdgeInsets.symmetric(vertical: 8) : const EdgeInsets.all(20),
       itemCount: _reviews.length + (hasHeader ? 1 : 0),
       itemBuilder: (context, index) {
         if (hasHeader && index == 0) {
@@ -255,8 +271,9 @@ class _OwnerReviewManagementScreenState
   Widget _buildReportList() {
     if (_reports.isEmpty) {
       return ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(20),
+        shrinkWrap: widget.isEmbedded,
+        physics: widget.isEmbedded ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+        padding: widget.isEmbedded ? const EdgeInsets.symmetric(vertical: 8) : const EdgeInsets.all(20),
         children: [
           _buildAdminToggle(),
           const SizedBox(height: 80),
@@ -265,8 +282,9 @@ class _OwnerReviewManagementScreenState
       );
     }
     return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(20),
+      shrinkWrap: widget.isEmbedded,
+      physics: widget.isEmbedded ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+      padding: widget.isEmbedded ? const EdgeInsets.symmetric(vertical: 8) : const EdgeInsets.all(20),
       itemCount: _reports.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
@@ -451,8 +469,8 @@ class _OwnerReviewManagementScreenState
               ),
             ),
           ] else ...[
-            SizedBox(
-              width: double.infinity,
+            Align(
+              alignment: Alignment.centerRight,
               child: TextButton.icon(
                 onPressed: () => _showReplyDialog(review),
                 icon: const Icon(Icons.reply_rounded, size: 18),
@@ -462,7 +480,7 @@ class _OwnerReviewManagementScreenState
                 ),
                 style: TextButton.styleFrom(
                   foregroundColor: AppTheme.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(color: AppTheme.primary.withOpacity(0.1)),
@@ -472,9 +490,9 @@ class _OwnerReviewManagementScreenState
             ),
           ],
           if (!widget.isAdmin) ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
               child: TextButton.icon(
                 onPressed: () => _showReportDialog(review),
                 icon: const Icon(Icons.report_gmailerrorred_rounded, size: 18),
@@ -484,7 +502,7 @@ class _OwnerReviewManagementScreenState
                 ),
                 style: TextButton.styleFrom(
                   foregroundColor: AppTheme.error,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(color: AppTheme.error.withOpacity(0.2)),
@@ -587,42 +605,39 @@ class _OwnerReviewManagementScreenState
           ],
           const SizedBox(height: 16),
           Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _resolveReport(report, 'keep'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.textSecondary,
-                    side: BorderSide(color: AppTheme.borderLight),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+              OutlinedButton(
+                onPressed: () => _resolveReport(report, 'keep'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.textSecondary,
+                  side: BorderSide(color: AppTheme.borderLight),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'GIỮ',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-                  ),
+                ),
+                child: const Text(
+                  'GIỮ',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => _resolveReport(report, 'delete'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.error,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+              ElevatedButton(
+                onPressed: () => _resolveReport(report, 'delete'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.error,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'XÓA',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                    ),
+                ),
+                child: const Text(
+                  'XÓA',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
                   ),
                 ),
               ),

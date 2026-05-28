@@ -16,12 +16,25 @@ class BookingScreen extends StatefulWidget {
   State<BookingScreen> createState() => _BookingScreenState();
 }
 
-class _BookingScreenState extends State<BookingScreen> with TickerProviderStateMixin {
+class _BookingScreenState extends State<BookingScreen>
+    with TickerProviderStateMixin {
   // Domain: Phân loại ca chơi theo ca Sáng/Chiều/Tối truyền thống của sân cầu lông
   final Map<String, List<String>> _timeSlotsByCategory = {
-    'Sáng': ['05:00 - 06:00', '06:00 - 07:00', '07:00 - 08:00', '08:00 - 09:00', '09:00 - 10:00'],
+    'Sáng': [
+      '05:00 - 06:00',
+      '06:00 - 07:00',
+      '07:00 - 08:00',
+      '08:00 - 09:00',
+      '09:00 - 10:00',
+    ],
     'Chiều': ['14:00 - 15:00', '15:00 - 16:00', '16:00 - 17:00'],
-    'Tối': ['17:00 - 18:00', '18:00 - 19:00', '19:00 - 20:00', '20:00 - 21:00', '21:00 - 22:00']
+    'Tối': [
+      '17:00 - 18:00',
+      '18:00 - 19:00',
+      '19:00 - 20:00',
+      '20:00 - 21:00',
+      '21:00 - 22:00',
+    ],
   };
 
   String _selectedSlot = '';
@@ -39,7 +52,7 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
     super.initState();
     _selectedCourt = widget.initialCourt;
     _loadCourts();
-    
+
     SocketService().connect();
     SocketService().onBookingUpdated((data) {
       if (mounted && _selectedCourt != null) {
@@ -65,7 +78,10 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
   Future<void> _fetchBookedSlots() async {
     if (_selectedCourt == null) return;
     try {
-      final slots = await ApiBookingService.getBookedSlots(_selectedCourt!.name, _selectedDate);
+      final slots = await ApiBookingService.getBookedSlots(
+        _selectedCourt!.name,
+        _selectedDate,
+      );
       if (mounted) {
         setState(() {
           _bookedSlots = slots;
@@ -76,6 +92,20 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
       }
     } catch (e) {
       debugPrint('Lỗi lấy lịch trống: $e');
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final now = DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 1, now.month, now.day),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() => _selectedDate = picked);
+      _fetchBookedSlots();
     }
   }
 
@@ -113,10 +143,14 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500), // Fix độ rộng để đẹp trên cả Web và Mobile
+          constraints: const BoxConstraints(
+            maxWidth: 500,
+          ), // Fix độ rộng để đẹp trên cả Web và Mobile
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
-            child: _selectedCourt == null ? _buildCourtSelection() : _buildBookingDetails(),
+            child: _selectedCourt == null
+                ? _buildCourtSelection()
+                : _buildBookingDetails(),
           ),
         ),
       ),
@@ -124,9 +158,13 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
   }
 
   Widget _buildCourtSelection() {
-    final filteredCourts = _courts.where((court) =>
-    court.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        court.address.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    final filteredCourts = _courts
+        .where(
+          (court) =>
+              court.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              court.address.toLowerCase().contains(_searchQuery.toLowerCase()),
+        )
+        .toList();
 
     return Column(
       key: const ValueKey('selection'),
@@ -145,7 +183,11 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
               decoration: const InputDecoration(
                 hintText: 'Tìm nhanh tên sân hoặc khu vực...',
                 hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 13),
-                prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primary, size: 20),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: AppTheme.primary,
+                  size: 20,
+                ),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(vertical: 12),
               ),
@@ -154,7 +196,12 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
         ),
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2))
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: AppTheme.primary,
+                    strokeWidth: 2,
+                  ),
+                )
               : RefreshIndicator(
                   color: AppTheme.primary,
                   backgroundColor: AppTheme.cardDark,
@@ -162,7 +209,8 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: filteredCourts.length,
-                    itemBuilder: (context, index) => _buildCourtListItem(filteredCourts[index]),
+                    itemBuilder: (context, index) =>
+                        _buildCourtListItem(filteredCourts[index]),
                   ),
                 ),
         ),
@@ -192,9 +240,14 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  width: 44, height: 44,
+                  width: 44,
+                  height: 44,
                   color: AppTheme.primary.withOpacity(0.1),
-                  child: const Icon(Icons.sports_tennis_rounded, color: AppTheme.primary, size: 22),
+                  child: const Icon(
+                    Icons.sports_tennis_rounded,
+                    color: AppTheme.primary,
+                    size: 22,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -202,12 +255,34 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(court.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.textPrimary)),
-                    Text(court.address, style: const TextStyle(color: AppTheme.textMuted, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      court.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      court.address,
+                      style: const TextStyle(
+                        color: AppTheme.textMuted,
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
-              Text('${(court.pricePerHour / 1000).toStringAsFixed(0)}k/h', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w800, fontSize: 13)),
+              Text(
+                '${(court.pricePerHour / 1000).toStringAsFixed(0)}k/h',
+                style: const TextStyle(
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
             ],
           ),
         ),
@@ -230,19 +305,44 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
           ),
           child: Row(
             children: [
-              const Icon(Icons.location_on_rounded, color: AppTheme.primary, size: 20),
+              const Icon(
+                Icons.location_on_rounded,
+                color: AppTheme.primary,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_selectedCourt!.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                    Text(_selectedCourt!.address, style: const TextStyle(color: AppTheme.textMuted, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      _selectedCourt!.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      _selectedCourt!.address,
+                      style: const TextStyle(
+                        color: AppTheme.textMuted,
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
-
               ),
-              Text('${(_selectedCourt!.pricePerHour / 1000).toStringAsFixed(0)}k/h', style: const TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(
+                '${(_selectedCourt!.pricePerHour / 1000).toStringAsFixed(0)}k/h',
+                style: const TextStyle(
+                  color: AppTheme.accentGold,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
             ],
           ),
         ),
@@ -258,30 +358,32 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                const SizedBox(height: 16),
-                _sectionTitle('Ngày đặt'),
-                _buildDateSelector(),
+                  const SizedBox(height: 16),
+                  _sectionTitle('Ngày đặt'),
+                  _buildDateSelector(),
 
-                const SizedBox(height: 16),
-                _sectionTitle('Số người chơi'),
-                Row(
-                  children: [
-                    _buildPlayerOption(1, '1 Người'),
-                    const SizedBox(width: 8),
-                    _buildPlayerOption(2, '2 Người'),
-                    const SizedBox(width: 8),
-                    _buildPlayerOption(4, '4 Người'),
-                  ],
-                ),
+                  const SizedBox(height: 16),
+                  _sectionTitle('Số người chơi'),
+                  Row(
+                    children: [
+                      _buildPlayerOption(1, '1 Người'),
+                      const SizedBox(width: 8),
+                      _buildPlayerOption(2, '2 Người'),
+                      const SizedBox(width: 8),
+                      _buildPlayerOption(4, '4 Người'),
+                    ],
+                  ),
 
-                const SizedBox(height: 16),
-                _sectionTitle('Khung giờ'),
-                ..._timeSlotsByCategory.entries.map((entry) => _buildTimeSlotGroup(entry.key, entry.value)),
-                const SizedBox(height: 20),
-              ],
+                  const SizedBox(height: 16),
+                  _sectionTitle('Khung giờ'),
+                  ..._timeSlotsByCategory.entries.map(
+                    (entry) => _buildTimeSlotGroup(entry.key, entry.value),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
-        ),
         ),
 
         _buildBottomActionBar(),
@@ -291,21 +393,50 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
 
   Widget _sectionTitle(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 8),
-    child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textSecondary)),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 13,
+        color: AppTheme.textSecondary,
+      ),
+    ),
   );
 
   Widget _buildDateSelector() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppTheme.cardDark, borderRadius: BorderRadius.circular(10)),
-      child: Row(
-        children: [
-          const Icon(Icons.calendar_today_rounded, size: 16, color: AppTheme.primary),
-          const SizedBox(width: 10),
-          Text('Hôm nay - ${DateFormat('dd/MM/yyyy').format(_selectedDate)}', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
-          const Spacer(),
-          const Text('Chỉ đặt trong ngày', style: TextStyle(color: AppTheme.textMuted, fontSize: 10, fontStyle: FontStyle.italic)),
-        ],
+    return InkWell(
+      onTap: () => _selectDate(context),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.cardDark,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.calendar_today_rounded,
+              size: 16,
+              color: AppTheme.primary,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              DateFormat('dd/MM/yyyy').format(_selectedDate),
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.calendar_month_rounded,
+              size: 16,
+              color: AppTheme.primary,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -316,7 +447,15 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Text(category, style: TextStyle(color: AppTheme.primary.withOpacity(0.6), fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5)),
+          child: Text(
+            category,
+            style: TextStyle(
+              color: AppTheme.primary.withOpacity(0.6),
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+              letterSpacing: 0.5,
+            ),
+          ),
         ),
         GridView.builder(
           shrinkWrap: true,
@@ -342,33 +481,52 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
               if (parts.length == 2) {
                 int hour = int.tryParse(parts[0]) ?? 0;
                 int minute = int.tryParse(parts[1]) ?? 0;
-                if (hour < now.hour || (hour == now.hour && minute <= now.minute)) {
+                if (hour < now.hour ||
+                    (hour == now.hour && minute <= now.minute)) {
                   isPast = true;
                 }
               }
             }
-            
+
             bool isDisabled = isBooked || isPast;
 
             return InkWell(
-              onTap: isDisabled ? null : () => setState(() => _selectedSlot = slots[index]),
+              onTap: isDisabled
+                  ? null
+                  : () => setState(() => _selectedSlot = slots[index]),
               borderRadius: BorderRadius.circular(8),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
                   gradient: isSelected ? AppTheme.primaryGradient : null,
-                  color: isDisabled ? Colors.white.withOpacity(0.05) : (isSelected ? null : AppTheme.cardDark),
-                  border: Border.all(color: isSelected ? Colors.transparent : Colors.white.withOpacity(0.05)),
+                  color: isDisabled
+                      ? Colors.white.withOpacity(0.05)
+                      : (isSelected ? null : AppTheme.cardDark),
+                  border: Border.all(
+                    color: isSelected
+                        ? Colors.transparent
+                        : Colors.white.withOpacity(0.05),
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
                   child: Text(
-                    isDisabled ? 'Hết' : slots[index], // Hiển thị đầy đủ khung giờ
+                    isDisabled
+                        ? 'Hết'
+                        : slots[index], // Hiển thị đầy đủ khung giờ
                     style: TextStyle(
-                      color: isDisabled ? AppTheme.textMuted : (isSelected ? Colors.white : AppTheme.textSecondary),
+                      color: isDisabled
+                          ? AppTheme.textMuted
+                          : (isSelected
+                                ? Colors.white
+                                : AppTheme.textSecondary),
                       fontSize: 11, // Giảm từ 12 xuống 11 để vừa với chuỗi dài
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      decoration: isDisabled ? TextDecoration.lineThrough : null,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                      decoration: isDisabled
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
                 ),
@@ -395,7 +553,11 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
           child: Center(
             child: Text(
               label,
-              style: TextStyle(color: isSelected ? Colors.white : AppTheme.textSecondary, fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600, fontSize: 12),
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppTheme.textSecondary,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                fontSize: 12,
+              ),
             ),
           ),
         ),
@@ -412,32 +574,44 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: _selectedSlot.isEmpty ? null : () {
-            if (_selectedPlayers == 1) {
-              _showMatchmakingDialog();
-            } else {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CheckoutScreen(
-                    selectedSlot: _selectedSlot,
-                    selectedCourt: _selectedCourt!,
-                    selectedDate: _selectedDate,
-                  ),
-                ),
-              );
-            }
-          },
+          onPressed: _selectedSlot.isEmpty
+              ? null
+              : () {
+                  if (_selectedPlayers == 1) {
+                    _showMatchmakingDialog();
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CheckoutScreen(
+                          selectedSlot: _selectedSlot,
+                          selectedCourt: _selectedCourt!,
+                          selectedDate: _selectedDate,
+                        ),
+                      ),
+                    );
+                  }
+                },
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.primary,
             minimumSize: const Size(double.infinity, 48),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             elevation: 0,
           ),
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('TIẾP TỤC', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
+              Text(
+                'TIẾP TỤC',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+              ),
               SizedBox(width: 8),
               Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
             ],
@@ -454,13 +628,28 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.cardDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Icon(Icons.people_alt_rounded, color: AppTheme.primary, size: 40),
+        title: const Icon(
+          Icons.people_alt_rounded,
+          color: AppTheme.primary,
+          size: 40,
+        ),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Tìm bạn chơi cùng?', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppTheme.textPrimary)),
+            Text(
+              'Tìm bạn chơi cùng?',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+                color: AppTheme.textPrimary,
+              ),
+            ),
             SizedBox(height: 8),
-            Text('Bạn đang đặt sân 1 mình. Bạn có muốn sử dụng tính năng "Ghép Kèo" để tìm thêm đồng đội không?', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+            Text(
+              'Bạn đang đặt sân 1 mình. Bạn có muốn sử dụng tính năng "Ghép Kèo" để tìm thêm đồng đội không?',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            ),
           ],
         ),
         actions: [
@@ -470,13 +659,25 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
                 child: TextButton(
                   onPressed: () {
                     Navigator.pop(ctx);
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => CheckoutScreen(
-                      selectedSlot: _selectedSlot,
-                      selectedCourt: _selectedCourt!,
-                      selectedDate: _selectedDate,
-                    )));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CheckoutScreen(
+                          selectedSlot: _selectedSlot,
+                          selectedCourt: _selectedCourt!,
+                          selectedDate: _selectedDate,
+                        ),
+                      ),
+                    );
                   },
-                  child: const Text('ĐẶT RIÊNG', style: TextStyle(color: AppTheme.textMuted, fontSize: 12, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'ĐẶT RIÊNG',
+                    style: TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -484,10 +685,27 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(ctx);
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const MatchmakingScreen()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MatchmakingScreen(),
+                      ),
+                    );
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                  child: const Text('GHÉP KÈO', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'GHÉP KÈO',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
               ),
             ],

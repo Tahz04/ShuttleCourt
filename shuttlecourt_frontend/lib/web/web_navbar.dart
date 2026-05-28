@@ -8,6 +8,9 @@ import 'package:shuttlecourt/auth/register_screen.dart';
 import 'package:shuttlecourt/web/web_profile_page.dart';
 import 'package:shuttlecourt/services/notification_service.dart';
 import 'package:shuttlecourt/web/web_notification_page.dart';
+import 'package:shuttlecourt/web/web_owner_dashboard_page.dart';
+import 'package:shuttlecourt/web/web_admin_dashboard_page.dart';
+import 'package:shuttlecourt/main.dart';
 
 /// Dark glassmorphism sticky top navigation bar — web only
 class WebNavbar extends StatefulWidget {
@@ -289,6 +292,7 @@ class _WebNavbarState extends State<WebNavbar> {
   }
 
   Widget _buildUserMenu(AuthService auth) {
+    final userRole = auth.user?.role ?? 'user';
     return PopupMenuButton<String>(
       position: PopupMenuPosition.under,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -298,12 +302,62 @@ class _WebNavbarState extends State<WebNavbar> {
         _buildProfileMenuItem(context, 'Lịch sử đặt sân', Icons.calendar_month_outlined, 1),
         _buildProfileMenuItem(context, 'Lịch sử ghép sân', Icons.people_outline, 2),
         _buildProfileMenuItem(context, 'Cài đặt', Icons.settings_outlined, 3),
+        if (userRole == 'owner' || userRole == 'admin') ...[
+          const PopupMenuDivider(),
+          if (userRole == 'owner')
+            PopupMenuItem(
+              value: 'owner_dashboard',
+              onTap: () => Future.delayed(
+                const Duration(milliseconds: 100),
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const WebOwnerDashboardPage(),
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.dashboard_customize_rounded, size: 18, color: AppTheme.accent),
+                  const SizedBox(width: 10),
+                  Text('Dashboard Chủ sân', style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          if (userRole == 'admin')
+            PopupMenuItem(
+              value: 'admin_dashboard',
+              onTap: () => Future.delayed(
+                const Duration(milliseconds: 100),
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const WebAdminDashboardPage(),
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.admin_panel_settings_rounded, size: 18, color: AppTheme.accent),
+                  const SizedBox(width: 10),
+                  Text('Dashboard Admin', style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+        ],
         const PopupMenuDivider(),
         PopupMenuItem(
           value: 'logout',
           onTap: () => Future.delayed(
             const Duration(milliseconds: 100),
-            () => auth.logout(),
+            () {
+              auth.logout();
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const MainScreen()),
+                (route) => false,
+              );
+            },
           ),
           child: const Row(
             children: [
@@ -314,6 +368,7 @@ class _WebNavbarState extends State<WebNavbar> {
           ),
         ),
       ],
+
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
@@ -347,7 +402,11 @@ class _WebNavbarState extends State<WebNavbar> {
                   ),
                 ),
                 Text(
-                  auth.user?.role == 'owner' ? 'Chủ sân' : 'Người dùng',
+                  auth.user?.role == 'owner'
+                      ? 'Chủ sân'
+                      : auth.user?.role == 'admin'
+                          ? 'Quản trị viên'
+                          : 'Người dùng',
                   style: TextStyle(
                     fontSize: 10,
                     color: Colors.white.withValues(alpha: 0.5),

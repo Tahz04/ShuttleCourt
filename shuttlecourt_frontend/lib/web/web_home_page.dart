@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shuttlecourt/auth/auth_service.dart';
 import 'package:shuttlecourt/auth/register_screen.dart';
-import 'package:shuttlecourt/booking/booking_screen.dart';
+import 'package:shuttlecourt/web/web_booking_page.dart';
 import 'package:shuttlecourt/services/location_service.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/web/web_court_card.dart';
@@ -64,8 +64,9 @@ class _WebHomePageState extends State<WebHomePage> {
                     courtsFuture: _courtsFuture,
                     onViewAll: () => widget.onTabChange?.call(1),
                     onRefresh: () => setState(
-                          () => _courtsFuture =
-                          LocationService.getNearestCourts(maxResults: 8),
+                      () => _courtsFuture = LocationService.getNearestCourts(
+                        maxResults: 8,
+                      ),
                     ),
                     onTabChange: widget.onTabChange,
                   ),
@@ -79,9 +80,9 @@ class _WebHomePageState extends State<WebHomePage> {
                   _CtaBanner(
                     onRegister: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const RegisterScreen()),
+                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
                     ),
+                    onFindCourts: () => widget.onTabChange?.call(1),
                   ),
                   WebFooter(onNavTap: (i) => widget.onTabChange?.call(i)),
                 ],
@@ -148,7 +149,11 @@ class _HeroSectionState extends State<_HeroSection>
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [WebStyles.dark900, WebStyles.dark800, Color(0xFF064E3B)],
+                colors: [
+                  WebStyles.dark900,
+                  WebStyles.dark800,
+                  Color(0xFF064E3B),
+                ],
               ),
             ),
           ),
@@ -161,9 +166,8 @@ class _HeroSectionState extends State<_HeroSection>
           ),
           AnimatedBuilder(
             animation: _particleCtrl,
-            builder: (_, _) => CustomPaint(
-              painter: _ParticlePainter(_particleCtrl.value),
-            ),
+            builder: (_, _) =>
+                CustomPaint(painter: _ParticlePainter(_particleCtrl.value)),
           ),
           Center(
             child: ConstrainedBox(
@@ -175,12 +179,15 @@ class _HeroSectionState extends State<_HeroSection>
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 8),
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: WebStyles.brand.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
-                            color: WebStyles.brand.withValues(alpha: 0.3)),
+                          color: WebStyles.brand.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -265,8 +272,11 @@ class _HeroSectionState extends State<_HeroSection>
                       child: Row(
                         children: [
                           const SizedBox(width: 18),
-                          const Icon(Icons.search_rounded,
-                              color: WebStyles.brand, size: 22),
+                          const Icon(
+                            Icons.search_rounded,
+                            color: WebStyles.brand,
+                            size: 22,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: TextField(
@@ -280,7 +290,8 @@ class _HeroSectionState extends State<_HeroSection>
                                 ),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 16),
+                                  vertical: 16,
+                                ),
                               ),
                               style: const TextStyle(
                                 fontSize: 14,
@@ -298,7 +309,9 @@ class _HeroSectionState extends State<_HeroSection>
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 22, vertical: 12),
+                                  horizontal: 22,
+                                  vertical: 12,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
@@ -306,7 +319,9 @@ class _HeroSectionState extends State<_HeroSection>
                               child: const Text(
                                 'Tìm kiếm',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.w700, fontSize: 13),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                           ),
@@ -320,24 +335,32 @@ class _HeroSectionState extends State<_HeroSection>
                       runSpacing: 8,
                       children: [
                         _QuickTag(
-                            '📍 Gần tôi', () => widget.onSearch('Tìm sân gần tôi')),
+                          '📍 Gần tôi',
+                          () => widget.onSearch('Tìm sân gần tôi'),
+                        ),
                         _QuickTag(
-                            '💰 Dưới 100k/h', () => widget.onSearch('Giá dưới 100k/h')),
+                          '💰 Dưới 100k/h',
+                          () => widget.onSearch('Giá dưới 100k/h'),
+                        ),
                         _QuickTag(
-                            '💡 Có đèn LED', () => widget.onSearch('Sân có đèn LED')),
-                        _QuickTag(
-                            '🗺️ Xem bản đồ', widget.onViewMap),
+                          '💡 Có đèn LED',
+                          () => widget.onSearch('Sân có đèn LED'),
+                        ),
+                        _QuickTag('🗺️ Xem bản đồ', widget.onViewMap),
                       ],
                     ),
                     const SizedBox(height: 52),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 40, vertical: 20),
+                        horizontal: 40,
+                        vertical: 20,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.07),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1)),
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -387,8 +410,7 @@ class _QuickTagState extends State<_QuickTag> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
             color: _hovered
                 ? Colors.white.withValues(alpha: 0.18)
@@ -465,7 +487,7 @@ class _ParticlePainter extends CustomPainter {
   static final _rng = math.Random(42);
   static final _particles = List.generate(
     15,
-        (i) => _Particle(
+    (i) => _Particle(
       x: _rng.nextDouble(),
       startY: _rng.nextDouble(),
       size: 2 + _rng.nextDouble() * 3,
@@ -487,8 +509,9 @@ class _ParticlePainter extends CustomPainter {
           ? (1.0 - t) / 0.3
           : 0.6;
       final y = (p.startY - t * p.speed) % 1.0;
-      paint.color = WebStyles.brandLight
-          .withValues(alpha: (opacity * 0.55).clamp(0, 1));
+      paint.color = WebStyles.brandLight.withValues(
+        alpha: (opacity * 0.55).clamp(0, 1),
+      );
       canvas.drawCircle(
         Offset(p.x * size.width, y * size.height),
         p.size,
@@ -542,7 +565,9 @@ class _CourtsSection extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 6),
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: WebStyles.brandPale,
                       borderRadius: BorderRadius.circular(999),
@@ -618,8 +643,7 @@ class _CourtsSection extends StatelessWidget {
                       actionLabel: 'Thử lại',
                     );
                   }
-                  return _CourtGrid(
-                      courts: courts, onTabChange: onTabChange);
+                  return _CourtGrid(courts: courts, onTabChange: onTabChange);
                 },
               ),
               const SizedBox(height: 40),
@@ -629,15 +653,17 @@ class _CourtsSection extends StatelessWidget {
                   foregroundColor: WebStyles.brand,
                   side: const BorderSide(color: WebStyles.brand, width: 1.5),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 32, vertical: 14),
+                    horizontal: 32,
+                    vertical: 14,
+                  ),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 icon: const Icon(Icons.explore_rounded, size: 18),
                 label: const Text(
                   'Xem tất cả sân',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 14),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                 ),
               ),
             ],
@@ -674,22 +700,29 @@ class _CourtGrid extends StatelessWidget {
           court: item.court,
           distanceKm: item.distanceKm,
           onViewDetails: () => showCourtDetailDialog(
-            context, item.court,
+            context,
+            item.court,
             distanceKm: item.distanceKm,
           ),
           onBookNow: () {
             final auth = Provider.of<AuthService>(context, listen: false);
             if (!auth.isAuthenticated) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('Vui lòng đăng nhập để đặt sân'),
-                backgroundColor: AppTheme.error,
-              ));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Vui lòng đăng nhập để đặt sân'),
+                  backgroundColor: AppTheme.error,
+                ),
+              );
               return;
             }
             Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (_) => BookingScreen(initialCourt: item.court)),
+                builder: (_) => WebBookingPage(
+                  initialCourt: item.court,
+                  onTabChange: onTabChange,
+                ),
+              ),
             );
           },
         );
@@ -744,23 +777,27 @@ class _FeaturesSection extends StatelessWidget {
                 title: 'Tất cả trong ',
                 titleAccent: 'một nền tảng',
                 subtitle:
-                'ShuttleCourt mang đến trải nghiệm toàn diện cho người chơi cầu lông',
+                    'ShuttleCourt mang đến trải nghiệm toàn diện cho người chơi cầu lông',
               ),
               const SizedBox(height: 48),
-              LayoutBuilder(builder: (context, bc) {
-                final cols = bc.maxWidth > 800 ? 4 : (bc.maxWidth > 500 ? 2 : 1);
-                return GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: cols,
-                  crossAxisSpacing: 24,
-                  mainAxisSpacing: 24,
-                  childAspectRatio: 1.1,
-                  children: features
-                      .map((f) => _FeatureCard(feature: f))
-                      .toList(),
-                );
-              }),
+              LayoutBuilder(
+                builder: (context, bc) {
+                  final cols = bc.maxWidth > 800
+                      ? 4
+                      : (bc.maxWidth > 500 ? 2 : 1);
+                  return GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: cols,
+                    crossAxisSpacing: 24,
+                    mainAxisSpacing: 24,
+                    childAspectRatio: 1.1,
+                    children: features
+                        .map((f) => _FeatureCard(feature: f))
+                        .toList(),
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -802,16 +839,18 @@ class _FeatureCardState extends State<_FeatureCard> {
           color: WebStyles.dark50,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: _hovered ? f.color.withValues(alpha: 0.3) : WebStyles.dark200,
+            color: _hovered
+                ? f.color.withValues(alpha: 0.3)
+                : WebStyles.dark200,
           ),
           boxShadow: _hovered
               ? [
-            BoxShadow(
-              color: f.color.withValues(alpha: 0.15),
-              blurRadius: 30,
-              offset: const Offset(0, 12),
-            )
-          ]
+                  BoxShadow(
+                    color: f.color.withValues(alpha: 0.15),
+                    blurRadius: 30,
+                    offset: const Offset(0, 12),
+                  ),
+                ]
               : [],
         ),
         child: Column(
@@ -863,12 +902,24 @@ class _StepsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const steps = [
-      _StepData('01', Icons.search_rounded, 'Tìm sân phù hợp',
-          'Dùng bộ lọc tìm kiếm theo khu vực, giá, tiện ích để tìm sân ưng ý.'),
-      _StepData('02', Icons.calendar_month_rounded, 'Chọn ngày & giờ',
-          'Xem lịch trống theo thời gian thực, chọn slot phù hợp với lịch của bạn.'),
-      _StepData('03', Icons.check_circle_rounded, 'Xác nhận & đặt sân',
-          'Thanh toán nhanh chóng, nhận xác nhận ngay lập tức, sân đã sẵn sàng!'),
+      _StepData(
+        '01',
+        Icons.search_rounded,
+        'Tìm sân phù hợp',
+        'Dùng bộ lọc tìm kiếm theo khu vực, giá, tiện ích để tìm sân ưng ý.',
+      ),
+      _StepData(
+        '02',
+        Icons.calendar_month_rounded,
+        'Chọn ngày & giờ',
+        'Xem lịch trống theo thời gian thực, chọn slot phù hợp với lịch của bạn.',
+      ),
+      _StepData(
+        '03',
+        Icons.check_circle_rounded,
+        'Xác nhận & đặt sân',
+        'Thanh toán nhanh chóng, nhận xác nhận ngay lập tức, sân đã sẵn sàng!',
+      ),
     ];
 
     return Container(
@@ -884,46 +935,53 @@ class _StepsSection extends StatelessWidget {
                 badge: 'CÁCH THỨC',
                 title: 'Đặt sân chỉ với ',
                 titleAccent: '3 bước đơn giản',
-                subtitle: 'Quy trình đơn giản, nhanh gọn, không cần tài khoản trước',
+                subtitle:
+                    'Quy trình đơn giản, nhanh gọn, không cần tài khoản trước',
               ),
               const SizedBox(height: 56),
-              LayoutBuilder(builder: (context, bc) {
-                final isWide = bc.maxWidth > 700;
-                if (isWide) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: steps
-                        .asMap()
-                        .entries
-                        .map((e) => Expanded(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _StepCard(step: e.value)),
-                          if (e.key < steps.length - 1)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 40),
-                              child: Icon(
-                                Icons.arrow_forward_rounded,
-                                color: WebStyles.dark300,
-                                size: 24,
+              LayoutBuilder(
+                builder: (context, bc) {
+                  final isWide = bc.maxWidth > 700;
+                  if (isWide) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: steps
+                          .asMap()
+                          .entries
+                          .map(
+                            (e) => Expanded(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: _StepCard(step: e.value)),
+                                  if (e.key < steps.length - 1)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 40),
+                                      child: Icon(
+                                        Icons.arrow_forward_rounded,
+                                        color: WebStyles.dark300,
+                                        size: 24,
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                        ],
-                      ),
-                    ))
+                          )
+                          .toList(),
+                    );
+                  }
+                  return Column(
+                    children: steps
+                        .map(
+                          (s) => Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: _StepCard(step: s),
+                          ),
+                        )
                         .toList(),
                   );
-                }
-                return Column(
-                  children: steps
-                      .map((s) => Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: _StepCard(step: s),
-                  ))
-                      .toList(),
-                );
-              }),
+                },
+              ),
             ],
           ),
         ),
@@ -1013,10 +1071,13 @@ class _StepCard extends StatelessWidget {
 // CTA Banner
 class _CtaBanner extends StatelessWidget {
   final VoidCallback onRegister;
-  const _CtaBanner({required this.onRegister});
+  final VoidCallback onFindCourts;
+  const _CtaBanner({required this.onRegister, required this.onFindCourts});
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    final isAuthenticated = auth.isAuthenticated;
     return Container(
       width: double.infinity,
       color: WebStyles.dark50,
@@ -1089,21 +1150,31 @@ class _CtaBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 32),
                     ElevatedButton.icon(
-                      onPressed: onRegister,
+                      onPressed: isAuthenticated ? onFindCourts : onRegister,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: WebStyles.brandDark,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 40, vertical: 16),
+                          horizontal: 40,
+                          vertical: 16,
+                        ),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(999)),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
                       ),
-                      icon: const Icon(Icons.rocket_launch_rounded, size: 18),
-                      label: const Text(
-                        'Đăng ký miễn phí',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w800, fontSize: 15),
+                      icon: Icon(
+                        isAuthenticated
+                            ? Icons.search_rounded
+                            : Icons.rocket_launch_rounded,
+                        size: 18,
+                      ),
+                      label: Text(
+                        isAuthenticated ? 'Tìm sân ngay' : 'Đăng ký miễn phí',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
                       ),
                     ),
                   ],
@@ -1131,8 +1202,7 @@ class _SectionHeader extends StatelessWidget {
     return Column(
       children: [
         Container(
-          padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
             color: WebStyles.brandPale,
             borderRadius: BorderRadius.circular(999),
@@ -1212,18 +1282,20 @@ class _MapExploreSection extends StatelessWidget {
       color: WebStyles.dark900,
       child: isWide
           ? IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(flex: 5, child: _buildLeftPanel(context)),
-            Expanded(flex: 4, child: _buildMapPanel()),
-          ],
-        ),
-      )
-          : Column(children: [
-        _buildLeftPanel(context),
-        SizedBox(height: 320, child: _buildMapPanel()),
-      ]),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(flex: 5, child: _buildLeftPanel(context)),
+                  Expanded(flex: 4, child: _buildMapPanel()),
+                ],
+              ),
+            )
+          : Column(
+              children: [
+                _buildLeftPanel(context),
+                SizedBox(height: 320, child: _buildMapPanel()),
+              ],
+            ),
     );
   }
 
@@ -1234,13 +1306,11 @@ class _MapExploreSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               color: WebStyles.brand.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                  color: WebStyles.brand.withValues(alpha: 0.3)),
+              border: Border.all(color: WebStyles.brand.withValues(alpha: 0.3)),
             ),
             child: const Text(
               'KHÁM PHÁ BẢN ĐỒ',
@@ -1294,30 +1364,37 @@ class _MapExploreSection extends StatelessWidget {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 14),
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 icon: const Icon(Icons.map_rounded, size: 18),
-                label: const Text('Mở bản đồ',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 14)),
+                label: const Text(
+                  'Mở bản đồ',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
               ),
               OutlinedButton.icon(
                 onPressed: onOpenSearch,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
-                  side: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.3)),
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 14),
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 icon: const Icon(Icons.search_rounded, size: 18),
-                label: const Text('Tìm sân',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 14)),
+                label: const Text(
+                  'Tìm sân',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
               ),
             ],
           ),
@@ -1341,15 +1418,18 @@ class _MapExploreSection extends StatelessWidget {
                   child: Text(
                     'Đang tải...',
                     style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4)),
+                      color: Colors.white.withValues(alpha: 0.4),
+                    ),
                   ),
                 );
               }
               return Column(
                 children: courts
                     .take(4)
-                    .map((item) =>
-                    _VerticalCourtItem(item: item, onOpenMap: onOpenMap))
+                    .map(
+                      (item) =>
+                          _VerticalCourtItem(item: item, onOpenMap: onOpenMap),
+                    )
                     .toList(),
               );
             },
@@ -1394,19 +1474,31 @@ class _MapExploreSection extends StatelessWidget {
               top: 80,
               right: 40,
               child: _MapPinCard(
-                  '⭐ 4.8', 'Mỹ Đình Indoor', '90k/giờ', WebStyles.brand),
+                '⭐ 4.8',
+                'Mỹ Đình Indoor',
+                '90k/giờ',
+                WebStyles.brand,
+              ),
             ),
             Positioned(
               top: 200,
               right: 120,
               child: _MapPinCard(
-                  '⭐ 4.6', 'Quốc Việt Cầu Lông', '70k/giờ', Colors.blue),
+                '⭐ 4.6',
+                'Quốc Việt Cầu Lông',
+                '70k/giờ',
+                Colors.blue,
+              ),
             ),
             Positioned(
               bottom: 120,
               right: 60,
               child: _MapPinCard(
-                  '⭐ 4.5', 'Sân Đại học BK', '60k/giờ', const Color(0xFF8B5CF6)),
+                '⭐ 4.5',
+                'Sân Đại học BK',
+                '60k/giờ',
+                const Color(0xFF8B5CF6),
+              ),
             ),
             // Open map overlay button
             Positioned(
@@ -1415,26 +1507,33 @@ class _MapExploreSection extends StatelessWidget {
               right: 0,
               child: Center(
                 child: Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.2)),
+                      color: Colors.white.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.touch_app_rounded,
-                          color: Colors.white, size: 16),
+                      Icon(
+                        Icons.touch_app_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         'Nhấn để mở bản đồ tương tác',
                         style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600),
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -1534,8 +1633,11 @@ class _VerticalCourtItemState extends State<_VerticalCourtItem> {
                     width: 56,
                     height: 56,
                     color: WebStyles.brand.withValues(alpha: 0.2),
-                    child: const Icon(Icons.sports_tennis_rounded,
-                        color: WebStyles.brand, size: 24),
+                    child: const Icon(
+                      Icons.sports_tennis_rounded,
+                      color: WebStyles.brand,
+                      size: 24,
+                    ),
                   ),
                 ),
               ),
@@ -1644,17 +1746,19 @@ class _MapPinCard extends StatelessWidget {
                   Text(
                     rating,
                     style: const TextStyle(
-                        fontSize: 10,
-                        color: Color(0xFFFBBF24),
-                        fontWeight: FontWeight.w600),
+                      fontSize: 10,
+                      color: Color(0xFFFBBF24),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(width: 6),
                   Text(
                     price,
                     style: const TextStyle(
-                        fontSize: 10,
-                        color: WebStyles.brandLight,
-                        fontWeight: FontWeight.w700),
+                      fontSize: 10,
+                      color: WebStyles.brandLight,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -1693,19 +1797,26 @@ class _EmptyState extends StatelessWidget {
               color: WebStyles.brand.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child:
-            Icon(icon, size: 36, color: WebStyles.brand.withValues(alpha: 0.4)),
+            child: Icon(
+              icon,
+              size: 36,
+              color: WebStyles.brand.withValues(alpha: 0.4),
+            ),
           ),
           const SizedBox(height: 18),
-          Text(msg,
-              style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: WebStyles.dark700)),
+          Text(
+            msg,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: WebStyles.dark700,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(sub,
-              style: const TextStyle(
-                  fontSize: 13, color: WebStyles.dark500)),
+          Text(
+            sub,
+            style: const TextStyle(fontSize: 13, color: WebStyles.dark500),
+          ),
           if (onAction != null && actionLabel != null) ...[
             const SizedBox(height: 20),
             OutlinedButton(
@@ -1714,12 +1825,17 @@ class _EmptyState extends StatelessWidget {
                 foregroundColor: WebStyles.brand,
                 side: const BorderSide(color: WebStyles.brand),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 10),
+                  horizontal: 24,
+                  vertical: 10,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              child: Text(actionLabel!,
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              child: Text(
+                actionLabel!,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
           ],
         ],

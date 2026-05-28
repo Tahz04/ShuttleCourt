@@ -9,7 +9,9 @@ import 'package:provider/provider.dart';
 import 'package:shuttlecourt/auth/auth_service.dart';
 
 class OwnerBookingManagementScreen extends StatefulWidget {
-  final bool isAdmin; const OwnerBookingManagementScreen({super.key, this.isAdmin = false});
+  final bool isAdmin;
+  final bool isEmbedded;
+  const OwnerBookingManagementScreen({super.key, this.isAdmin = false, this.isEmbedded = false});
 
   @override
   State<OwnerBookingManagementScreen> createState() => _OwnerBookingManagementScreenState();
@@ -104,11 +106,36 @@ class _OwnerBookingManagementScreenState extends State<OwnerBookingManagementScr
     filteredMatches.sort((a, b) => a.startTime.compareTo(b.startTime));
 
     return Scaffold(
-      backgroundColor: AppTheme.scaffoldDark,
+      backgroundColor: widget.isEmbedded ? Colors.transparent : AppTheme.scaffoldDark,
       body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
+        shrinkWrap: widget.isEmbedded,
+        physics: widget.isEmbedded ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
         slivers: [
-          _buildSliverAppBar(),
+          if (widget.isEmbedded)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'QUẢN LÝ LỊCH ĐẶT',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh_rounded, color: AppTheme.primary),
+                      onPressed: _loadAllData,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            _buildSliverAppBar(),
           _buildFilterTabs(),
           if (!_showPendingOnly) _buildDateDisplay(),
           SliverToBoxAdapter(
@@ -118,7 +145,7 @@ class _OwnerBookingManagementScreenState extends State<OwnerBookingManagementScr
                 ? _buildEmptyState()
                 : _buildContentList(filteredBookings, filteredMatches),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 50)),
+          SliverToBoxAdapter(child: SizedBox(height: widget.isEmbedded ? 20 : 50)),
         ],
       ),
     );

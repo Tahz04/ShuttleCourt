@@ -10,7 +10,8 @@ import 'package:shuttlecourt/features/owner/screens/add_court_screen.dart';
 
 class OwnerCourtsScreen extends StatefulWidget {
   final bool isAdmin;
-  const OwnerCourtsScreen({super.key, this.isAdmin = false});
+  final bool isEmbedded;
+  const OwnerCourtsScreen({super.key, this.isAdmin = false, this.isEmbedded = false});
 
   @override
   State<OwnerCourtsScreen> createState() => _OwnerCourtsScreenState();
@@ -100,28 +101,38 @@ class _OwnerCourtsScreenState extends State<OwnerCourtsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.scaffoldLight,
-      appBar: AppBar(
-        title: const Text('Kho Sân Của Tôi', style: TextStyle(fontWeight: FontWeight.w900, color: AppTheme.primary)),
-        backgroundColor: AppTheme.scaffoldLight,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: AppTheme.primary),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _fetchCourts,
-        color: AppTheme.primary,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-        : _errorMessage != null
-            ? _buildErrorState()
-            : _courts.isEmpty
-                ? _buildEmptyState()
-                : _buildCourtList(),
-      ),
+      appBar: widget.isEmbedded
+          ? null
+          : AppBar(
+              title: const Text('Kho Sân Của Tôi', style: TextStyle(fontWeight: FontWeight.w900, color: AppTheme.primary)),
+              backgroundColor: AppTheme.scaffoldLight,
+              elevation: 0,
+              centerTitle: true,
+              iconTheme: const IconThemeData(color: AppTheme.primary),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+      body: widget.isEmbedded
+          ? _isLoading
+              ? const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 40), child: CircularProgressIndicator(color: AppTheme.primary)))
+              : _errorMessage != null
+                  ? _buildErrorState()
+                  : _courts.isEmpty
+                      ? _buildEmptyState()
+                      : _buildCourtList()
+          : RefreshIndicator(
+              onRefresh: _fetchCourts,
+              color: AppTheme.primary,
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+              : _errorMessage != null
+                  ? _buildErrorState()
+                  : _courts.isEmpty
+                      ? _buildEmptyState()
+                      : _buildCourtList(),
+            ),
       floatingActionButton: widget.isAdmin
           ? null
           : FloatingActionButton.extended(
@@ -173,8 +184,9 @@ class _OwnerCourtsScreenState extends State<OwnerCourtsScreen> {
 
   Widget _buildCourtList() {
     return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
+      shrinkWrap: widget.isEmbedded,
+      physics: widget.isEmbedded ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(widget.isEmbedded ? 0 : 24, 8, widget.isEmbedded ? 0 : 24, widget.isEmbedded ? 20 : 100),
       itemCount: _courts.length,
       itemBuilder: (context, index) => _buildCourtCard(_courts[index]),
     );

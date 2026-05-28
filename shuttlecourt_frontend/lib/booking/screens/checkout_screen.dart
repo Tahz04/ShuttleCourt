@@ -291,7 +291,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       print("====== [DEBUG] EXCEPTION BẮT ĐƯỢC: $e ======");
       if (mounted) {
         Navigator.pop(context); // Tắt loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e'), backgroundColor: AppTheme.error));
+        String errorMsg = e.toString().replaceAll('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg), backgroundColor: AppTheme.error));
       }
     }
   }

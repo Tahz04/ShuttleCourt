@@ -8,6 +8,8 @@ import 'package:shuttlecourt/auth/edit_profile_screen.dart';
 import 'package:shuttlecourt/auth/security_screen.dart';
 import 'package:shuttlecourt/auth/notification_settings_screen.dart';
 import 'package:shuttlecourt/features/owner/screens/owner_dashboard_screen.dart';
+import 'package:shuttlecourt/main.dart';
+import 'package:shuttlecourt/features/admin/screens/admin_dashboard_screen.dart';
 import 'package:shuttlecourt/auth/language_settings_screen.dart';
 import 'package:shuttlecourt/models/booking.dart';
 import 'package:shuttlecourt/models/match_model.dart';
@@ -390,7 +392,11 @@ class _WebProfilePageState extends State<WebProfilePage>
                                   const Divider(height: 20, color: AppTheme.borderLight),
                                   _buildInfoRow(
                                     'Loại tài khoản',
-                                    user.role == 'owner' ? '👑 Chủ sân' : 'Người chơi',
+                                    user.role == 'owner'
+                                        ? '👑 Chủ sân'
+                                        : (user.role == 'admin'
+                                            ? '🛠️ Quản trị viên'
+                                            : 'Người chơi'),
                                   ),
                                 ],
                               ),
@@ -407,6 +413,24 @@ class _WebProfilePageState extends State<WebProfilePage>
                             const SizedBox(height: 16),
                             Row(
                               children: [
+                                if (user.role == 'owner' || user.role == 'admin') ...[
+                                  Expanded(
+                                    child: _buildQuickActionButton(
+                                      icon: Icons.dashboard_rounded,
+                                      label: 'Bảng điều khiển',
+                                      color: AppTheme.accent,
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => user.role == 'admin'
+                                              ? const AdminDashboardScreen()
+                                              : const OwnerDashboardScreen(),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
                                 Expanded(
                                   child: _buildQuickActionButton(
                                     icon: Icons.edit_rounded,
@@ -627,17 +651,21 @@ class _WebProfilePageState extends State<WebProfilePage>
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                         child: Column(
                           children: [
-                            if (user.role == 'owner')
+                            if (user.role == 'owner' || user.role == 'admin')
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: _buildSettingsTile(
                                   icon: Icons.dashboard_customize_rounded,
                                   title: 'Bảng điều khiển',
-                                  subtitle: 'Quản lý sân, đặt phòng, sản phẩm',
+                                  subtitle: user.role == 'admin'
+                                      ? 'Bảng điều khiển quản trị viên'
+                                      : 'Quản lý sân, đặt phòng, sản phẩm',
                                   onTap: () => Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => const OwnerDashboardScreen(),
+                                      builder: (_) => user.role == 'admin'
+                                          ? const AdminDashboardScreen()
+                                          : const OwnerDashboardScreen(),
                                     ),
                                   ),
                                 ),
@@ -1080,8 +1108,11 @@ class _WebProfilePageState extends State<WebProfilePage>
           TextButton(
             onPressed: () {
               auth.logout();
-              Navigator.pop(context);
-              _onNavTap(0);
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const MainScreen()),
+                (route) => false,
+              );
             },
             child: const Text(
               'Đăng xuất',
