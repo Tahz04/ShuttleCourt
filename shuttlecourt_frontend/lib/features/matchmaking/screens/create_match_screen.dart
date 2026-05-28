@@ -91,7 +91,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
                   children: [
                     _buildLabel('Chọn sân'),
                     DropdownButtonFormField<BadmintonCourt>(
-                      value: _selectedCourt,
+                      initialValue: _selectedCourt,
                       isExpanded: true,
                       decoration: _inputDecoration('', Icons.stadium_rounded),
                       items: _courts.map((court) => DropdownMenuItem(
@@ -135,7 +135,7 @@ class _CreateMatchScreenState extends State<CreateMatchScreen> {
 
                     _buildLabel('Trình độ yêu cầu'),
                     DropdownButtonFormField<String>(
-                      value: _level,
+                      initialValue: _level,
                       decoration: _inputDecoration('', Icons.bolt_rounded),
                       items: ['Mới chơi', 'Trung bình', 'Khá', 'Pro'].map((l) => DropdownMenuItem(value: l, child: Text(l))).toList(),
                       onChanged: (v) => setState(() => _level = v!),

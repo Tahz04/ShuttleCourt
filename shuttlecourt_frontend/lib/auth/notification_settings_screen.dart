@@ -48,7 +48,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
         value: value,
         onChanged: onChanged,
-        activeColor: AppTheme.accent,
+        activeThumbColor: AppTheme.accent,
       ),
     );
   }

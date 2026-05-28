@@ -157,11 +157,11 @@ class _HeroSectionState extends State<_HeroSection>
             fit: BoxFit.cover,
             color: Colors.black.withValues(alpha: 0.55),
             colorBlendMode: BlendMode.darken,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            errorBuilder: (_, _, _) => const SizedBox.shrink(),
           ),
           AnimatedBuilder(
             animation: _particleCtrl,
-            builder: (_, __) => CustomPaint(
+            builder: (_, _) => CustomPaint(
               painter: _ParticlePainter(_particleCtrl.value),
             ),
           ),
@@ -1372,7 +1372,7 @@ class _MapExploreSection extends StatelessWidget {
             Image.network(
               'https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=900&q=70',
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: WebStyles.dark800),
+              errorBuilder: (_, _, _) => Container(color: WebStyles.dark800),
             ),
             // Dark overlay (FIX: Wrapped in IgnorePointer to allow clicks to pass through)
             IgnorePointer(
@@ -1530,7 +1530,7 @@ class _VerticalCourtItemState extends State<_VerticalCourtItem> {
                   width: 56,
                   height: 56,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     width: 56,
                     height: 56,
                     color: WebStyles.brand.withValues(alpha: 0.2),

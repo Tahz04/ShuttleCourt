@@ -148,4 +148,39 @@ class MatchmakingService {
       return [];
     }
   }
+
+  static Future<List<Map<String, dynamic>>> getMatchParticipants(int matchId) async {
+    try {
+      final response = await http.get(Uri.parse('${ApiConfig.matchmakingUrl}/$matchId/participants'));
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        return data.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching participants: $e');
+      return [];
+    }
+  }
+
+  static Future<bool> reportNoShow({
+    required int matchId,
+    required int participantId,
+    required int hostId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.matchmakingUrl}/$matchId/report'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'participantId': participantId,
+          'hostId': hostId,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error reporting participant: $e');
+      return false;
+    }
+  }
 }

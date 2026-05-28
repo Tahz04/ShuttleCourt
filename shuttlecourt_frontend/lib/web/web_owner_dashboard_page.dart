@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:shuttlecourt/auth/auth_service.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/web/web_navbar.dart';

@@ -77,7 +77,7 @@ class WebCourtDetailDialog extends StatelessWidget {
                                     color: AppTheme.primary, strokeWidth: 2),
                               ),
                             ),
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         color: AppTheme.primary.withValues(alpha: 0.06),
                         child: const Center(
                           child: Icon(Icons.sports_tennis_rounded,
@@ -366,7 +366,7 @@ class WebCourtDetailDialog extends StatelessWidget {
                                   court.descImage1!,
                                   height: 120,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
                                 ),
                               ),
                             ),
@@ -383,7 +383,7 @@ class WebCourtDetailDialog extends StatelessWidget {
                                   court.descImage2!,
                                   height: 120,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
                                 ),
                               ),
                             ),

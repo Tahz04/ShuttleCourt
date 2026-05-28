@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shuttlecourt/theme/app_theme.dart';
 
 /// Clean web footer with links and branding
 class WebFooter extends StatelessWidget {

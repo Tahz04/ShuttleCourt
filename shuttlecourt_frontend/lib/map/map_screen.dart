@@ -369,35 +369,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                                     ),
                                   ),
                                 ),
-<<<<<<< HEAD
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  // Route start marker
-                  if (routePoints.isNotEmpty && userLat != null && userLng != null)
-                    Marker(
-                      point: LatLng(userLat!, userLng!),
-                      width: 40,
-                      height: 50,
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2196F3),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x552196F3),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 2),
-=======
                                 // Inner dot
                                 Container(
                                   width: 14,
@@ -413,7 +384,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                                       ),
                                     ],
                                   ),
->>>>>>> 5553e45fbf7ac55b80719d357cb2d472872fc8c5
                                 ),
                               ],
                             );
@@ -657,9 +627,17 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   _buildMapFab(
                     icon: Icons.my_location_rounded,
                     color: AppTheme.accent,
-                    onTap: () {
+                    onTap: () async {
                       if (userLat != null && userLng != null) {
                         mapController.move(LatLng(userLat!, userLng!), 15);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đang lấy vị trí của bạn...')));
+                        await _getCurrentLocation();
+                        if (userLat != null && userLng != null) {
+                          mapController.move(LatLng(userLat!, userLng!), 15);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể lấy vị trí, hãy bật GPS!')));
+                        }
                       }
                     },
                     tooltip: 'Vị trí của tôi',
@@ -1645,7 +1623,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             Image.network(
               url,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Center(
+              errorBuilder: (_, _, _) => const Center(
                 child: Icon(
                   Icons.broken_image_rounded,
                   color: AppTheme.textMuted,
@@ -1755,7 +1733,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final start = '$userLng,$userLat';
     final end = '${court.longitude},${court.latitude}';
     final url =
-        'https://router.project-osrm.org/route/v1/driving/$start;$end?overview=full&geometries=geojson';
+        'https://router.project-osrm.org/route/v1/bike/$start;$end?overview=full&geometries=geojson';
 
     try {
       final response = await http.get(Uri.parse(url));

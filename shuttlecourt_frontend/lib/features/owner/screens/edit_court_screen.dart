@@ -27,6 +27,9 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
   late double _longitude;
   late double _price;
   late String _description;
+  final TextEditingController _addressCtrl = TextEditingController();
+  final TextEditingController _latCtrl = TextEditingController();
+  final TextEditingController _lngCtrl = TextEditingController();
   
   String? _mainImageUrl;
   String? _descImageUrl1;
@@ -46,6 +49,12 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
   }
 
   void _initializeFields() {
+    // delay to wait for widget
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _addressCtrl.text = widget.court['address'] ?? '';
+      _latCtrl.text = widget.court['latitude']?.toString() ?? '0';
+      _lngCtrl.text = widget.court['longitude']?.toString() ?? '0';
+    });
     final c = widget.court;
     _name = c['name'] ?? '';
     _address = c['address'] ?? '';
@@ -65,8 +74,9 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
       if (file == null) return;
 
       setState(() {
-        if (index == 0) _mainLocalPath = file.path;
-        else if (index == 1) _descLocalPath1 = file.path;
+        if (index == 0) {
+          _mainLocalPath = file.path;
+        } else if (index == 1) _descLocalPath1 = file.path;
         else if (index == 2) _descLocalPath2 = file.path;
         _isUploading[index] = true;
       });
@@ -79,8 +89,9 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          if (index == 0) _mainImageUrl = data['imageUrl'];
-          else if (index == 1) _descImageUrl1 = data['imageUrl'];
+          if (index == 0) {
+            _mainImageUrl = data['imageUrl'];
+          } else if (index == 1) _descImageUrl1 = data['imageUrl'];
           else if (index == 2) _descImageUrl2 = data['imageUrl'];
         });
       }
@@ -128,7 +139,20 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
               _buildSectionHeader('THÔNG TIN CHI TIẾT'),
               const SizedBox(height: 20),
               _buildInput(label: 'Tên sân', initial: _name, onSaved: (v) => _name = v!),
-              _buildInput(label: 'Địa chỉ', initial: _address, onSaved: (v) => _address = v!),
+              _buildModernInput(label: 'Địa chỉ', icon: Icons.location_on_rounded, controller: _addressCtrl, validator: (v) => v!.isEmpty ? 'Vui lòng nhập địa chỉ' : null, onSaved: (v) => _address = v!),
+              Row(
+                children: [
+                  Expanded(child: _buildModernInput(label: 'Vĩ độ (Lat)', controller: _latCtrl, keyboardType: TextInputType.number, onSaved: (v) => _latitude = double.tryParse(v ?? '') ?? 0)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildModernInput(label: 'Kinh độ (Lng)', controller: _lngCtrl, keyboardType: TextInputType.number, onSaved: (v) => _longitude = double.tryParse(v ?? '') ?? 0)),
+                ],
+              ),
+              TextButton.icon(
+                onPressed: _getLocationFromAddress,
+                icon: const Icon(Icons.travel_explore_rounded, color: AppTheme.accent, size: 20),
+                label: const Text('Lấy tọa độ từ Địa chỉ đã nhập', style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 16),
               _buildInput(label: 'Giá thuê', initial: _price.toInt().toString(), onSaved: (v) => _price = double.tryParse(v!) ?? 0),
               const SizedBox(height: 48),
               _buildSubmit(),
@@ -189,6 +213,19 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
     );
   }
 
+  Widget _buildModernInput({required String label, IconData? icon, int maxLines = 1, TextInputType? keyboardType, String? Function(String?)? validator, required void Function(String?) onSaved, TextEditingController? controller}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(color: AppTheme.surfaceLight, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppTheme.borderLight)),
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines, keyboardType: keyboardType, validator: validator, onSaved: onSaved,
+        style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w600, fontSize: 15),
+        decoration: InputDecoration(labelText: label, labelStyle: const TextStyle(color: AppTheme.textSecondary, fontSize: 13), prefixIcon: icon != null ? Icon(icon, color: AppTheme.primary, size: 18) : null, border: InputBorder.none, contentPadding: const EdgeInsets.all(18)),
+      ),
+    );
+  }
+
   Widget _buildInput({required String label, String? initial, void Function(String?)? onSaved}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -211,6 +248,30 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
         child: _isGlobalBusy ? const CircularProgressIndicator(color: Colors.white) : const Text('LƯU THAY ĐỔI', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white)),
       ),
     );
+  }
+
+  
+  Future<void> _getLocationFromAddress() async {
+    final address = _addressCtrl.text.trim();
+    if (address.isEmpty) {
+      _showStatus('Vui lòng nhập địa chỉ trước!', isError: true);
+      return;
+    }
+    setState(() => _isGlobalBusy = true);
+    try {
+      List<Location> locations = await locationFromAddress(address);
+      if (locations.isNotEmpty) {
+        setState(() {
+          _latCtrl.text = locations.first.latitude.toString();
+          _lngCtrl.text = locations.first.longitude.toString();
+        });
+        _showStatus('Đã lấy tọa độ thành công từ địa chỉ!');
+      }
+    } catch (e) {
+      _showStatus('Không tìm thấy tọa độ cho địa chỉ này!', isError: true);
+    } finally {
+      setState(() => _isGlobalBusy = false);
+    }
   }
 
   Future<void> _submit() async {

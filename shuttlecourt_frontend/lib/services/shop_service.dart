@@ -62,7 +62,7 @@ class ShopService {
   static Future<bool> addProduct(Product product) async {
     try {
       final response = await http.post(
-        Uri.parse(ApiConfig.productsUrl + '/add'),
+        Uri.parse('${ApiConfig.productsUrl}/add'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(product.toJson()),
       );
@@ -76,7 +76,7 @@ class ShopService {
   static Future<bool> updateProduct(Product product) async {
     try {
       final response = await http.put(
-        Uri.parse(ApiConfig.productsUrl + '/${product.id}'),
+        Uri.parse('${ApiConfig.productsUrl}/${product.id}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(product.toJson()),
       );
@@ -90,7 +90,7 @@ class ShopService {
   static Future<bool> deleteProduct(int id) async {
     try {
       final response = await http.delete(
-        Uri.parse(ApiConfig.productsUrl + '/$id'),
+        Uri.parse('${ApiConfig.productsUrl}/$id'),
       );
       return response.statusCode == 200;
     } catch (e) {
@@ -111,7 +111,7 @@ class ShopService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse(ApiConfig.productsUrl + '/order'),
+        Uri.parse('${ApiConfig.productsUrl}/order'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'userId': userId,
@@ -132,7 +132,7 @@ class ShopService {
   }
   static Future<List<dynamic>> getOrders() async {
     try {
-      final response = await http.get(Uri.parse(ApiConfig.productsUrl + '/orders'));
+      final response = await http.get(Uri.parse('${ApiConfig.productsUrl}/orders'));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }

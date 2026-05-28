@@ -1,6 +1,5 @@
 import 'package:shuttlecourt/services/location_service.dart';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
@@ -579,7 +578,7 @@ class _WebMapPageState extends State<WebMapPage>
                 ? LatLng(_userLat!, _userLng!)
                 : _defaultCenter,
             initialZoom: 13,
-            onTap: (_, __) {
+            onTap: (_, _) {
               if (_routePoints.isNotEmpty) _clearRoute();
             },
           ),
@@ -618,7 +617,7 @@ class _WebMapPageState extends State<WebMapPage>
                   height: 60,
                   child: AnimatedBuilder(
                     animation: _pulseAnim,
-                    builder: (_, __) => Stack(
+                    builder: (_, _) => Stack(
                       alignment: Alignment.center,
                       children: [
                         Container(
@@ -1188,7 +1187,7 @@ class _InputBox extends StatelessWidget {
               style: const TextStyle(fontSize: 13, color: WebStyles.ink),
             ),
           ),
-          if (trailing != null) trailing!,
+          ?trailing,
         ],
       ),
     );

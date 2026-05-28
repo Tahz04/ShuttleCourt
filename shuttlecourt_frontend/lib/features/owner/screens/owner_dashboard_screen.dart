@@ -59,7 +59,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
 
       final newNotifs = results[0] as List<SystemNotification>;
       final bookings = results[1] as List<Booking>;
-      final shopOrders = results[2] as List<dynamic>;
+      final shopOrders = results[2];
 
       if (mounted) {
         setState(() {

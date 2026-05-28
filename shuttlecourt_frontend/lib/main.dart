@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -49,6 +50,15 @@ Future<void> main() async {
   );
 }
 
+class CustomScrollBehavior extends MaterialScrollBehavior {
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+      };
+}
+
 class BadmintonApp extends StatelessWidget {
   const BadmintonApp({super.key});
 
@@ -58,6 +68,7 @@ class BadmintonApp extends StatelessWidget {
       title: 'ShuttleCourt',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      scrollBehavior: CustomScrollBehavior(),
       home: const MainScreen(),
     );
   }
@@ -611,14 +622,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Đặt sân ngay',
                   'Tìm sân phù hợp',
                   AppTheme.primaryGradient,
-<<<<<<< HEAD
                   () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const BookingScreen()),
                   ),
-=======
-                  () => _handleRegisterClick(auth),
->>>>>>> 5553e45fbf7ac55b80719d357cb2d472872fc8c5
                 ),
                 _FeatureCard(
                   Icons.shopping_bag_rounded,
@@ -740,10 +747,11 @@ class _UserNotificationBellState extends State<UserNotificationBell> {
     final list = await NotificationService.getNotifications(
       auth.user!.id.toString(),
     );
-    if (mounted)
+    if (mounted) {
       setState(() {
         _unreadCount = list.where((n) => !n.isRead).length;
       });
+    }
   }
 
   Future<void> _openNotifications() async {
@@ -882,9 +890,11 @@ class _HorizontalCourtCarouselState extends State<_HorizontalCourtCarousel> {
       children: [
         SizedBox(
           height: 220,
-          child: PageView.builder(
-            controller: _pageController,
-            physics: const BouncingScrollPhysics(),
+          child: ScrollConfiguration(
+            behavior: CustomScrollBehavior(),
+            child: PageView.builder(
+              controller: _pageController,
+              physics: const BouncingScrollPhysics(),
             itemCount: widget.courts.length,
             itemBuilder: (_, i) {
               final isActive = i == _currentPage;
@@ -902,6 +912,7 @@ class _HorizontalCourtCarouselState extends State<_HorizontalCourtCarousel> {
               );
             },
           ),
+        ),
         ),
         const SizedBox(height: 12),
         Row(

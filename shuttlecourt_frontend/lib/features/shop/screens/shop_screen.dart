@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shuttlecourt/services/shop_service.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
-import 'package:provider/provider.dart';
-import 'package:shuttlecourt/auth/auth_service.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/features/shop/screens/checkout_screen.dart';
 

@@ -26,7 +26,7 @@ class _OwnerOrderManagementScreenState extends State<OwnerOrderManagementScreen>
   Future<void> _loadOrders() async {
     setState(() => _isLoading = true);
     try {
-      final response = await http.get(Uri.parse(ApiConfig.productsUrl + '/orders'));
+      final response = await http.get(Uri.parse('${ApiConfig.productsUrl}/orders'));
       if (response.statusCode == 200) {
         setState(() {
           _orders = jsonDecode(response.body);
@@ -42,7 +42,7 @@ class _OwnerOrderManagementScreenState extends State<OwnerOrderManagementScreen>
   Future<void> _updateStatus(int orderId, String status) async {
     try {
       final response = await http.put(
-        Uri.parse(ApiConfig.productsUrl + '/orders/$orderId'),
+        Uri.parse('${ApiConfig.productsUrl}/orders/$orderId'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'status': status}),
       );

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:shuttlecourt/auth/auth_service.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
 

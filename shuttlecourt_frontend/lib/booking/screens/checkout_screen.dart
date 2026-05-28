@@ -284,43 +284,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       print("====== [DEBUG] ApiBookingService thành công! ======");
       
       if (mounted) {
-<<<<<<< HEAD
-        Navigator.pop(context); // Tắt loading dialog
-        print("====== [DEBUG] Đã tắt loading, hiển thị dialog THÀNH CÔNG ======");
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            title: const Column(
-              children: [
-                Icon(Icons.hourglass_top_rounded, color: Colors.blue, size: 70),
-                SizedBox(height: 16),
-                Text('YÊU CẦU ĐÃ ĐƯỢC GỬI!', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18)),
-              ],
-            ),
-            content: Text('Yêu cầu đặt sân cho khung giờ ${widget.selectedSlot} đã được gửi tới chủ sân. Vui lòng chờ thông báo xác nhận từ chúng tôi nhé!', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-            actions: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue, 
-                    foregroundColor: Colors.white, 
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('VỀ TRANG CHỦ', style: TextStyle(fontWeight: FontWeight.w900)),
-                ),
-              )
-            ],
-          ),
-        );
-=======
         Navigator.pop(context); // Tắt loading
         _showSuccessDialog(context);
->>>>>>> 5553e45fbf7ac55b80719d357cb2d472872fc8c5
       }
     } catch (e) {
       print("====== [DEBUG] EXCEPTION BẮT ĐƯỢC: $e ======");

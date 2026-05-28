@@ -7,7 +7,6 @@ import 'package:shuttlecourt/services/api_booking_service.dart';
 import 'package:shuttlecourt/features/matchmaking/services/matchmaking_service.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:intl/intl.dart';
-import 'package:shuttlecourt/services/notification_service.dart';
 import 'package:shuttlecourt/features/reviews/screens/write_review_screen.dart';
 
 // RE-WRITTEN BOOKING HISTORY SCREEN
@@ -90,12 +89,28 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
   }
 
   Widget _buildHeader() {
+    final canPop = Navigator.canPop(context);
     return SliverToBoxAdapter(
       child: Container(
-        padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 24, 24, 24),
+        padding: EdgeInsets.fromLTRB(24, MediaQuery.of(context).padding.top + 16, 24, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (canPop)
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.borderLight),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                  ),
+                  child: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppTheme.primary),
+                ),
+              ),
             const Text('Lịch chơi của tôi', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppTheme.primary, letterSpacing: -1)),
             const SizedBox(height: 4),
             Text('Theo dõi lịch đặt sân và các trận đấu của bạn', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.w500)),
@@ -122,8 +137,12 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
         int.parse(timeParts[1]),
       );
       final now = DateTime.now();
-      if (startDateTime.difference(now).inHours < 12) {
-        isTooLateToCancel = true;
+      
+      // Kèo ghép không thể hủy trước 1 tiếng, đặt sân thường không thể hủy trước 12 tiếng
+      if (b.paymentMethod == 'Ghép kèo') {
+        if (startDateTime.difference(now).inHours < 1) isTooLateToCancel = true;
+      } else {
+        if (startDateTime.difference(now).inHours < 12) isTooLateToCancel = true;
       }
     } catch (e) {
       debugPrint('Error parsing time: $e');
@@ -257,6 +276,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
 
   Widget _buildMatchCard(MatchModel m) {
     final auth = Provider.of<AuthService>(context, listen: false);
+    final bool isHost = auth.user != null && m.hostId.toString() == auth.user!.id;
     final bool isParticipant = auth.user != null && m.hostId.toString() != auth.user!.id;
 
     return Container(
@@ -283,7 +303,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(m.courtName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.primary)),
-                    Text('Chủ kèo: ${m.hostName}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                    Text(isHost ? 'Chủ kèo: BẠN' : 'Chủ kèo: ${m.hostName}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
                   ],
                 ),
               ),
@@ -302,6 +322,23 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
               ),
             ],
           ),
+          if (isHost) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: OutlinedButton.icon(
+                onPressed: () => _showParticipantsDialog(m),
+                icon: const Icon(Icons.group_rounded, size: 16),
+                label: const Text('XEM THÀNH VIÊN', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primary,
+                  side: const BorderSide(color: AppTheme.primary),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
           if (isParticipant) ...[
             const SizedBox(height: 16),
             SizedBox(
@@ -356,6 +393,101 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
         setState(() { _loadData(); });
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi khi rời kèo. Vui lòng thử lại.'), backgroundColor: AppTheme.error));
+      }
+    }
+  }
+
+  void _showParticipantsDialog(MatchModel m) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) {
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: MatchmakingService.getMatchParticipants(m.id),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
+            }
+            final participants = snapshot.data ?? [];
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Danh sách thành viên', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                  const SizedBox(height: 16),
+                  if (participants.isEmpty)
+                    const Padding(padding: EdgeInsets.all(20), child: Text('Chưa có ai tham gia kèo này.'))
+                  else
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: participants.length,
+                        itemBuilder: (context, index) {
+                          final p = participants[index];
+                          final date = DateTime.tryParse(p['joined_at'] ?? '');
+                          final dateStr = date != null ? DateFormat('HH:mm dd/MM').format(date) : '';
+                          final isReported = p['reported'] == 1 || p['reported'] == true;
+                          return ListTile(
+                            leading: CircleAvatar(backgroundColor: AppTheme.accent.withOpacity(0.2), child: const Icon(Icons.person, color: AppTheme.accent)),
+                            title: Text(p['full_name'] ?? 'Người chơi', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: Text('Tham gia lúc: $dateStr', style: const TextStyle(fontSize: 12)),
+                            trailing: isReported 
+                              ? const Text('Đã báo xấu', style: TextStyle(color: AppTheme.error, fontSize: 12, fontWeight: FontWeight.bold))
+                              : IconButton(
+                                  icon: const Icon(Icons.report_problem_rounded, color: Colors.orangeAccent),
+                                  tooltip: 'Báo vắng mặt (Trừ 10đ uy tín)',
+                                  onPressed: () {
+                                    Navigator.pop(context); // Close bottom sheet
+                                    _showReportDialog(m.id, p['id'], p['full_name']);
+                                  },
+                                ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showReportDialog(int matchId, int participantId, String participantName) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Báo cáo Vắng mặt', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.orange)),
+        content: Text('Bạn xác nhận $participantName đã không đến tham gia kèo này?\n\nNgười này sẽ bị TRỪ 10 ĐIỂM UY TÍN. Nếu điểm dưới 70, tài khoản của họ sẽ bị Admin khóa.\n\nHành động này không thể hoàn tác.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Báo Xấu'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final success = await MatchmakingService.reportNoShow(
+        matchId: matchId,
+        participantId: participantId,
+        hostId: int.parse(auth.user!.id),
+      );
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã ghi nhận báo cáo thành công!'), backgroundColor: AppTheme.success));
+        setState(() { _loadData(); });
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi khi gửi báo cáo. Vui lòng thử lại.'), backgroundColor: AppTheme.error));
       }
     }
   }

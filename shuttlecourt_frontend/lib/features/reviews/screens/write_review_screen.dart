@@ -11,7 +11,6 @@ import 'package:shuttlecourt/config/api_config.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/services/review_service.dart';
 import 'package:shuttlecourt/services/court_service.dart';
-import 'package:shuttlecourt/models/badminton_court.dart';
 
 class WriteReviewScreen extends StatefulWidget {
   final int? courtId;
@@ -358,7 +357,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
                       ],
                     ),
                   ),

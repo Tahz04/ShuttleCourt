@@ -23,11 +23,56 @@ exports.createMatch = async (req, res) => {
       return res.status(400).json({ message: 'Vui lòng điền đầy đủ thông tin bắt buộc.' });
     }
 
+    const [allBookings] = await db.query(
+        "SELECT slot FROM bookings WHERE court_name = ? AND booking_date = ? AND status != 'Đã hủy' AND status != 'Từ chối' AND status != 'Đã hoàn thành'",
+        [courtName, matchDate]
+    );
+
+    const [hrStr, minStr] = startTime.split(':');
+    const startMins = parseInt(hrStr, 10) * 60 + parseInt(minStr, 10);
+    const endMins = startMins + 60; // Mặc định kèo 1 tiếng
+
+    let isConflict = false;
+    for (let b of allBookings) {
+        let bStartMins, bEndMins;
+        if (b.slot.includes(' - ')) {
+            const [s, e] = b.slot.split(' - ');
+            bStartMins = parseInt(s.split(':')[0]) * 60 + parseInt(s.split(':')[1]);
+            bEndMins = parseInt(e.split(':')[0]) * 60 + parseInt(e.split(':')[1]);
+        } else {
+            bStartMins = parseInt(b.slot.split(':')[0]) * 60 + parseInt(b.slot.split(':')[1]);
+            bEndMins = bStartMins + 60;
+        }
+        if (startMins < bEndMins && endMins > bStartMins) {
+            isConflict = true;
+            break;
+        }
+    }
+    if (isConflict) return res.status(409).json({ message: "Khung giờ này đã bị trùng với lịch đặt sân khác." });
+
+    const matchSlot = `${hrStr.padStart(2, '0')}:${minStr.padStart(2, '0')} - ${Math.floor(endMins / 60).toString().padStart(2, '0')}:${(endMins % 60).toString().padStart(2, '0')}`;
+
+    const [courts] = await db.query("SELECT address, owner_id FROM courts WHERE name = ?", [courtName]);
+    const courtAddress = courts.length > 0 ? courts[0].address : "Chưa cập nhật";
+    let targetOwnerId = courts.length > 0 ? courts[0].owner_id : null;
+
+    await db.query(`INSERT INTO bookings (user_id, court_name, court_address, slot, booking_date, price, payment_method, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'Chờ duyệt')`,
+        [hostId, courtName, courtAddress, matchSlot, matchDate, price, 'Ghép kèo']);
+
+    if (req.io) { req.io.to(courtName).emit('booking_updated', { court_name: courtName, booking_date: matchDate, slot: matchSlot, status: 'Chờ duyệt' }); }
+
+    if (!targetOwnerId) {
+        const [admins] = await db.query("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+        if (admins.length > 0) targetOwnerId = admins[0].id;
+    }
+    if (targetOwnerId) {
+        await db.query("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)", [targetOwnerId, "🏸 Đơn đặt sân mới (Ghép kèo)!", `Sân "${courtName}" vừa có Kèo ghép vào ngày ${matchDate} (${startTime}).`, "booking"]);
+    }
+
     const sql = `
       INSERT INTO matchmaking (host_id, court_name, level, match_date, start_time, capacity, price, description)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    
     const [result] = await db.query(sql, [hostId, courtName, level, matchDate, startTime, capacity, price, description || '']);
     
     res.status(201).json({ message: 'Tạo kèo ghép thành công!', matchId: result.insertId });
@@ -281,6 +326,62 @@ exports.leaveMatch = async (req, res) => {
     }
     
     res.status(200).json({ message: 'Rời kèo thành công.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi server', error: err.message });
+  }
+};
+
+exports.getMatchParticipants = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const sql = `
+      SELECT u.id, u.full_name, u.email, mp.joined_at, mp.reported 
+      FROM matchmaking_participants mp
+      JOIN users u ON mp.user_id = u.id
+      WHERE mp.match_id = ?
+      ORDER BY mp.joined_at ASC
+    `;
+    const [result] = await db.query(sql, [matchId]);
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi server', error: err.message });
+  }
+};
+
+exports.reportNoShow = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const { participantId, hostId } = req.body;
+
+    const [matchRows] = await db.query('SELECT host_id, court_name FROM matchmaking WHERE id = ?', [matchId]);
+    if (matchRows.length === 0 || matchRows[0].host_id !== hostId) {
+      return res.status(403).json({ message: 'Không có quyền thực hiện.' });
+    }
+
+    const [participantRows] = await db.query('SELECT reported FROM matchmaking_participants WHERE match_id = ? AND user_id = ?', [matchId, participantId]);
+    if (participantRows.length === 0) return res.status(404).json({ message: 'Người chơi không có trong kèo này.' });
+    if (participantRows[0].reported) return res.status(400).json({ message: 'Bạn đã báo cáo người này rồi.' });
+
+    await db.query('UPDATE matchmaking_participants SET reported = TRUE WHERE match_id = ? AND user_id = ?', [matchId, participantId]);
+    await db.query('UPDATE users SET reputation_score = reputation_score - 10 WHERE id = ?', [participantId]);
+    
+    const [userRows] = await db.query('SELECT reputation_score, full_name FROM users WHERE id = ?', [participantId]);
+    const newScore = userRows[0].reputation_score;
+
+    if (newScore < 70) {
+      await db.query("UPDATE users SET status = 'locked' WHERE id = ?", [participantId]);
+      await db.query(
+        "INSERT INTO notifications (user_id, sender_id, title, message, type) VALUES (?, ?, ?, ?, ?)",
+        [participantId, null, "Tài khoản bị khóa", `Tài khoản của bạn đã bị khóa do điểm uy tín giảm xuống dưới 70đ (Hiện tại: ${newScore}đ). Vui lòng liên hệ Admin.`, "system"]
+      );
+    } else {
+      await db.query(
+        "INSERT INTO notifications (user_id, sender_id, title, message, type) VALUES (?, ?, ?, ?, ?)",
+        [participantId, hostId, "Cảnh báo vắng mặt", `Chủ kèo ${matchRows[0].court_name} đã báo cáo bạn không đến tham gia. Điểm uy tín của bạn bị trừ 10đ (Hiện tại: ${newScore}đ).`, "warning"]
+      );
+    }
+
+    res.status(200).json({ message: 'Đã báo cáo thành công.' });
   } catch (err) {
     res.status(500).json({ message: 'Lỗi server', error: err.message });
   }

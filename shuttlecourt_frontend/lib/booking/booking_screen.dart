@@ -5,11 +5,8 @@ import 'package:shuttlecourt/models/badminton_court.dart';
 import 'package:intl/intl.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:shuttlecourt/features/matchmaking/screens/matchmaking_screen.dart';
-<<<<<<< HEAD
-import 'package:shuttlecourt/main.dart';
 import 'package:shuttlecourt/services/api_booking_service.dart';
-=======
->>>>>>> 5553e45fbf7ac55b80719d357cb2d472872fc8c5
+import 'package:shuttlecourt/services/socket_service.dart';
 
 class BookingScreen extends StatefulWidget {
   final BadmintonCourt? initialCourt;
@@ -42,9 +39,27 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
     super.initState();
     _selectedCourt = widget.initialCourt;
     _loadCourts();
+    
+    SocketService().connect();
+    SocketService().onBookingUpdated((data) {
+      if (mounted && _selectedCourt != null) {
+        if (data != null && data['court_name'] == _selectedCourt!.name) {
+          // Khi có socket event booking_updated, tự động tải lại các slot
+          _fetchBookedSlots();
+        }
+      }
+    });
+
     if (_selectedCourt != null) {
       _fetchBookedSlots();
+      SocketService().joinCourt(_selectedCourt!.name);
     }
+  }
+
+  @override
+  void dispose() {
+    SocketService().offBookingUpdated();
+    super.dispose();
   }
 
   Future<void> _fetchBookedSlots() async {
@@ -140,11 +155,16 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
         Expanded(
           child: _isLoading
               ? const Center(child: CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 2))
-              : ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: filteredCourts.length,
-            itemBuilder: (context, index) => _buildCourtListItem(filteredCourts[index]),
-          ),
+              : RefreshIndicator(
+                  color: AppTheme.primary,
+                  backgroundColor: AppTheme.cardDark,
+                  onRefresh: _loadCourts,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: filteredCourts.length,
+                    itemBuilder: (context, index) => _buildCourtListItem(filteredCourts[index]),
+                  ),
+                ),
         ),
       ],
     );
@@ -154,16 +174,12 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
-<<<<<<< HEAD
         onTap: () {
           setState(() => _selectedCourt = court);
+          SocketService().joinCourt(court.name);
           _fetchBookedSlots();
         },
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-=======
-        onTap: () => setState(() => _selectedCourt = court),
         borderRadius: BorderRadius.circular(12),
->>>>>>> 5553e45fbf7ac55b80719d357cb2d472872fc8c5
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -224,55 +240,7 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
                     Text(_selectedCourt!.address, style: const TextStyle(color: AppTheme.textMuted, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
-<<<<<<< HEAD
-              )
-            ],
-          ),
-        ),
 
-        // Date Selection
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Chọn ngày đặt', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppTheme.textPrimary)),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: () async {
-                  final DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedDate,
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 90)),
-                  );
-                  if (picked != null) {
-                    setState(() => _selectedDate = picked);
-                    _fetchBookedSlots();
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: AppTheme.cardDark,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.calendar_today_rounded, color: AppTheme.primary, size: 18),
-                      const SizedBox(width: 12),
-                      Text(
-                        DateFormat('EEEE, dd/MM/yyyy').format(_selectedDate),
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontSize: 14),
-                      ),
-                      const Spacer(),
-                      const Icon(Icons.edit_calendar_rounded, color: AppTheme.textMuted, size: 18),
-                    ],
-                  ),
-                ),
-=======
->>>>>>> 5553e45fbf7ac55b80719d357cb2d472872fc8c5
               ),
               Text('${(_selectedCourt!.pricePerHour / 1000).toStringAsFixed(0)}k/h', style: const TextStyle(color: AppTheme.accentGold, fontWeight: FontWeight.bold, fontSize: 13)),
             ],
@@ -280,49 +248,16 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
         ),
 
         Expanded(
-<<<<<<< HEAD
-          child: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            physics: const BouncingScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 2.8,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: _timeSlots.length,
-            itemBuilder: (context, index) {
-              bool isSelected = _selectedSlot == _timeSlots[index];
-              bool isBooked = _bookedSlots.contains(_timeSlots[index]);
-              return InkWell(
-                onTap: isBooked ? null : () => setState(() => _selectedSlot = _timeSlots[index]),
-                borderRadius: BorderRadius.circular(10),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    gradient: (isSelected && !isBooked) ? AppTheme.primaryGradient : null,
-                    color: isBooked ? Colors.grey.withOpacity(0.1) : (isSelected ? null : AppTheme.cardDark),
-                    border: Border.all(color: (isSelected && !isBooked) ? Colors.transparent : Colors.white.withValues(alpha: 0.05)),
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: (isSelected && !isBooked) ? AppTheme.glowShadow : null,
-                  ),
-                  child: Center(
-                    child: Text(
-                      _timeSlots[index],
-                      style: TextStyle(
-                        color: isBooked ? Colors.white30 : (isSelected ? Colors.white : AppTheme.textSecondary),
-                        fontSize: 13,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                        decoration: isBooked ? TextDecoration.lineThrough : null,
-                      ),
-                    ),
-                  ),
-=======
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          child: RefreshIndicator(
+            color: AppTheme.primary,
+            backgroundColor: AppTheme.cardDark,
+            onRefresh: _fetchBookedSlots,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 const SizedBox(height: 16),
                 _sectionTitle('Ngày đặt'),
                 _buildDateSelector(),
@@ -337,7 +272,6 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
                     const SizedBox(width: 8),
                     _buildPlayerOption(4, '4 Người'),
                   ],
->>>>>>> 5553e45fbf7ac55b80719d357cb2d472872fc8c5
                 ),
 
                 const SizedBox(height: 16),
@@ -347,6 +281,7 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
               ],
             ),
           ),
+        ),
         ),
 
         _buildBottomActionBar(),
@@ -360,28 +295,17 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
   );
 
   Widget _buildDateSelector() {
-    return InkWell(
-      onTap: () async {
-        final DateTime? picked = await showDatePicker(
-          context: context,
-          initialDate: _selectedDate,
-          firstDate: DateTime.now(),
-          lastDate: DateTime.now().add(const Duration(days: 60)),
-        );
-        if (picked != null) setState(() => _selectedDate = picked);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: AppTheme.cardDark, borderRadius: BorderRadius.circular(10)),
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_month_rounded, size: 16, color: AppTheme.primary),
-            const SizedBox(width: 10),
-            Text(DateFormat('dd/MM/yyyy').format(_selectedDate), style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
-            const Spacer(),
-            const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textMuted, size: 18),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: AppTheme.cardDark, borderRadius: BorderRadius.circular(10)),
+      child: Row(
+        children: [
+          const Icon(Icons.calendar_today_rounded, size: 16, color: AppTheme.primary),
+          const SizedBox(width: 10),
+          Text('Hôm nay - ${DateFormat('dd/MM/yyyy').format(_selectedDate)}', style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+          const Spacer(),
+          const Text('Chỉ đặt trong ngày', style: TextStyle(color: AppTheme.textMuted, fontSize: 10, fontStyle: FontStyle.italic)),
+        ],
       ),
     );
   }
@@ -406,27 +330,45 @@ class _BookingScreenState extends State<BookingScreen> with TickerProviderStateM
           itemCount: slots.length,
           itemBuilder: (context, index) {
             bool isSelected = _selectedSlot == slots[index];
-            bool isBooked = index == 1 && category == 'Tối'; // Giả lập sân hết ca
+            bool isBooked = _bookedSlots.contains(slots[index]);
+
+            bool isPast = false;
+            final now = DateTime.now();
+            if (_selectedDate.year == now.year &&
+                _selectedDate.month == now.month &&
+                _selectedDate.day == now.day) {
+              String startTimeStr = slots[index].split(' - ')[0];
+              List<String> parts = startTimeStr.split(':');
+              if (parts.length == 2) {
+                int hour = int.tryParse(parts[0]) ?? 0;
+                int minute = int.tryParse(parts[1]) ?? 0;
+                if (hour < now.hour || (hour == now.hour && minute <= now.minute)) {
+                  isPast = true;
+                }
+              }
+            }
+            
+            bool isDisabled = isBooked || isPast;
 
             return InkWell(
-              onTap: isBooked ? null : () => setState(() => _selectedSlot = slots[index]),
+              onTap: isDisabled ? null : () => setState(() => _selectedSlot = slots[index]),
               borderRadius: BorderRadius.circular(8),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
                   gradient: isSelected ? AppTheme.primaryGradient : null,
-                  color: isBooked ? Colors.white.withOpacity(0.05) : (isSelected ? null : AppTheme.cardDark),
+                  color: isDisabled ? Colors.white.withOpacity(0.05) : (isSelected ? null : AppTheme.cardDark),
                   border: Border.all(color: isSelected ? Colors.transparent : Colors.white.withOpacity(0.05)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
                   child: Text(
-                    isBooked ? 'Hết' : slots[index].split(' ')[0], // Chỉ lấy giờ bắt đầu cho chuyên nghiệp
+                    isDisabled ? 'Hết' : slots[index], // Hiển thị đầy đủ khung giờ
                     style: TextStyle(
-                      color: isBooked ? AppTheme.textMuted : (isSelected ? Colors.white : AppTheme.textSecondary),
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                      decoration: isBooked ? TextDecoration.lineThrough : null,
+                      color: isDisabled ? AppTheme.textMuted : (isSelected ? Colors.white : AppTheme.textSecondary),
+                      fontSize: 11, // Giảm từ 12 xuống 11 để vừa với chuỗi dài
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      decoration: isDisabled ? TextDecoration.lineThrough : null,
                     ),
                   ),
                 ),

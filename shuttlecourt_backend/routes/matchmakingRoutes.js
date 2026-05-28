@@ -18,4 +18,7 @@ router.post('/respond', matchmakingController.respondToJoinRequest);
 
 router.post('/leave', matchmakingController.leaveMatch);
 
+router.get('/:matchId/participants', matchmakingController.getMatchParticipants);
+router.post('/:matchId/report', matchmakingController.reportNoShow);
+
 module.exports = router;

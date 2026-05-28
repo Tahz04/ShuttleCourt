@@ -147,7 +147,7 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('TỔNG TIỀN', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textMuted)),
-                    Text('${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(double.tryParse(order['total_price'].toString()) ?? 0.0)}', 
+                    Text(NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(double.tryParse(order['total_price'].toString()) ?? 0.0), 
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppTheme.accent)),
                   ],
                 ),

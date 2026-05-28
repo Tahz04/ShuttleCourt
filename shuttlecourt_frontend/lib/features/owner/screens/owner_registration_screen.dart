@@ -57,8 +57,11 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          if (isFront) _cccdFrontUrl = data['imageUrl'];
-          else _cccdBackUrl = data['imageUrl'];
+          if (isFront) {
+            _cccdFrontUrl = data['imageUrl'];
+          } else {
+            _cccdBackUrl = data['imageUrl'];
+          }
         });
       } else {
         _showError('Lỗi tải ảnh lên máy chủ');
@@ -67,8 +70,11 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
       _showError('Lỗi kết nối');
     } finally {
       setState(() {
-        if (isFront) _isUploadingFront = false;
-        else _isUploadingBack = false;
+        if (isFront) {
+          _isUploadingFront = false;
+        } else {
+          _isUploadingBack = false;
+        }
       });
     }
   }

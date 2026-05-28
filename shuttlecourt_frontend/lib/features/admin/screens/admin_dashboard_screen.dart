@@ -265,7 +265,7 @@ class _UsersViewState extends State<_UsersView> {
               subtitle: Text('${u['email']}\nVai trò: ${u['role']}'),
               trailing: Switch(
                 value: !isLocked,
-                activeColor: Colors.green,
+                activeThumbColor: Colors.green,
                 onChanged: (val) => _toggleLock(u['id'].toString(), u['status']),
               ),
               isThreeLine: true,
@@ -357,7 +357,7 @@ class _OwnerRequestsViewState extends State<_OwnerRequestsView> {
                                       aspectRatio: 1.5,
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
-                                        child: Image.network(req['cccd_front'], fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
+                                        child: Image.network(req['cccd_front'], fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.broken_image)),
                                       ),
                                     ),
                                   ),
@@ -368,7 +368,7 @@ class _OwnerRequestsViewState extends State<_OwnerRequestsView> {
                                       aspectRatio: 1.5,
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
-                                        child: Image.network(req['cccd_back'], fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
+                                        child: Image.network(req['cccd_back'], fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.broken_image)),
                                       ),
                                     ),
                                   ),

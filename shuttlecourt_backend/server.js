@@ -7,7 +7,41 @@ const multer = require('multer');
 
 dotenv.config();
 
+// Khởi tạo các cron jobs chạy ngầm (ví dụ: tự động xóa đơn cũ qua ngày)
+require('./services/cronJob');
+
 const app = express();
+const http = require('http');
+const { Server } = require('socket.io');
+
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: '*', // Allows connections from any origin (Flutter apps)
+        methods: ["GET", "POST"]
+    }
+});
+
+io.on('connection', (socket) => {
+    console.log('🔗 New socket connected:', socket.id);
+    
+    // Join a room for a specific court's bookings
+    socket.on('join_court', (courtName) => {
+        socket.join(courtName);
+        console.log(`Socket ${socket.id} joined room: ${courtName}`);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('🔌 Socket disconnected:', socket.id);
+    });
+});
+
+// Attach io to req object for controllers to use
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
+
 app.use(cors());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
@@ -82,7 +116,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
 
 const PORT = 3000;
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📁 Uploads directory: ${uploadDir}`);
 });

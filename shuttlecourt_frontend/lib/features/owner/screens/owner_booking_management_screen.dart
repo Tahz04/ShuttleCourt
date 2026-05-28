@@ -303,7 +303,19 @@ class _BookingItem extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(b.userName ?? 'Khách', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                  Row(
+                    children: [
+                      Text(b.userName ?? 'Khách', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                      if (b.paymentMethod == 'Ghép kèo') ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: AppTheme.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
+                          child: const Text('KÈO GHÉP', style: TextStyle(color: AppTheme.accent, fontSize: 9, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ],
+                  ),
                   Text(b.courtName, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
                 ],
               ),
@@ -332,6 +344,8 @@ class _BookingItem extends StatelessWidget {
             const SizedBox(height: 20),
             Row(
               children: [
+                Expanded(child: _actionBtn('HỦY LỊCH', AppTheme.error, () => onUpdate('Đã hủy'), false)),
+                const SizedBox(width: 12),
                 Expanded(child: _actionBtn('XÁC NHẬN HOÀN THÀNH', Colors.greenAccent, () => onUpdate('Đã hoàn thành'), true)),
               ],
             ),

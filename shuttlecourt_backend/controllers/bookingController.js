@@ -17,13 +17,33 @@ exports.createBooking = async (req, res) => {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
-        // Kiểm tra trùng lịch (Concurrency Check)
+                // Kiểm tra trùng lịch (Concurrency Check - Overlap logic)
         const [existing] = await db.query(
-            "SELECT id FROM bookings WHERE court_name = ? AND booking_date = ? AND slot = ? AND status != 'Đã hủy' AND status != 'Từ chối'",
-            [court_name, booking_date, slot]
+            "SELECT slot FROM bookings WHERE court_name = ? AND booking_date = ? AND status != 'Đã hủy' AND status != 'Từ chối' AND status != 'Đã hoàn thành'",
+            [court_name, booking_date]
         );
 
-        if (existing.length > 0) {
+        let isConflict = false;
+        const reqStartMins = parseInt(slot.split(' - ')[0].split(':')[0]) * 60 + parseInt(slot.split(' - ')[0].split(':')[1]);
+        const reqEndMins = parseInt(slot.split(' - ')[1].split(':')[0]) * 60 + parseInt(slot.split(' - ')[1].split(':')[1]);
+
+        for (let b of existing) {
+            let bStartMins, bEndMins;
+            if (b.slot.includes(' - ')) {
+                const [s, e] = b.slot.split(' - ');
+                bStartMins = parseInt(s.split(':')[0]) * 60 + parseInt(s.split(':')[1]);
+                bEndMins = parseInt(e.split(':')[0]) * 60 + parseInt(e.split(':')[1]);
+            } else {
+                bStartMins = parseInt(b.slot.split(':')[0]) * 60 + parseInt(b.slot.split(':')[1]);
+                bEndMins = bStartMins + 60;
+            }
+            if (reqStartMins < bEndMins && reqEndMins > bStartMins) {
+                isConflict = true;
+                break;
+            }
+        }
+
+        if (isConflict) {
             return res.status(409).json({ message: "Rất tiếc! Sân này vừa có người đặt trong khung giờ này." });
         }
 
@@ -143,16 +163,41 @@ exports.updateBookingStatus = async (req, res) => {
         await db.query('UPDATE bookings SET status = ? WHERE id = ?', [status, id]);
 
         // 2. Lấy user_id và thông tin sân để gửi thông báo cho khách
-        const [[booking]] = await db.query('SELECT user_id, court_name FROM bookings WHERE id = ?', [id]);
+        const [[booking]] = await db.query('SELECT user_id, court_name, booking_date, slot FROM bookings WHERE id = ?', [id]);
         
         if (booking) {
-            const icon = status === 'Đã duyệt' ? '✅' : '❌';
+            if (req.io) { req.io.to(booking.court_name).emit('booking_updated', { court_name: booking.court_name, booking_date: booking.booking_date, slot: booking.slot, status }); }
+            
+            if (status === 'Từ chối' || status === 'Đã hủy' || status === 'Đã hoàn thành') {
+                await db.query(
+                    "DELETE FROM matchmaking WHERE court_name = ? AND match_date = ? AND start_time = ?",
+                    [booking.court_name, booking.booking_date, booking.slot]
+                );
+            }
+
+                        let icon = 'ℹ️';
+            let msg = `Lịch đặt tại "${booking.court_name}" của bạn đã được cập nhật thành: ${status}.`;
+            
+            if (status === 'Đã duyệt') {
+                icon = '✅';
+                msg = `Tuyệt vời! Lịch đặt tại "${booking.court_name}" của bạn đã được CHẤP NHẬN.`;
+            } else if (status === 'Từ chối') {
+                icon = '❌';
+                msg = `Rất tiếc! Lịch đặt tại "${booking.court_name}" của bạn đã bị TỪ CHỐI bởi chủ sân.`;
+            } else if (status === 'Đã hủy') {
+                icon = '❌';
+                msg = `Lịch đặt tại "${booking.court_name}" của bạn đã BỊ HỦY.`;
+            } else if (status === 'Đã hoàn thành') {
+                icon = '🏆';
+                msg = `Lịch chơi tại "${booking.court_name}" đã HOÀN THÀNH. Cảm ơn bạn đã trải nghiệm dịch vụ!`;
+            }
+
             await db.query(
                 "INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)",
                 [
                     booking.user_id,
                     `${icon} Cập nhật lịch sân`,
-                    `Lịch đặt tại "${booking.court_name}" của bạn đã được ${status.toLowerCase()}.`,
+                    msg,
                     "booking_status"
                 ]
             );
@@ -174,7 +219,7 @@ exports.getBookedSlots = async (req, res) => {
         const sql = `
             SELECT slot FROM bookings 
             WHERE court_name = ? AND booking_date = ? 
-            AND status != 'Đã hủy' AND status != 'Từ chối'
+            AND status != 'Đã hủy' AND status != 'Từ chối' AND status != 'Đã hoàn thành'
         `;
         const [rows] = await db.query(sql, [court_name, booking_date]);
         
@@ -198,6 +243,20 @@ exports.cancelBooking = async (req, res) => {
 
         await db.query("UPDATE bookings SET status = 'Đã hủy' WHERE id = ?", [id]);
         
+        await db.query(
+            "DELETE FROM matchmaking WHERE court_name = ? AND match_date = ? AND start_time = ?",
+            [booking.court_name, booking.booking_date, booking.slot]
+        );
+        
+        if (req.io) {
+            req.io.to(booking.court_name).emit('booking_updated', {
+                court_name: booking.court_name,
+                booking_date: booking.booking_date,
+                slot: booking.slot,
+                status: 'Đã hủy'
+            });
+        }
+        
         const [courts] = await db.query("SELECT owner_id FROM courts WHERE name = ?", [booking.court_name]);
         if (courts.length > 0 && courts[0].owner_id) {
             await db.query(
@@ -208,6 +267,6 @@ exports.cancelBooking = async (req, res) => {
 
         res.status(200).json({ message: "Đã hủy lịch đặt sân." });
     } catch (err) {
-        res.status(500).json({ message: 'Lỗi server', error: err.message });
+        res.status(500).json({ message: "Lỗi server", error: err.message });
     }
 };
