@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:shuttlecourt/config/api_config.dart';
 import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:shuttlecourt/auth/auth_service.dart';
 
 class OwnerOrderManagementScreen extends StatefulWidget {
   final bool isEmbedded;
@@ -27,15 +29,23 @@ class _OwnerOrderManagementScreenState extends State<OwnerOrderManagementScreen>
   Future<void> _loadOrders() async {
     setState(() => _isLoading = true);
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.productsUrl}/orders'));
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final ownerId = auth.user?.id;
+      final url = ownerId != null 
+          ? '${ApiConfig.productsUrl}/orders?ownerId=$ownerId'
+          : '${ApiConfig.productsUrl}/orders';
+      
+      debugPrint('Fetching orders from: $url');
+      final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
+        debugPrint('Orders response body: ${response.body}');
         setState(() {
           _orders = jsonDecode(response.body);
           _isLoading = false;
         });
       }
     } catch (e) {
-      print('Error fetching orders: $e');
+      debugPrint('Error fetching orders: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -93,9 +103,13 @@ class _OwnerOrderManagementScreenState extends State<OwnerOrderManagementScreen>
       itemCount: _orders.length,
       itemBuilder: (context, index) {
         final order = _orders[index];
-        final status = order['status'] ?? 'pending';
-        final statusText = status == 'pending' ? 'Đang chờ' : (status == 'completed' ? 'Đã giao' : 'Đã hủy');
-        final statusColor = status == 'pending' ? Colors.orange : (status == 'completed' ? AppTheme.success : AppTheme.error);
+        final status = order['status'] ?? 'Chờ xử lý';
+        final statusText = status;
+        final statusColor = (status == 'Chờ xử lý' || status == 'pending')
+            ? Colors.orange
+            : ((status == 'Đã duyệt' || status == 'completed' || status == 'Đã giao')
+                ? AppTheme.success
+                : AppTheme.error);
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -147,17 +161,17 @@ class _OwnerOrderManagementScreenState extends State<OwnerOrderManagementScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Tổng thanh toán:', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textMuted)),
-                  Text(_currencyFormat.format(double.tryParse(order['total_price'].toString()) ?? 0), 
+                  Text(_currencyFormat.format(double.tryParse(order['total_price']?.toString() ?? '') ?? 0.0), 
                        style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w900, fontSize: 16)),
                 ],
               ),
               const SizedBox(height: 16),
-              if (status == 'pending')
+              if (status == 'Chờ xử lý' || status == 'pending')
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => _updateStatus(order['id'], 'cancelled'),
+                        onPressed: () => _updateStatus(order['id'], 'Đã hủy'),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: AppTheme.error),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -168,7 +182,7 @@ class _OwnerOrderManagementScreenState extends State<OwnerOrderManagementScreen>
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () => _updateStatus(order['id'], 'completed'),
+                        onPressed: () => _updateStatus(order['id'], 'Đã duyệt'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primary,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

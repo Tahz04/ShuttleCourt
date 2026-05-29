@@ -56,7 +56,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       final results = await Future.wait([
         NotificationService.getNotifications(auth.user!.id.toString()),
         ApiBookingService.getOwnerBookings(int.parse(auth.user!.id)),
-        ShopService.getOrders(),
+        ShopService.getOrders(ownerId: int.parse(auth.user!.id)),
       ]);
 
       final newNotifs = results[0] as List<SystemNotification>;

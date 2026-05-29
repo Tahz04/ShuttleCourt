@@ -64,7 +64,7 @@ class _WebOwnerDashboardPageState extends State<WebOwnerDashboardPage> {
     try {
       final results = await Future.wait([
         ApiBookingService.getOwnerBookings(int.parse(auth.user!.id)),
-        ShopService.getOrders(),
+        ShopService.getOrders(ownerId: int.parse(auth.user!.id)),
       ]);
 
       final bookings = results[0] as List<Booking>;

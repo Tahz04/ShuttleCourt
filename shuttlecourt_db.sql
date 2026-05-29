@@ -30,6 +30,7 @@ SET time_zone = "+00:00";
 CREATE TABLE `bookings` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
+  `court_id` int(11) DEFAULT NULL,
   `court_name` varchar(255) NOT NULL,
   `court_address` text NOT NULL,
   `slot` varchar(50) NOT NULL,
@@ -44,26 +45,26 @@ CREATE TABLE `bookings` (
 -- Đang đổ dữ liệu cho bảng `bookings`
 --
 
-INSERT INTO `bookings` (`id`, `user_id`, `court_name`, `court_address`, `slot`, `booking_date`, `price`, `payment_method`, `created_at`, `status`) VALUES
-(1, 7, 'Sân Cổng Chào ', 'Sân Cổng Mĩ Đình', '07:00 - 08:00', '2026-04-13', 120000.00, 'Chuyển khoản QR', '2026-04-13 13:21:02', 'Đã duyệt'),
-(2, 7, 'Sân Vincom', 'Sân vincom', '17:00 - 18:00', '2026-04-13', 90000.00, 'Tiền mặt', '2026-04-13 13:34:14', 'Đã duyệt'),
-(3, 6, 'Sân Cổng Chào ', 'Sân Cổng Mĩ Đình', '06:00 - 07:00', '2026-04-14', 120000.00, 'Chuyển khoản QR', '2026-04-14 06:46:44', 'Đã duyệt'),
-(4, 6, 'Sân Bát Tràng', 'Bát Tràng', '21:00 - 22:00', '2026-04-16', 87000.00, 'Chuyển khoản QR', '2026-04-16 07:17:40', 'Đã duyệt'),
-(5, 8, 'Sân Cổng Chào ', 'Sân Cổng Mĩ Đình', '18:00 - 19:00', '2026-04-16', 120000.00, 'Chuyển khoản QR', '2026-04-16 07:24:09', 'Đã duyệt'),
-(6, 10, 'Sân Bát Tràng', 'Bát Tràng', '19:00 - 20:00', '2026-04-18', 87000.00, 'Chuyển khoản QR', '2026-04-18 09:17:46', 'Đã hủy'),
-(7, 10, 'Sân Bóng Đá Vạn Phúc', '73 P. Vạn Bảo, Ngọc Hà, Ba Đình', '06:00 - 07:00', '2026-04-21', 320000.00, 'Chuyển khoản QR', '2026-04-21 06:28:19', 'Đã hủy'),
-(8, 9, 'Sân Bát Tràng', 'Bát Tràng', '05:00 - 06:00', '2026-04-21', 87000.00, 'Chuyển khoản QR', '2026-04-21 06:58:41', 'Đã duyệt'),
-(9, 11, 'Sân Bát Tràng', 'Bát Tràng', '17:00 - 18:00', '2026-04-25', 87000.00, 'Tiền mặt', '2026-04-25 06:56:06', 'Yêu cầu hủy'),
-(10, 11, 'Sân bóng Bộ Công An', '396 Nguyễn Xiển, Thanh Liệt, Thanh Trì', '19:00 - 20:00', '2026-04-25', 250000.00, 'Tiền mặt', '2026-04-25 06:56:30', 'Đã duyệt'),
-(11, 11, 'Sân bóng Bộ Công An', '396 Nguyễn Xiển, Thanh Liệt, Thanh Trì', '05:00 - 06:00', '2026-04-25', 250000.00, 'Chuyển khoản QR', '2026-04-25 07:13:54', 'Đã duyệt'),
-(12, 13, 'Sân Hồ Hoàn Kiếm ', 'Hồ Hoàn Kiếm ', '05:00 - 06:00', '2026-05-27', 60000.00, 'Chuyển khoản QR', '2026-05-27 14:05:26', 'Đã duyệt'),
-(13, 13, 'Sân Bát Tràng', 'Bát Tràng', '05:00 - 06:00', '2026-05-27', 87000.00, 'Tiền mặt', '2026-05-27 14:10:51', 'Đã duyệt'),
-(14, 16, 'Sân Bát Tràng', 'Bát Tràng', '05:00 - 06:00', '2026-05-27', 87000.00, 'Tiền mặt', '2026-05-27 15:31:02', 'Đã duyệt'),
-(15, 16, 'Sân Bóng Văn Phú', 'Khu đô thị Văn Phú, Kiến Hưng, Hà Đông', '05:00 - 06:00', '2026-05-27', 270000.00, 'Tiền mặt', '2026-05-27 15:52:27', 'Đã duyệt'),
-(16, 17, 'Sân Bát Tràng', 'Bát Tràng', '14:00 - 15:00', '2026-05-28', 87000.00, 'Chuyển khoản QR', '2026-05-28 03:46:24', 'Đã duyệt'),
-(17, 16, 'Sân Bát Tràng', 'Bát Tràng', '05:00 - 06:00', '2026-05-29', 87000.00, 'Tiền mặt', '2026-05-28 03:47:13', 'Đã hoàn thành'),
-(18, 14, 'Sân chơi Cổ Nhuế', '131 Cổ Nhuế 2 , Hà Nội ', '14:00 - 15:00', '2026-05-28', 67000.00, 'Tiền mặt', '2026-05-28 04:35:32', 'Đã duyệt'),
-(19, 14, 'Badminton Sport Center Airport 521 Minh Khai', '521 Minh Khai, Hai Bà Trưng', '04:25 - 05:25', '2026-05-28', 65000.00, 'Ghép kèo', '2026-05-28 06:16:37', 'Đã duyệt');
+INSERT INTO `bookings` (`id`, `user_id`, `court_id`, `court_name`, `court_address`, `slot`, `booking_date`, `price`, `payment_method`, `created_at`, `status`) VALUES
+(1, 7, NULL, 'Sân Cổng Chào ', 'Sân Cổng Mĩ Đình', '07:00 - 08:00', '2026-04-13', 120000.00, 'Chuyển khoản QR', '2026-04-13 13:21:02', 'Đã duyệt'),
+(2, 7, NULL, 'Sân Vincom', 'Sân vincom', '17:00 - 18:00', '2026-04-13', 90000.00, 'Tiền mặt', '2026-04-13 13:34:14', 'Đã duyệt'),
+(3, 6, NULL, 'Sân Cổng Chào ', 'Sân Cổng Mĩ Đình', '06:00 - 07:00', '2026-04-14', 120000.00, 'Chuyển khoản QR', '2026-04-14 06:46:44', 'Đã duyệt'),
+(4, 6, NULL, 'Sân Bát Tràng', 'Bát Tràng', '21:00 - 22:00', '2026-04-16', 87000.00, 'Chuyển khoản QR', '2026-04-16 07:17:40', 'Đã duyệt'),
+(5, 8, NULL, 'Sân Cổng Chào ', 'Sân Cổng Mĩ Đình', '18:00 - 19:00', '2026-04-16', 120000.00, 'Chuyển khoản QR', '2026-04-16 07:24:09', 'Đã duyệt'),
+(6, 10, NULL, 'Sân Bát Tràng', 'Bát Tràng', '19:00 - 20:00', '2026-04-18', 87000.00, 'Chuyển khoản QR', '2026-04-18 09:17:46', 'Đã hủy'),
+(7, 10, NULL, 'Sân Bóng Đá Vạn Phúc', '73 P. Vạn Bảo, Ngọc Hà, Ba Đình', '06:00 - 07:00', '2026-04-21', 320000.00, 'Chuyển khoản QR', '2026-04-21 06:28:19', 'Đã hủy'),
+(8, 9, NULL, 'Sân Bát Tràng', 'Bát Tràng', '05:00 - 06:00', '2026-04-21', 87000.00, 'Chuyển khoản QR', '2026-04-21 06:58:41', 'Đã duyệt'),
+(9, 11, NULL, 'Sân Bát Tràng', 'Bát Tràng', '17:00 - 18:00', '2026-04-25', 87000.00, 'Tiền mặt', '2026-04-25 06:56:06', 'Yêu cầu hủy'),
+(10, 11, NULL, 'Sân bóng Bộ Công An', '396 Nguyễn Xiển, Thanh Liệt, Thanh Trì', '19:00 - 20:00', '2026-04-25', 250000.00, 'Tiền mặt', '2026-04-25 06:56:30', 'Đã duyệt'),
+(11, 11, NULL, 'Sân bóng Bộ Công An', '396 Nguyễn Xiển, Thanh Liệt, Thanh Trì', '05:00 - 06:00', '2026-04-25', 250000.00, 'Chuyển khoản QR', '2026-04-25 07:13:54', 'Đã duyệt'),
+(12, 13, NULL, 'Sân Hồ Hoàn Kiếm ', 'Hồ Hoàn Kiếm ', '05:00 - 06:00', '2026-05-27', 60000.00, 'Chuyển khoản QR', '2026-05-27 14:05:26', 'Đã duyệt'),
+(13, 13, NULL, 'Sân Bát Tràng', 'Bát Tràng', '05:00 - 06:00', '2026-05-27', 87000.00, 'Tiền mặt', '2026-05-27 14:10:51', 'Đã duyệt'),
+(14, 16, NULL, 'Sân Bát Tràng', 'Bát Tràng', '05:00 - 06:00', '2026-05-27', 87000.00, 'Tiền mặt', '2026-05-27 15:31:02', 'Đã duyệt'),
+(15, 16, NULL, 'Sân Bóng Văn Phú', 'Khu đô thị Văn Phú, Kiến Hưng, Hà Đông', '05:00 - 06:00', '2026-05-27', 270000.00, 'Tiền mặt', '2026-05-27 15:52:27', 'Đã duyệt'),
+(16, 17, NULL, 'Sân Bát Tràng', 'Bát Tràng', '14:00 - 15:00', '2026-05-28', 87000.00, 'Chuyển khoản QR', '2026-05-28 03:46:24', 'Đã duyệt'),
+(17, 16, NULL, 'Sân Bát Tràng', 'Bát Tràng', '05:00 - 06:00', '2026-05-29', 87000.00, 'Tiền mặt', '2026-05-28 03:47:13', 'Đã hoàn thành'),
+(18, 14, 13, 'Sân chơi Cổ Nhuế', '131 Cổ Nhuế 2 , Hà Nội ', '14:00 - 15:00', '2026-05-28', 67000.00, 'Tiền mặt', '2026-05-28 04:35:32', 'Đã duyệt'),
+(19, 14, 17, 'Badminton Sport Center Airport 521 Minh Khai', '521 Minh Khai, Hai Bà Trưng', '04:25 - 05:25', '2026-05-28', 65000.00, 'Ghép kèo', '2026-05-28 06:16:37', 'Đã duyệt');
 
 -- --------------------------------------------------------
 
@@ -332,6 +333,7 @@ INSERT INTO `owner_requests` (`id`, `user_id`, `full_name`, `id_number`, `cccd_f
 
 CREATE TABLE `products` (
   `id` int(11) NOT NULL,
+  `owner_id` int(11) DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `category` varchar(100) NOT NULL,
   `price` decimal(15,2) NOT NULL,
@@ -543,7 +545,8 @@ INSERT INTO `users` (`id`, `full_name`, `email`, `phone`, `password`, `created_a
 --
 ALTER TABLE `bookings`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`);
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `court_id` (`court_id`);
 
 --
 -- Chỉ mục cho bảng `courts`
@@ -585,7 +588,8 @@ ALTER TABLE `owner_requests`
 -- Chỉ mục cho bảng `products`
 --
 ALTER TABLE `products`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `owner_id` (`owner_id`);
 
 --
 -- Chỉ mục cho bảng `product_orders`
@@ -712,7 +716,8 @@ ALTER TABLE `users`
 -- Các ràng buộc cho bảng `bookings`
 --
 ALTER TABLE `bookings`
-  ADD CONSTRAINT `bookings_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `bookings_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_bookings_court_rel` FOREIGN KEY (`court_id`) REFERENCES `courts` (`id`) ON DELETE SET NULL;
 
 --
 -- Các ràng buộc cho bảng `courts`
@@ -757,6 +762,12 @@ ALTER TABLE `product_orders`
 ALTER TABLE `product_order_items`
   ADD CONSTRAINT `product_order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `product_orders` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `product_order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
+
+--
+-- Các ràng buộc cho bảng `products`
+--
+ALTER TABLE `products`
+  ADD CONSTRAINT `fk_products_owner_rel` FOREIGN KEY (`owner_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Các ràng buộc cho bảng `reviews`

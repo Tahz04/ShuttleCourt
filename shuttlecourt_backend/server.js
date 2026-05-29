@@ -52,6 +52,39 @@ app.use((req, res, next) => {
     next();
 });
 
+// Middleware to dynamically fix localhost image URLs for mobile devices
+app.use((req, res, next) => {
+    const originalJson = res.json;
+    res.json = function (obj) {
+        const host = req.get('host');
+        if (host && host !== 'localhost:3000' && obj) {
+            const replaceLocalhost = (data) => {
+                if (typeof data === 'string') {
+                    return data.replace(/localhost:3000/g, host);
+                } else if (Array.isArray(data)) {
+                    return data.map(replaceLocalhost);
+                } else if (data !== null && typeof data === 'object') {
+                    const newObj = {};
+                    for (const key in data) {
+                        if (Object.prototype.hasOwnProperty.call(data, key)) {
+                            newObj[key] = replaceLocalhost(data[key]);
+                        }
+                    }
+                    return newObj;
+                }
+                return data;
+            };
+            try {
+                obj = replaceLocalhost(obj);
+            } catch (e) {
+                console.error('Error replacing localhost in JSON:', e);
+            }
+        }
+        return originalJson.call(this, obj);
+    };
+    next();
+});
+
 app.use(cors());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));

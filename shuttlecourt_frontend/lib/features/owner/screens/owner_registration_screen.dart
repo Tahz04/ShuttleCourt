@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -49,7 +50,12 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
       });
 
       final request = http.MultipartRequest('POST', Uri.parse(ApiConfig.uploadUrl));
-      request.files.add(await http.MultipartFile.fromPath('image', file.path));
+      final bytes = await file.readAsBytes();
+      request.files.add(http.MultipartFile.fromBytes(
+        'image',
+        bytes,
+        filename: file.name,
+      ));
       
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -226,7 +232,10 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                if (localPath != null) Image.file(File(localPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+                if (localPath != null)
+                  kIsWeb
+                      ? Image.network(localPath, fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                      : Image.file(File(localPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
                 if (url != null && localPath == null) Image.network(url, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
                 if (!hasImage && !isUploading) Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_photo_alternate_rounded, color: AppTheme.textMuted), const SizedBox(height: 8), Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.bold))]),
                 if (isUploading) const CircularProgressIndicator(color: AppTheme.primary),

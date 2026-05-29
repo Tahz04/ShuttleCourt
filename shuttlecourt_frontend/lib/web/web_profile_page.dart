@@ -8,6 +8,7 @@ import 'package:shuttlecourt/auth/edit_profile_screen.dart';
 import 'package:shuttlecourt/auth/security_screen.dart';
 import 'package:shuttlecourt/auth/notification_settings_screen.dart';
 import 'package:shuttlecourt/features/owner/screens/owner_dashboard_screen.dart';
+import 'package:shuttlecourt/features/owner/screens/owner_registration_screen.dart';
 import 'package:shuttlecourt/main.dart';
 import 'package:shuttlecourt/features/admin/screens/admin_dashboard_screen.dart';
 import 'package:shuttlecourt/auth/language_settings_screen.dart';
@@ -669,6 +670,21 @@ class _WebProfilePageState extends State<WebProfilePage>
                                       builder: (_) => user.role == 'admin'
                                           ? const AdminDashboardScreen()
                                           : const OwnerDashboardScreen(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (user.role == 'user')
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _buildSettingsTile(
+                                  icon: Icons.business_center_rounded,
+                                  title: 'Trở thành Chủ Sân',
+                                  subtitle: 'Đăng ký thông tin để đăng bán, quản lý sân',
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const OwnerRegistrationScreen(),
                                     ),
                                   ),
                                 ),

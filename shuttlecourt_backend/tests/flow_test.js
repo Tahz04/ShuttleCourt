@@ -105,19 +105,24 @@ async function testBookingFlow() {
 
   // Bước 2: Tạo booking
   console.log('\n  📌 Bước 2: Tạo booking');
+  const randomDay = Math.floor(Math.random() * 28) + 1;
+  const randomMonth = Math.floor(Math.random() * 5) + 7; // Month 7 to 11
+  const bookingDate = `2026-${randomMonth.toString().padStart(2, '0')}-${randomDay.toString().padStart(2, '0')}`;
+
   const bookingData = {
     user_id: 1,
     court_name: court.name,
     court_address: court.address,
     slot: '18:00 - 19:00',
-    booking_date: '2026-06-15',
+    booking_date: bookingDate,
     price: court.price_per_hour || 80000,
     payment_method: 'Tiền mặt',
   };
 
   const bookRes = await post('/api/bookings', bookingData);
+  console.log("  [DEBUG] bookRes:", JSON.stringify(bookRes));
   assert('Booking tạo thành công (200)', bookRes.status === 200);
-  assert('Trả về booking ID', bookRes.body.id !== undefined);
+  assert('Trả về booking ID', bookRes.body && bookRes.body.id !== undefined);
 
   const bookingId = bookRes.body.id;
   console.log(`  🎫 Booking ID: ${bookingId}`);

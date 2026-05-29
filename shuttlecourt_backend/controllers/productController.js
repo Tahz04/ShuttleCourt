@@ -10,11 +10,11 @@ exports.getProducts = async (req, res) => {
 };
 
 exports.addProduct = async (req, res) => {
-  const { name, category, price, stock, image_url, description } = req.body;
+  const { name, category, price, stock, image_url, description, owner_id } = req.body;
   try {
     const [result] = await db.query(
-      'INSERT INTO products (name, category, price, stock, image_url, description) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, category, price, stock, image_url, description]
+      'INSERT INTO products (name, category, price, stock, image_url, description, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, category, price, stock, image_url, description, owner_id || null]
     );
     res.status(201).json({ message: 'Thêm sản phẩm thành công', productId: result.insertId });
   } catch (err) {
@@ -47,20 +47,54 @@ exports.deleteProduct = async (req, res) => {
 };
 
 exports.getOrders = async (req, res) => {
+  const { ownerId } = req.query;
+  
+  // Safe ownerId parsing to ignore strings like "null", "undefined", or empty
+  let parsedOwnerId = null;
+  if (ownerId && ownerId !== 'null' && ownerId !== 'undefined' && ownerId.toString().trim() !== '') {
+    parsedOwnerId = parseInt(ownerId, 10);
+    if (isNaN(parsedOwnerId)) {
+      parsedOwnerId = null;
+    }
+  }
+
+  console.log(`[GET /orders] req.query:`, req.query);
+  console.log(`[GET /orders] parsedOwnerId:`, parsedOwnerId);
+
   try {
-    const sql = `
-      SELECT o.*, u.full_name, u.phone, 
+    let sql = `
+      SELECT o.id, o.user_id, o.address, o.payment_method, o.status, o.discount_code, o.discount_amount, o.created_at,
+             SUM(oi.price * oi.quantity) as owner_total_price,
+             o.total_price,
+             u.full_name, u.phone, 
              GROUP_CONCAT(CONCAT(p.name, ' (x', oi.quantity, ')') SEPARATOR ', ') as items
       FROM product_orders o
       JOIN users u ON o.user_id = u.id
       JOIN product_order_items oi ON o.id = oi.order_id
       JOIN products p ON oi.product_id = p.id
+    `;
+    
+    const params = [];
+    if (parsedOwnerId) {
+      sql += ` WHERE p.owner_id = ? `;
+      params.push(parsedOwnerId);
+    }
+    sql += `
       GROUP BY o.id
       ORDER BY o.created_at DESC
     `;
-    const [rows] = await db.query(sql);
+    console.log(`[GET /orders] Executing SQL:`, sql);
+    console.log(`[GET /orders] Params:`, params);
+    const [rows] = await db.query(sql, params);
+    console.log(`[GET /orders] Returned rows count:`, rows.length);
+    if (parsedOwnerId) {
+      rows.forEach(row => {
+        row.total_price = row.owner_total_price;
+      });
+    }
     res.json(rows);
   } catch (err) {
+    console.error('Database error:', err);
     res.status(500).json({ message: 'Lỗi server', error: err.message });
   }
 };
@@ -148,8 +182,30 @@ exports.placeOrder = async (req, res) => {
       );
     }
 
-    // 4. THÊM THÔNG BÁO CHO QUẢN TRỊ VIÊN (ADMIN) & CHỦ SÂN
-    const [admins] = await connection.query("SELECT id FROM users WHERE role IN ('admin', 'owner')");
+    // Find all products in this order and calculate totals per owner
+    const productIds = items.map(item => item.productId);
+    const [productsInfo] = await connection.query(
+      "SELECT id, owner_id FROM products WHERE id IN (?)",
+      [productIds]
+    );
+
+    // Map product ID to owner ID
+    const productOwnerMap = {};
+    productsInfo.forEach(p => {
+      productOwnerMap[p.id] = p.owner_id;
+    });
+
+    // Group items and calculate subtotal by owner
+    const ownerTotals = {};
+    for (const item of items) {
+      const ownerId = productOwnerMap[item.productId];
+      if (ownerId) {
+        ownerTotals[ownerId] = (ownerTotals[ownerId] || 0) + (item.price * item.quantity);
+      }
+    }
+
+    // 4. THÊM THÔNG BÁO CHO QUẢN TRỊ VIÊN (ADMIN)
+    const [admins] = await connection.query("SELECT id FROM users WHERE role = 'admin'");
     for (const admin of admins) {
       await connection.query(
         "INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)",
@@ -160,6 +216,25 @@ exports.placeOrder = async (req, res) => {
           "order"
         ]
       );
+    }
+
+    // 5. THÊM THÔNG BÁO CHO CHỦ SÂN (OWNER) CỦA SẢN PHẨM ĐÓ
+    for (const ownerIdStr of Object.keys(ownerTotals)) {
+      const ownerId = parseInt(ownerIdStr, 10);
+      const ownerTotal = ownerTotals[ownerId];
+      
+      const isAdmin = admins.some(admin => admin.id === ownerId);
+      if (!isAdmin) {
+        await connection.query(
+          "INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)",
+          [
+            ownerId,
+            "📦 Đơn hàng mới cho sản phẩm của bạn!",
+            `Bạn nhận được đơn hàng mới với các sản phẩm của bạn. Giá trị: ${ownerTotal.toLocaleString()}đ.`,
+            "order"
+          ]
+        );
+      }
     }
 
     await connection.commit();

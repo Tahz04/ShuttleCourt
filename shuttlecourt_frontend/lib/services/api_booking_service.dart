@@ -16,6 +16,7 @@ class ApiBookingService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "user_id": userId,
+          "court_id": booking.courtId,
           "court_name": booking.courtName,
           "court_address": booking.courtAddress,
           "slot": booking.slot,

@@ -1,17 +1,19 @@
 class Booking {
   final String id;
+  final int? courtId;
   final String courtName;
   final String courtAddress;
   final String slot;
   final DateTime date;
   final double price;
+  final String status;
   final String paymentMethod;
   final DateTime createdAt;
-  final String status;
   final String? userName; // Dành cho Owner quản lý
 
   Booking({
     required this.id,
+    this.courtId,
     required this.courtName,
     required this.courtAddress,
     required this.slot,
@@ -27,6 +29,7 @@ class Booking {
     final bookingDateRaw = json['booking_date'] ?? json['date'];
     return Booking(
       id: json['id'].toString(),
+      courtId: json['court_id'] != null ? int.tryParse(json['court_id'].toString()) : null,
       courtName: json['court_name'] ?? json['courtName'] ?? '',
       courtAddress: json['court_address'] ?? json['courtAddress'] ?? '',
       slot: json['slot'] ?? '',
@@ -50,6 +53,7 @@ class Booking {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'court_id': courtId,
       'court_name': courtName,
       'court_address': courtAddress,
       'slot': slot,

@@ -4,6 +4,7 @@ exports.createBooking = async (req, res) => {
     try {
         const {
             user_id,
+            court_id,
             court_name,
             court_address,
             slot,
@@ -17,7 +18,16 @@ exports.createBooking = async (req, res) => {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
-                // Kiểm tra trùng lịch (Concurrency Check - Overlap logic)
+        // Resolving court_id dynamically if not provided
+        let targetCourtId = court_id;
+        if (!targetCourtId) {
+            const [matchedCourts] = await db.query("SELECT id FROM courts WHERE name = ?", [court_name]);
+            if (matchedCourts.length > 0) {
+                targetCourtId = matchedCourts[0].id;
+            }
+        }
+
+        // Kiểm tra trùng lịch (Concurrency Check - Overlap logic)
         const [existing] = await db.query(
             "SELECT slot FROM bookings WHERE court_name = ? AND booking_date = ? AND status IN ('Đã duyệt', 'Đã thanh toán', 'Đã hoàn thành')",
             [court_name, booking_date]
@@ -49,12 +59,13 @@ exports.createBooking = async (req, res) => {
 
         const sql = `
             INSERT INTO bookings 
-            (user_id, court_name, court_address, slot, booking_date, price, payment_method)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (user_id, court_id, court_name, court_address, slot, booking_date, price, payment_method)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         const [result] = await db.query(sql, [
             user_id,
+            targetCourtId,
             court_name,
             court_address,
             slot,
@@ -64,9 +75,14 @@ exports.createBooking = async (req, res) => {
         ]);
 
         // Lấy owner thực sự của sân (người đã tạo sân)
-        const [courts] = await db.query("SELECT owner_id FROM courts WHERE name = ?", [court_name]);
         let targetOwnerId = null;
-        if (courts.length > 0) targetOwnerId = courts[0].owner_id;
+        if (targetCourtId) {
+            const [courts] = await db.query("SELECT owner_id FROM courts WHERE id = ?", [targetCourtId]);
+            if (courts.length > 0) targetOwnerId = courts[0].owner_id;
+        } else {
+            const [courts] = await db.query("SELECT owner_id FROM courts WHERE name = ?", [court_name]);
+            if (courts.length > 0) targetOwnerId = courts[0].owner_id;
+        }
 
         const notificationReceivers = new Set();
         if (targetOwnerId) {
@@ -143,7 +159,7 @@ exports.getBookingsByOwner = async (req, res) => {
             SELECT b.*, u.full_name as user_name
             FROM bookings b
             JOIN users u ON b.user_id = u.id
-            JOIN courts c ON b.court_name = c.name
+            JOIN courts c ON (b.court_id = c.id OR (b.court_id IS NULL AND b.court_name = c.name))
             WHERE c.owner_id = ?
             ORDER BY b.created_at DESC
         `;

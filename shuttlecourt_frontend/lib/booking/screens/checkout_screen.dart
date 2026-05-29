@@ -262,6 +262,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     final booking = Booking(
       id: const Uuid().v4(),
+      courtId: int.tryParse(widget.selectedCourt.id),
       courtName: widget.selectedCourt.name,
       courtAddress: widget.selectedCourt.address,
       slot: widget.selectedSlot,

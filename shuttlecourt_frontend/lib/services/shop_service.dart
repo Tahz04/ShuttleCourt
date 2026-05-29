@@ -4,6 +4,7 @@ import 'package:shuttlecourt/config/api_config.dart';
 
 class Product {
   final int? id;
+  final int? ownerId;
   final String name;
   final String category;
   final double price;
@@ -13,6 +14,7 @@ class Product {
 
   Product({
     this.id,
+    this.ownerId,
     required this.name,
     required this.category,
     required this.price,
@@ -24,6 +26,7 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],
+      ownerId: json['owner_id'] != null ? int.tryParse(json['owner_id'].toString()) : null,
       name: json['name'],
       category: json['category'],
       price: double.tryParse(json['price'].toString()) ?? 0.0,
@@ -34,6 +37,8 @@ class Product {
   }
 
   Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    if (ownerId != null) 'owner_id': ownerId,
     'name': name,
     'category': category,
     'price': price,
@@ -130,9 +135,12 @@ class ShopService {
       return false;
     }
   }
-  static Future<List<dynamic>> getOrders() async {
+  static Future<List<dynamic>> getOrders({int? ownerId}) async {
     try {
-      final response = await http.get(Uri.parse('${ApiConfig.productsUrl}/orders'));
+      final url = ownerId != null 
+          ? '${ApiConfig.productsUrl}/orders?ownerId=$ownerId' 
+          : '${ApiConfig.productsUrl}/orders';
+      final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }

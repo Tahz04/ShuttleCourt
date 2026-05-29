@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shuttlecourt/config/api_config.dart';
@@ -122,7 +123,12 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
       });
 
       final request = http.MultipartRequest('POST', Uri.parse(ApiConfig.uploadUrl));
-      request.files.add(await http.MultipartFile.fromPath('image', file.path));
+      final bytes = await file.readAsBytes();
+      request.files.add(http.MultipartFile.fromBytes(
+        'image',
+        bytes,
+        filename: file.name,
+      ));
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
@@ -273,7 +279,10 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(22),
           child: Stack(alignment: Alignment.center, children: [
-            if (_mainLocalPath != null) Image.file(File(_mainLocalPath!), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+            if (_mainLocalPath != null)
+              kIsWeb
+                  ? Image.network(_mainLocalPath!, fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                  : Image.file(File(_mainLocalPath!), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
             if (_mainImageUrl != null && _mainLocalPath == null) Image.network(_mainImageUrl!, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
             if (!hasImage && !loading) const Icon(Icons.add_a_photo, color: AppTheme.primary, size: 32),
             if (loading) Container(color: Colors.black26, child: const CircularProgressIndicator(color: Colors.white)),
@@ -295,7 +304,10 @@ class _EditCourtScreenState extends State<EditCourtScreen> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(18),
             child: Stack(alignment: Alignment.center, children: [
-              if (localPath != null) Image.file(File(localPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+              if (localPath != null)
+                kIsWeb
+                    ? Image.network(localPath, fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                    : Image.file(File(localPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
               if (url != null && localPath == null) Image.network(url, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
               if (!hasImage && !loading) Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 10, fontWeight: FontWeight.bold)),
               if (loading) const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary)),

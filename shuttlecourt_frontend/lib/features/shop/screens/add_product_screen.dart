@@ -4,6 +4,8 @@ import 'package:shuttlecourt/theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'package:provider/provider.dart';
+import 'package:shuttlecourt/auth/auth_service.dart';
 
 class AddProductScreen extends StatefulWidget {
   final Product? product;
@@ -57,8 +59,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     setState(() => _isLoading = true);
 
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final ownerId = auth.user != null ? int.tryParse(auth.user!.id) : null;
+
     final product = Product(
       id: widget.product?.id,
+      ownerId: ownerId,
       name: _nameController.text,
       category: _selectedCategory,
       price: double.tryParse(_priceController.text.replaceAll(',', '')) ?? 0.0,

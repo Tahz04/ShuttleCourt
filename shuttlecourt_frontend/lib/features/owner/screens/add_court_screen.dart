@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -104,7 +105,12 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
       });
 
       final request = http.MultipartRequest('POST', Uri.parse(ApiConfig.uploadUrl));
-      request.files.add(await http.MultipartFile.fromPath('image', file.path));
+      final bytes = await file.readAsBytes();
+      request.files.add(http.MultipartFile.fromBytes(
+        'image',
+        bytes,
+        filename: file.name,
+      ));
       
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -279,8 +285,10 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              if (_mainLocalPath != null) 
-                Image.file(File(_mainLocalPath!), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+              if (_mainLocalPath != null)
+                kIsWeb
+                    ? Image.network(_mainLocalPath!, fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                    : Image.file(File(_mainLocalPath!), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
               if (_mainImageUrl != null && _mainLocalPath == null)
                 Image.network(_mainImageUrl!, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
               
@@ -315,7 +323,10 @@ class _AddCourtScreenState extends State<AddCourtScreen> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                if (localPath != null) Image.file(File(localPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+                if (localPath != null)
+                  kIsWeb
+                      ? Image.network(localPath, fit: BoxFit.cover, width: double.infinity, height: double.infinity)
+                      : Image.file(File(localPath), fit: BoxFit.cover, width: double.infinity, height: double.infinity),
                 if (url != null && localPath == null) Image.network(url, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
                 
                 if (!hasImage && !loading) Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 10, fontWeight: FontWeight.bold)),

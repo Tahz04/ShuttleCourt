@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -31,7 +32,7 @@ class WriteReviewScreen extends StatefulWidget {
 class _WriteReviewScreenState extends State<WriteReviewScreen> {
   int _rating = 5;
   final TextEditingController _commentController = TextEditingController();
-  final List<File> _selectedImages = [];
+  final List<XFile> _selectedImages = [];
   bool _isSubmitting = false;
 
   final ImagePicker _picker = ImagePicker();
@@ -51,7 +52,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
-        _selectedImages.add(File(image.path));
+        _selectedImages.add(image);
       });
     }
   }
@@ -72,11 +73,12 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
     });
   }
 
-  Future<String?> _uploadImage(File file) async {
+  Future<String?> _uploadImage(XFile file) async {
     try {
       var request = http.MultipartRequest('POST', Uri.parse(ApiConfig.uploadUrl));
+      final bytes = await file.readAsBytes();
       request.files.add(
-        await http.MultipartFile.fromPath('image', file.path, filename: path.basename(file.path))
+        http.MultipartFile.fromBytes('image', bytes, filename: file.name)
       );
 
       var response = await request.send();
@@ -338,7 +340,12 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                             margin: const EdgeInsets.only(right: 12),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
-                              image: DecorationImage(image: FileImage(entry.value), fit: BoxFit.cover),
+                              image: DecorationImage(
+                                image: kIsWeb
+                                    ? NetworkImage(entry.value.path) as ImageProvider
+                                    : FileImage(File(entry.value.path)) as ImageProvider,
+                                fit: BoxFit.cover,
+                              ),
                               boxShadow: AppTheme.softShadow,
                             ),
                             child: Stack(
